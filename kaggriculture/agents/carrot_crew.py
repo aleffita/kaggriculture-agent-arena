@@ -1,0 +1,86 @@
+"""Carrot Crew Agent for Kaggriculture (from Georgy Mamarin's Visualized Guide).
+
+Farms a dedicated 6-tile patch around the shed, waters daily, harvests on day 3,
+and delivers baskets directly to the shed.
+"""
+
+from __future__ import annotations
+
+CARROT = "CARROT"
+MAX_YIELD_DAY = 3
+PATCH = [(4, 4), (3, 4), (2, 4), (2, 3), (3, 3), (4, 3)]
+SHED_TILE = (4, 4)
+
+
+def step_toward(pos, target):
+    (x, y), (tx, ty) = pos, target
+    if x < tx: return ["EAST"]
+    if x > tx: return ["WEST"]
+    if y < ty: return ["SOUTH"]
+    if y > ty: return ["NORTH"]
+    return ["PASS"]
+
+
+def tile_needs(tile, seeds, day):
+    if isinstance(tile, dict) and tile.get("kind") == "WEED":
+        return ["DIG"]
+    if tile is None:
+        return ["PLANT", CARROT] if seeds.get(CARROT, 0) > 0 else None
+    if isinstance(tile, dict) and tile.get("kind") == "PLANT":
+        if not tile.get("watered_today"):
+            return ["WATER"]
+        if day - tile["planted_day"] >= MAX_YIELD_DAY and tile.get("yield_units", 0) > 0:
+            return ["HARVEST"]
+    return None
+
+
+def agent(obs: dict) -> dict:
+    me = obs["farms"][obs["player"]]
+    private = obs.get("private", {})
+    seeds = private.get("seeds", {})
+    carrying = (private.get("inventories") or [{}])[0]
+    fx, fy = me["farmer"]
+    market = []
+
+    in_shed = private.get("shed", {}).get(CARROT, 0)
+    if in_shed > 0:
+        market.append(["SELL", CARROT, in_shed])
+
+    empty = sum(1 for (x, y) in PATCH if me["tiles"][y][x] is None)
+    need = empty - seeds.get(CARROT, 0)
+    if need > 0 and me["money"] >= 20 * need:
+        market.append(["BUY_SEED", CARROT, need])
+
+    # 1. Living plants and weeds underfoot or in patch
+    here = me["tiles"][fy][fx]
+    if (fx, fy) in PATCH and here is not None:
+        act = tile_needs(here, seeds, obs["day"])
+        if act:
+            return {"farmer": act, "hands": [], "market": market}
+
+    for (x, y) in PATCH:
+        tile = me["tiles"][y][x]
+        if (x, y) != (fx, fy) and tile is not None and tile_needs(tile, seeds, obs["day"]):
+            return {"farmer": step_toward((fx, fy), (x, y)), "hands": [], "market": market}
+
+    # 2. Full basket: walk home and drop
+    if carrying.get(CARROT, 0) >= 9:
+        if (fx, fy) == SHED_TILE:
+            return {"farmer": ["DROP"], "hands": [], "market": market}
+        return {"farmer": step_toward((fx, fy), SHED_TILE), "hands": [], "market": market}
+
+    # 3. Planting: underfoot first, then walk to empty
+    if (fx, fy) in PATCH and here is None and seeds.get(CARROT, 0) > 0:
+        return {"farmer": ["PLANT", CARROT], "hands": [], "market": market}
+
+    for (x, y) in PATCH:
+        if (x, y) != (fx, fy) and me["tiles"][y][x] is None and seeds.get(CARROT, 0) > 0:
+            return {"farmer": step_toward((fx, fy), (x, y)), "hands": [], "market": market}
+
+    # 4. Nothing else to do: deliver whatever is held
+    if carrying.get(CARROT, 0) > 0:
+        if (fx, fy) == SHED_TILE:
+            return {"farmer": ["DROP"], "hands": [], "market": market}
+        return {"farmer": step_toward((fx, fy), SHED_TILE), "hands": [], "market": market}
+
+    return {"farmer": ["PASS"], "hands": [], "market": market}

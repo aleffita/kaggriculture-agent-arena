@@ -108,3 +108,16 @@ This document is the centralized, append-only repository of empirical insights, 
 - **Underlying Mechanism**: Capital amortization vs. time horizon. Long-duration crops (Melon takes 10 days to max yield) require upfront seed investment ($80) and daily watering without early cash flow. If the game horizon $T \le 10$, capital is locked in immature plants at episode termination. In longer seasons ($T = 30$), the huge profit margin ($250 - 80 = 170$ per unit) compounds, whereas fast cash-crops (Wheat, 2 days) provide immediate liquidity and safety in short horizons.
 - **Operational Directive**: Kaggriculture agents must condition crop selection on remaining seasonal steps ($T_{\text{remaining}}$). Never plant crops whose `time_to_max_yield` exceeds the remaining days of the season.
 
+---
+
+### [LEDGER-009] Kaggriculture Strategic Pathology & DuckDB Dream-AGI Evolutionary Loop
+- **Date**: 2026-09-29
+- **Target Subsystem / Hardware**: `kaggriculture` / DuckDB Replay Telemetry / Multi-Tier Elo Curriculum
+- **Related Project**: `kaggriculture/dream/dream_loop.py`, `kaggriculture/db/schema.py`
+- **Empirical Observation**:
+  - Analysis of `Z:\workspaces\gamedir\src\kagri\heuristic_agent.py` revealed the exact mechanism causing sub-1200 coin ceilings: an artificial `CASH_RESERVE=800` combined with `LAND_COST_HEADROOM` locked the agent out of `BUY_LAND` indefinitely, leaving it trapped in a single 25-tile quadrant with single-unit orders.
+  - In contrast, our `scale_compounder` unlocks the NE quadrant on Day 4-5 when funds reach $1050-$1100, scales Fibonacci labor to 8-10 hands, and yields **$30,810 coins** in a single 30-day season (surpassing `starter` by +$25,366 margin and `melon_expander` by +$24,173 margin).
+  - The gradient-free **Dream-AGI reflection loop** across 4 league divisions (Wood: 72 steps, Bronze: 144 steps, Silver: 240 steps, Gold: 720 steps) successfully logged 20 matches and 88 telemetry snapshots in DuckDB, diagnosed bottlenecks via automated SQL heuristics (`SINGLE_QUADRANT_STALL`, `CREW_STARVATION`), and dynamically generated succeeding agents (`evolved_market_e1_v1`, `evolved_evolved_e2_v2`).
+- **Operational Directive**: For curriculum self-play, seed the ladder at 600.0 baseline Elo. Dynamic code synthesizers must adjust land expansion gates according to the league's step horizon $T$ (e.g. Day 4 land triggers cannot execute in Wood league 3-day sprints).
+
+

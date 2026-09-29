@@ -34,3 +34,7 @@ upstream/
 # OS specifics
 Thumbs.db
 Desktop.ini
+
+# Analytical databases
+*.duckdb*
+kaggriculture/data/
