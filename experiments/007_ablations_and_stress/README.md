@@ -36,3 +36,20 @@ The parameter `gpu_decode_steps_per_sync` instructs the WebGPU compute queue to 
 ```powershell
 uv run python experiments/007_ablations_and_stress/run_probe.py
 ```
+
+---
+
+## 4. Empirical Results (GTX 1050 Ti Pascal GP107)
+
+| Steps Per Sync | Prefill Speed (t/s) | Decode Speed (t/s) | TTFT (s) | Engine Init (s) | Efficiency Ratio |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **1** | 106.01 | 43.12 | 2.44 | 5.28 | 98.2% |
+| **2** | 100.92 | 43.49 | 2.56 | 4.77 | 99.0% |
+| **4** (Sweet Spot) | **108.83** | **43.91** | **2.38** | **4.66** | **100.0%** |
+| **8** | 105.42 | 43.08 | 2.45 | 5.00 | 98.1% |
+
+### Key Architectural Insights
+1. **Queue Batching Sweet Spot**: `gpu_decode_steps_per_sync = 4` delivers the highest decode throughput (43.91 t/s) and highest prefill throughput (108.83 t/s) while cutting TTFT to 2.38s.
+2. **PCIe & D3D12 Queue Saturation**: $N=1$ suffers from per-token synchronization interrupts. At $N=8$, command queue serialization limits further amortized savings on the GP107 architecture.
+3. **Pure-Text Footprint**: Bypassing vision and audio subgraphs conserves ~550 MB VRAM, leaving ample room for 4096 tokens of KV cache without triggering Windows WDDM paging.
+

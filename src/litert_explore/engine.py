@@ -89,14 +89,54 @@ class LiteRtModelRunner:
                 )
 
     def generate(self, prompt: str) -> str:
-        """Executes one-shot text generation."""
+        """Executes one-shot text generation, returning a decoded string."""
         conversation = self.engine.create_conversation()
         response = conversation.send_message(prompt)
-        return response
+        return self._extract_text(response)
 
     def stream(self, prompt: str) -> Generator[str, None, None]:
         """Streams generation token by token."""
         conversation = self.engine.create_conversation()
-        # LiteRT-LM conversation.send_message_stream
-        for chunk in conversation.send_message_stream(prompt):
-            yield chunk
+        for chunk in conversation.send_message_async(prompt):
+            text = self._extract_text(chunk)
+            if text:
+                yield text
+
+    @staticmethod
+    def _extract_text(resp: Any) -> str:
+        """Helper to extract raw text content from LiteRT-LM response structures."""
+        if isinstance(resp, str):
+            return resp
+        if isinstance(resp, dict):
+            # Check 'content' list
+            content = resp.get("content")
+            if isinstance(content, list):
+                parts = []
+                for item in content:
+                    if isinstance(item, dict) and "text" in item:
+                        parts.append(item["text"])
+                    elif isinstance(item, str):
+                        parts.append(item)
+                if parts:
+                    return "".join(parts)
+            elif isinstance(content, str):
+                return content
+
+            # Check 'candidates' list
+            if "candidates" in resp:
+                candidates = resp["candidates"]
+                if isinstance(candidates, list) and candidates:
+                    cand = candidates[0]
+                    if isinstance(cand, dict):
+                        cand_content = cand.get("content")
+                        if isinstance(cand_content, dict):
+                            parts = cand_content.get("parts", [])
+                            return "".join(p.get("text", "") for p in parts if isinstance(p, dict))
+                        elif isinstance(cand_content, str):
+                            return cand_content
+
+            if "text" in resp:
+                return str(resp["text"])
+            return json.dumps(resp)
+        return str(resp)
+
