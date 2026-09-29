@@ -16,6 +16,7 @@ dependencies = [
     "litert-lm>=0.17.0",
     "huggingface-hub>=0.28.0",
     "rich>=13.0.0",
+    "google-antigravity>=0.1.20",
 ]
 
 [project.scripts]
