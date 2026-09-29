@@ -120,4 +120,18 @@ This document is the centralized, append-only repository of empirical insights, 
   - The gradient-free **Dream-AGI reflection loop** across 4 league divisions (Wood: 72 steps, Bronze: 144 steps, Silver: 240 steps, Gold: 720 steps) successfully logged 20 matches and 88 telemetry snapshots in DuckDB, diagnosed bottlenecks via automated SQL heuristics (`SINGLE_QUADRANT_STALL`, `CREW_STARVATION`), and dynamically generated succeeding agents (`evolved_market_e1_v1`, `evolved_evolved_e2_v2`).
 - **Operational Directive**: For curriculum self-play, seed the ladder at 600.0 baseline Elo. Dynamic code synthesizers must adjust land expansion gates according to the league's step horizon $T$ (e.g. Day 4 land triggers cannot execute in Wood league 3-day sprints).
 
+---
+
+### [LEDGER-010] Step-Level Real-Time LLM Inference on Pascal GTX 1050 Ti
+- **Date**: 2026-09-29
+- **Target Subsystem / Hardware**: NVIDIA GeForce GTX 1050 Ti (GP107) / Google LiteRT-LM / Direct3D 12
+- **Related Project**: `kaggriculture/agents/llm_player.py`, `kaggriculture/agents/llm_sprint_rusher.py`
+- **Empirical Observation**:
+  - Direct step-level neural inference was successfully deployed to the discrete GTX 1050 Ti using the DXGI vtable interceptor (`$env:LITERT_GPU_INDEX = "1"`).
+  - **Latency**: ~0.8s to 0.9s per game step (fully conforming to Kaggle's 1.0s timeout limit). Initial weight allocation overhead is ~10s amortized over the episode.
+  - **Head-to-Head Performance**: `llm_sprint_rusher` defeated `wheat_looper` ($3,000 vs $2,940, +$60 margin) in 24 steps, and `llm_player` defeated `starter` ($3,000 vs $2,960, +$40 margin).
+  - **VRAM Footprint**: Model weights and KV cache reside stably at ~2.4 GB out of 4.0 GB VRAM, with zero paging to system RAM.
+- **Operational Directive**: To avoid reloading 2.4 GB weights on every step, instantiate `LiteRtModelRunner` as a persistent process singleton. LLM-driven agents are viable for direct competitive play across all stages.
+
+
 
