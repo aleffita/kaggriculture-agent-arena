@@ -1,11 +1,8 @@
-"""Dream-AGI Recursive Multi-Stage Arena & DuckDB Telemetry Loop.
+"""Dream-RSI Multi-Stage Arena & Research Notes Engine.
 
-Executes the Unified Swiss-Gated Double-Elimination Curriculum across 4 stages:
-Stage 1 (Sprint: 72 steps), Stage 2 (Expansion: 144 steps),
-Stage 3 (Scaling: 240 steps), Stage 4 (Full Season: 720 steps).
-
-Each stage maintains an independent Elo rating starting at 600.0 (scaling to 3200.0).
-Telemetry and match replays are continuously persisted into DuckDB.
+100% LLM Agents competing on the NVIDIA GeForce GTX 1050 Ti via Direct3D 12.
+Decouples horizon stages, runs Swiss matchmaking, generates DuckDB telemetry,
+and iteratively writes research notes in kaggriculture/notes/ while refining prompt personalities.
 """
 
 from __future__ import annotations
@@ -38,28 +35,25 @@ from kaggriculture.db.schema import (
 )
 from kaggriculture.arena.stages import STAGES, STAGE_ORDER
 from kaggriculture.arena.arena_engine import run_stage_swiss_round
-from kaggriculture.dream.dream_reflector import introspect_epoch
-from kaggriculture.dream.agent_mutator import mutate_agent_for_flaw
+from kaggriculture.dream.dream_rsi import run_dream_rsi
 
 console = Console(highlight=False)
 
 
 def seed_initial_roster():
-    """Seeds the initial roster across all 4 stages with 600.0 baseline Elo."""
+    """Seeds the initial roster with 100% LLM Personalities running on GTX 1050 Ti."""
     initialize_schema()
 
-    initial_agents = [
-        ("random", "v1", "Built-in uniform random movement baseline"),
-        ("starter", "v1", "Built-in single-tile carrot farmer"),
-        ("wheat_looper", "v1", "Fast 2-day wheat turnaround looper"),
-        ("carrot_crew", "v1", "6-carrot rotation around central shed"),
-        ("crew_partitioner", "v1", "12-tile partitioned crew with Fibonacci hiring"),
-        ("market_arbitrage", "v1", "BFS dynamic pricing and multi-crop arbitrage"),
-        ("scale_compounder", "v1", "Day 4-5 NE expansion with 8-10 crew and melon compounding"),
-        ("melon_expander", "v1", "Multi-quadrant NE+SE expansion with 12 crew and melon compounding"),
+    llm_personalities = [
+        ("llm_sprint_rusher", "v1", "LLM Sprint Rusher: 2-day wheat turnaround, zero weed tolerance"),
+        ("llm_land_baron", "v1", "LLM Land Baron: Day 4-5 NE territorial expansion gate ($1050)"),
+        ("llm_labor_magnate", "v1", "LLM Labor Magnate: Daily Fibonacci labor scaling and action economy"),
+        ("llm_melon_monopolist", "v1", "LLM Melon Monopolist: High-margin Melon compounding & batched selling"),
+        ("llm_market_arbitrageur", "v1", "LLM Market Arbitrageur: Dynamic crop portfolio exploiting price spikes"),
+        ("llm_cautious_farmer", "v1", "LLM Cautious Farmer: Low-variance shed perimeter carrot cultivation"),
     ]
 
-    for name, ver, desc in initial_agents:
+    for name, ver, desc in llm_personalities:
         ag_id = register_agent(
             name=name,
             version=ver,
@@ -73,7 +67,7 @@ def seed_initial_roster():
 
 
 def display_global_leaderboard(epoch: int):
-    """Renders the multi-stage Elo matrix leaderboard and highlights stage champions."""
+    """Renders the 100% LLM multi-stage Elo matrix leaderboard and highlights stage champions."""
     con = get_connection(read_only=True)
     rows = con.execute("""
         SELECT 
@@ -93,18 +87,11 @@ def display_global_leaderboard(epoch: int):
         GROUP BY a.agent_id
         ORDER BY max_peak DESC, total_coins DESC
     """).fetchall()
-
-    insights = con.execute("""
-        SELECT agent_id, flaw_diagnosed, mutation_applied, successor_agent_id
-        FROM dream_insights
-        WHERE epoch = ?
-    """, [epoch]).fetchall()
-
     con.close()
 
-    table = Table(title=f"Kaggriculture Unified Stage Matrix Leaderboard — Epoch {epoch}")
+    table = Table(title=f"Kaggriculture 100% LLM Arena Leaderboard — Epoch {epoch}")
     table.add_column("Rank", justify="center", style="bold")
-    table.add_column("Agent ID", style="cyan")
+    table.add_column("LLM Personality", style="cyan")
     table.add_column("Sprint (72s)", justify="right", style="green")
     table.add_column("Expansion (144s)", justify="right", style="green")
     table.add_column("Scaling (240s)", justify="right", style="green")
@@ -138,25 +125,21 @@ def display_global_leaderboard(epoch: int):
         top_scal = max(rows, key=lambda x: x[3])
         top_full = max(rows, key=lambda x: x[4])
 
-        console.print(f"\n[bold yellow][*] TOP ELO STAGE CHAMPIONS (Epoch {epoch}):[/bold yellow]")
+        console.print(f"\n[bold yellow][*] TOP ELO LLM STAGE CHAMPIONS (Epoch {epoch}):[/bold yellow]")
         console.print(f"  * [bold cyan]Sprint (3d)[/bold cyan]:      [bold green]{top_sprint[0]}[/bold green] (Elo: {top_sprint[1]:.1f})")
         console.print(f"  * [bold cyan]Expansion (6d)[/bold cyan]:   [bold green]{top_exp[0]}[/bold green] (Elo: {top_exp[2]:.1f})")
         console.print(f"  * [bold cyan]Scaling (10d)[/bold cyan]:    [bold green]{top_scal[0]}[/bold green] (Elo: {top_scal[3]:.1f})")
         console.print(f"  * [bold cyan]Full Season (30d)[/bold cyan]:[bold green]{top_full[0]}[/bold green] (Elo: {top_full[4]:.1f})")
 
-    # Show Dream Insights
-    if insights:
-        console.print(f"\n[bold cyan][DREAM] Dream-AGI Evolutionary Mutations in Epoch {epoch}:[/bold cyan]")
-        for ins in insights:
-            console.print(f"  * Diagnosed [red]{ins[0]}[/red]: {ins[1]}")
-            console.print(f"    -> Spawned [green]{ins[3]}[/green] in Lower Bracket: {ins[2]}")
 
+def run_dream_loop(epochs: int = 10, rounds_per_stage: int = 1, active_stages: Optional[list[str]] = None):
+    """Executes the full Dream-RSI evolutionary cycle over N epochs across LLM personalities."""
+    stages_to_run = active_stages or STAGE_ORDER
 
-def run_dream_loop(epochs: int = 10, rounds_per_stage: int = 2):
-    """Executes the full Dream-AGI evolutionary cycle over N epochs across all stages."""
     console.print(Panel(
-        "[bold cyan]Kaggriculture Unified Stage Arena & DuckDB Telemetry Broker[/bold cyan]\n"
-        "[dim]DeepMind-inspired Swiss matchmaking, double-elimination lower bracket, and horizon-gated curriculum.[/dim]",
+        "[bold cyan]Kaggriculture 100% LLM Arena & Dream-RSI Knowledge Engine[/bold cyan]\n"
+        "[dim]Direct step-by-step neural play on NVIDIA GTX 1050 Ti (Google LiteRT-LM / Direct3D 12).\n"
+        "Features prompt personality diversity, Swiss pairing, and dialectical knowledge synthesis.[/dim]",
         border_style="cyan"
     ))
 
@@ -167,36 +150,35 @@ def run_dream_loop(epochs: int = 10, rounds_per_stage: int = 2):
         console.print(f"[bold magenta]                         STARTING ARENA EPOCH {ep}/{epochs}                         [/bold magenta]")
         console.print(f"[bold magenta]===========================================================================[/bold magenta]\n")
 
-        # 1. Inner Loop: Play Swiss rounds across all 4 stages in parallel
-        for stage_id in STAGE_ORDER:
+        # 1. Inner Loop: Play Swiss rounds across stages
+        for stage_id in stages_to_run:
             stg = STAGES[stage_id]
-            console.print(f"[yellow]Executing {stg.name} (Horizon: {stg.step_horizon} steps / {stg.in_game_days} days | Swiss Pairing)...[/yellow]")
+            console.print(f"[yellow]Executing {stg.name} (Horizon: {stg.step_horizon} steps / {stg.in_game_days} days | Swiss LLM Duels on GTX 1050 Ti)...[/yellow]")
             res = run_stage_swiss_round(epoch=ep, stage_id=stage_id, rounds=rounds_per_stage)
-            console.print(f"  Completed {len(res)} Swiss duels in {stage_id}.\n")
+            console.print(f"  Completed {len(res)} Swiss duels on GTX 1050 Ti in {stage_id}.\n")
 
-        # 2. Outer Loop: Dream reflection over DuckDB match telemetry
-        console.print(f"[cyan]Entering Dream Reflection phase for Epoch {ep}...[/cyan]")
-        diagnoses = introspect_epoch(ep)
-        
-        if diagnoses:
-            worst = diagnoses[0]
-            console.print(f"  Flaw identified on [bold]{worst['agent_id']}[/bold]: {', '.join(worst['flaws'])}")
-            successor_id = mutate_agent_for_flaw(worst, ep)
-            console.print(f"  Synthesized successor: [bold green]{successor_id}[/bold green] (Entered at 600.0 Elo in Lower Bracket).\n")
+        # 2. Outer Loop: Dream-RSI Reflection over DuckDB telemetry
+        console.print(f"[cyan]Entering Dream-RSI Knowledge Synthesis for Epoch {ep}...[/cyan]")
+        rsi_result = run_dream_rsi(ep)
+        console.print(f"  [bold green][NOTE CREATED][/bold green] {rsi_result['note_path']}")
+        if rsi_result["refinements"]:
+            console.print(f"  [bold yellow][PROMPTS REFINED][/bold yellow] Dialectical patches applied to: {', '.join(rsi_result['refinements'])}\n")
         else:
-            console.print("  No critical failure bottlenecks detected in this epoch.\n")
+            console.print("  [dim]All LLM personalities maintained balanced performance.[/dim]\n")
 
         # 3. Render Epoch Summary Leaderboard
         display_global_leaderboard(ep)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run the Kaggriculture Unified Multi-Stage Dream-AGI loop.")
+    parser = argparse.ArgumentParser(description="Run the Kaggriculture 100% LLM Arena with Dream-RSI.")
     parser.add_argument("--epochs", type=int, default=10, help="Number of evolutionary epochs (default: 10)")
-    parser.add_argument("--rounds", type=int, default=2, help="Swiss rounds per stage per epoch (default: 2)")
+    parser.add_argument("--rounds", type=int, default=1, help="Swiss rounds per stage per epoch (default: 1)")
+    parser.add_argument("--stages", type=str, default="", help="Comma-separated stages to run (e.g. Sprint,Expansion)")
     args = parser.parse_args()
 
-    run_dream_loop(epochs=args.epochs, rounds_per_stage=args.rounds)
+    stages = [s.strip() for s in args.stages.split(",") if s.strip()] if args.stages else None
+    run_dream_loop(epochs=args.epochs, rounds_per_stage=args.rounds, active_stages=stages)
 
 
 if __name__ == "__main__":

@@ -70,12 +70,19 @@ class LiteRtModelRunner:
         self._init_engine()
 
     def _init_engine(self):
+        if litert_lm and hasattr(litert_lm, "set_min_log_severity"):
+            try:
+                litert_lm.set_min_log_severity(litert_lm.LogSeverity.ERROR)
+            except Exception:
+                pass
+
         if self.backend_str == "cpu":
             backend_obj = interfaces.CPU()
             self.engine = litert_lm.Engine(
                 model_path=self.model_path,
                 backend=backend_obj,
                 max_num_tokens=self.max_num_tokens,
+                max_num_images=0,
             )
         else:
             # GPU backend
@@ -86,6 +93,7 @@ class LiteRtModelRunner:
                     model_path=self.model_path,
                     backend=backend_obj,
                     max_num_tokens=self.max_num_tokens,
+                    max_num_images=0,
                 )
 
     def generate(self, prompt: str) -> str:
