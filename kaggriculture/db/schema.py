@@ -40,11 +40,26 @@ def initialize_schema():
         code_path VARCHAR
     );
 
+    CREATE TABLE IF NOT EXISTS agent_stage_ratings (
+        agent_id VARCHAR NOT NULL,
+        stage VARCHAR NOT NULL,
+        elo DOUBLE NOT NULL DEFAULT 600.0,
+        matches_played INTEGER NOT NULL DEFAULT 0,
+        wins INTEGER NOT NULL DEFAULT 0,
+        losses INTEGER NOT NULL DEFAULT 0,
+        draws INTEGER NOT NULL DEFAULT 0,
+        peak_elo DOUBLE NOT NULL DEFAULT 600.0,
+        total_coins DOUBLE NOT NULL DEFAULT 0.0,
+        bracket VARCHAR NOT NULL DEFAULT 'Upper',
+        PRIMARY KEY (agent_id, stage)
+    );
+
     CREATE TABLE IF NOT EXISTS matches (
         match_id VARCHAR PRIMARY KEY,
         epoch INTEGER NOT NULL,
-        league VARCHAR NOT NULL,
+        stage VARCHAR NOT NULL,
         steps INTEGER NOT NULL,
+        bracket VARCHAR NOT NULL DEFAULT 'Upper',
         agent_p0 VARCHAR NOT NULL,
         agent_p1 VARCHAR NOT NULL,
         p0_bank DOUBLE NOT NULL,
@@ -223,6 +238,160 @@ def record_match(
         WHERE agent_id = ?
         """,
         [p1_elo_after, p1_win, p1_loss, p1_draw, p1_bank, agent_p1],
+    )
+
+    # Insert telemetry samples if provided
+    if telemetry_samples:
+        for idx, s in enumerate(telemetry_samples):
+            tid = f"{match_id}_t{idx}"
+            con.execute(
+                """
+                INSERT INTO match_telemetry VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                )
+                """,
+                [
+                    tid, match_id, s.get("turn", 0), s.get("day", 0), s.get("hour", 0),
+                    s.get("p0_money", 0.0), s.get("p1_money", 0.0),
+                    s.get("p0_crew", 0), s.get("p1_crew", 0),
+                    s.get("p0_tiles_planted", 0), s.get("p1_tiles_planted", 0),
+                    s.get("p0_quadrants", 1), s.get("p1_quadrants", 1),
+                    s.get("market_wheat"), s.get("market_carrot"), s.get("market_melon"),
+                ],
+            )
+
+    con.close()
+
+
+def ensure_stage_rating(
+    agent_id: str,
+    stage: str,
+    initial_elo: float = 600.0,
+    bracket: str = "Upper",
+):
+    """Ensures an agent has an independent rating entry for a specific horizon stage."""
+    con = get_connection()
+    exists = con.execute(
+        "SELECT 1 FROM agent_stage_ratings WHERE agent_id = ? AND stage = ?",
+        [agent_id, stage],
+    ).fetchone()
+    if not exists:
+        con.execute(
+            """
+            INSERT INTO agent_stage_ratings (
+                agent_id, stage, elo, matches_played, wins, losses, draws,
+                peak_elo, total_coins, bracket
+            ) VALUES (?, ?, ?, 0, 0, 0, 0, ?, 0.0, ?)
+            """,
+            [agent_id, stage, initial_elo, initial_elo, bracket],
+        )
+    con.close()
+
+
+def record_stage_match(
+    match_id: str,
+    epoch: int,
+    stage: str,
+    steps: int,
+    bracket: str,
+    agent_p0: str,
+    agent_p1: str,
+    p0_bank: float,
+    p1_bank: float,
+    winner: str,
+    margin: float,
+    p0_elo_before: float,
+    p0_elo_after: float,
+    p1_elo_before: float,
+    p1_elo_after: float,
+    duration_s: float,
+    telemetry_samples: Optional[List[Dict[str, Any]]] = None,
+):
+    """Persists a stage match, updates stage-specific ratings and telemetry."""
+    con = get_connection()
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    # Insert match
+    con.execute(
+        """
+        INSERT INTO matches (
+            match_id, epoch, stage, steps, bracket, agent_p0, agent_p1, p0_bank, p1_bank,
+            winner, margin, p0_elo_before, p0_elo_after, p1_elo_before, p1_elo_after,
+            duration_s, timestamp
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            match_id, epoch, stage, steps, bracket, agent_p0, agent_p1, p0_bank, p1_bank,
+            winner, margin, p0_elo_before, p0_elo_after, p1_elo_before, p1_elo_after,
+            duration_s, now,
+        ],
+    )
+
+    # Record Elo history
+    p0_delta = p0_elo_after - p0_elo_before
+    p1_delta = p1_elo_after - p1_elo_before
+    con.execute(
+        "INSERT INTO elo_history VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [f"{match_id}_p0", agent_p0, match_id, p0_elo_before, p0_elo_after, p0_delta, now],
+    )
+    con.execute(
+        "INSERT INTO elo_history VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [f"{match_id}_p1", agent_p1, match_id, p1_elo_before, p1_elo_after, p1_delta, now],
+    )
+
+    # Update agent_stage_ratings
+    p0_win = 1 if winner == agent_p0 else 0
+    p0_loss = 1 if (winner != agent_p0 and winner != "Draw") else 0
+    p0_draw = 1 if winner == "Draw" else 0
+
+    p1_win = 1 if winner == agent_p1 else 0
+    p1_loss = 1 if (winner != agent_p1 and winner != "Draw") else 0
+    p1_draw = 1 if winner == "Draw" else 0
+
+    con.execute(
+        """
+        UPDATE agent_stage_ratings
+        SET elo = ?, peak_elo = GREATEST(peak_elo, ?),
+            matches_played = matches_played + 1,
+            wins = wins + ?, losses = losses + ?, draws = draws + ?,
+            total_coins = total_coins + ?
+        WHERE agent_id = ? AND stage = ?
+        """,
+        [p0_elo_after, p0_elo_after, p0_win, p0_loss, p0_draw, p0_bank, agent_p0, stage],
+    )
+
+    con.execute(
+        """
+        UPDATE agent_stage_ratings
+        SET elo = ?, peak_elo = GREATEST(peak_elo, ?),
+            matches_played = matches_played + 1,
+            wins = wins + ?, losses = losses + ?, draws = draws + ?,
+            total_coins = total_coins + ?
+        WHERE agent_id = ? AND stage = ?
+        """,
+        [p1_elo_after, p1_elo_after, p1_win, p1_loss, p1_draw, p1_bank, agent_p1, stage],
+    )
+
+    # Also update global aggregate on agents table
+    con.execute(
+        """
+        UPDATE agents
+        SET matches_played = matches_played + 1,
+            wins = wins + ?, losses = losses + ?, draws = draws + ?,
+            total_coins = total_coins + ?
+        WHERE agent_id = ?
+        """,
+        [p0_win, p0_loss, p0_draw, p0_bank, agent_p0],
+    )
+    con.execute(
+        """
+        UPDATE agents
+        SET matches_played = matches_played + 1,
+            wins = wins + ?, losses = losses + ?, draws = draws + ?,
+            total_coins = total_coins + ?
+        WHERE agent_id = ?
+        """,
+        [p1_win, p1_loss, p1_draw, p1_bank, agent_p1],
     )
 
     # Insert telemetry samples if provided

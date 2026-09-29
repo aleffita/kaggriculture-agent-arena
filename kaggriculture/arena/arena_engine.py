@@ -18,6 +18,8 @@ sys.path.insert(0, str(repo_root / "kaggriculture" / "agents"))
 from kaggle_environments import make
 
 from kaggriculture.arena.elo import update_elo
+from kaggriculture.arena.stages import STAGES, STAGE_ORDER
+from kaggriculture.arena.matchmaking import swiss_pairings, split_upper_lower_brackets
 from kaggriculture.arena.leagues import (
     LEAGUES,
     LEAGUE_ORDER,
@@ -27,6 +29,7 @@ from kaggriculture.arena.leagues import (
 from kaggriculture.db.schema import (
     get_connection,
     record_match,
+    record_stage_match,
     log_promotion,
 )
 
@@ -203,5 +206,113 @@ def run_league_season(epoch: int, league_name: str) -> List[Dict[str, Any]]:
         if promo:
             new_league, reason = promo
             log_promotion(ag_id, league_name, new_league, epoch, reason)
+
+    return results
+
+
+def run_stage_swiss_round(
+    epoch: int,
+    stage_id: str,
+    rounds: int = 2,
+) -> List[Dict[str, Any]]:
+    """Runs a multi-round Swiss tournament for a horizon stage across Upper and Lower brackets."""
+    stage = STAGES[stage_id]
+    con = get_connection()
+    
+    rows = con.execute("""
+        SELECT r.agent_id, a.name, r.elo, r.matches_played, r.wins, r.bracket
+        FROM agent_stage_ratings r
+        JOIN agents a ON r.agent_id = a.agent_id
+        WHERE r.stage = ?
+    """, [stage_id]).fetchall()
+    con.close()
+
+    if len(rows) < 2:
+        return []
+
+    agent_records = [
+        {
+            "agent_id": r[0],
+            "name": r[1],
+            "elo": float(r[2]),
+            "matches": int(r[3]),
+            "wins": int(r[4]),
+            "bracket": r[5],
+        }
+        for r in rows
+    ]
+
+    results = []
+    played_pairs: set[Tuple[str, str]] = set()
+
+    # Split into Upper and Lower brackets
+    upper_bracket, lower_bracket = split_upper_lower_brackets(agent_records)
+    brackets = [("Upper", upper_bracket)]
+    if lower_bracket:
+        brackets.append(("Lower", lower_bracket))
+
+    match_counter = 1
+    for bracket_name, pool in brackets:
+        if len(pool) < 2:
+            continue
+
+        for r_num in range(1, rounds + 1):
+            pairs = swiss_pairings(pool, played_pairs)
+            for ag_a, ag_b in pairs:
+                p0_id, name_a, elo_a, m_a = ag_a["agent_id"], ag_a["name"], ag_a["elo"], ag_a["matches"]
+                p1_id, name_b, elo_b, m_b = ag_b["agent_id"], ag_b["name"], ag_b["elo"], ag_b["matches"]
+
+                played_pairs.add((p0_id, p1_id))
+
+                p0_bank, p1_bank, winner_name, margin, duration, telem = run_single_duel(
+                    name_a, name_b, steps=stage.step_horizon
+                )
+
+                winner_id = p0_id if winner_name == name_a else (p1_id if winner_name == name_b else "Draw")
+                score_a = 1.0 if winner_name == name_a else (0.5 if winner_name == "Draw" else 0.0)
+
+                new_elo_a, new_elo_b = update_elo(elo_a, elo_b, score_a, m_a, m_b)
+
+                ag_a["elo"] = new_elo_a
+                ag_a["matches"] += 1
+                ag_b["elo"] = new_elo_b
+                ag_b["matches"] += 1
+
+                mid = f"m_{epoch}_{stage_id}_{bracket_name}_{p0_id}_vs_{p1_id}_{match_counter}"
+                match_counter += 1
+
+                record_stage_match(
+                    match_id=mid,
+                    epoch=epoch,
+                    stage=stage_id,
+                    steps=stage.step_horizon,
+                    bracket=bracket_name,
+                    agent_p0=p0_id,
+                    agent_p1=p1_id,
+                    p0_bank=p0_bank,
+                    p1_bank=p1_bank,
+                    winner=winner_id,
+                    margin=margin,
+                    p0_elo_before=elo_a,
+                    p0_elo_after=new_elo_a,
+                    p1_elo_before=elo_b,
+                    p1_elo_after=new_elo_b,
+                    duration_s=duration,
+                    telemetry_samples=telem,
+                )
+
+                results.append({
+                    "match_id": mid,
+                    "stage": stage_id,
+                    "bracket": bracket_name,
+                    "p0": p0_id,
+                    "p1": p1_id,
+                    "p0_bank": p0_bank,
+                    "p1_bank": p1_bank,
+                    "winner": winner_id,
+                    "margin": margin,
+                    "elo_a": new_elo_a,
+                    "elo_b": new_elo_b,
+                })
 
     return results

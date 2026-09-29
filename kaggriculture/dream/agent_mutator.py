@@ -10,7 +10,7 @@ from typing import Dict, Any
 repo_root = pathlib.Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(repo_root))
 
-from kaggriculture.db.schema import register_agent, log_dream_insight
+from kaggriculture.db.schema import register_agent, log_dream_insight, ensure_stage_rating
 
 AGENTS_DIR = repo_root / "kaggriculture" / "agents"
 
@@ -167,15 +167,18 @@ def mutate_agent_for_flaw(diagnosis: Dict[str, Any], epoch: int) -> str:
     target_path.write_text(code, encoding="utf-8")
     mutation_desc = f"Injected early Day 4 land gate ($1050) and scaled Fibonacci crew ({flaw_str})"
 
-    # Register in DuckDB
+    # Register in DuckDB global and stage rating tables
     new_agent_id = register_agent(
         name=successor_name,
         version=f"v{epoch}",
-        league="Wood",
+        league="Sprint",
         initial_elo=600.0,
         description=f"Successor evolved in epoch {epoch} to solve {flaw_str}",
         code_path=str(target_path),
     )
+
+    for stg in ["Sprint", "Expansion", "Scaling", "FullSeason"]:
+        ensure_stage_rating(new_agent_id, stg, initial_elo=600.0, bracket="Lower")
 
     log_dream_insight(epoch, agent_id, flaw_str, mutation_desc, new_agent_id)
     return new_agent_id
