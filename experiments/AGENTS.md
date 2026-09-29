@@ -49,9 +49,15 @@ experiments/
 │   ├── AGENTS.md
 │   ├── README.md
 │   └── run_probe.py
-└── 007_ablations_and_stress/                # Study 6: Context length, batching & VRAM stress
+├── 007_ablations_and_stress/                # Study 6: Context length, batching & VRAM stress
+│   ├── AGENTS.md
+│   ├── README.md
+│   └── run_probe.py
+└── 008_antigravity_hybrid_orchestrator/     # Study 7: Hybrid Cloud Architect + Local Sentinel Swarm
     ├── AGENTS.md
     ├── README.md
+    ├── slingshot_stream.py
+    ├── hybrid_orchestrator.py
     └── run_probe.py
 ```
 
