@@ -1,0 +1,36 @@
+# Python & Virtual Environments
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# LiteRT & Large Models
+*.litertlm
+*.bin
+*.safetensors
+*.onnx
+cache/
+.cache/
+
+# Upstream Clone
+upstream/
+
+# Build artifacts & Shims
+*.obj
+*.lib
+*.exp
+*.pdb
+*.ilk
+
+# IDE & Editor caches
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specifics
+Thumbs.db
+Desktop.ini

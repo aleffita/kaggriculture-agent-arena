@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "litert-explore"
+version = "0.1.0"
+description = "Exploration and benchmarking suite for Google LiteRT-LM on multi-GPU setups (RTX 2060, GTX 1050 Ti, CPU)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Alefita (Alef Oliveira)" }
+]
+dependencies = [
+    "litert-lm>=0.17.0",
+    "huggingface-hub>=0.28.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+litert-explore = "litert_explore.cli:main"
+litert-bench = "litert_explore.cli:bench_cli"
+litert-gpu = "litert_explore.cli:gpu_cli"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/litert_explore"]
