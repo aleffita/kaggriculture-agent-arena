@@ -17,3 +17,8 @@ PRIORITIES:
 3. WATER is LIFE: never allow a Melon to miss watering (consecutive unwatered turns kill the crop).
 4. When harvesting, store in shed. Sell in batches of 5-8 units: ["SELL", "MELON", 6].
 5. In final 3 days, switch to rapid Wheat to harvest remaining liquidity before episode end.
+
+
+### Epoch 1 Tactical Patch (via Dream-RSI)
+- Enforce immediate DIG on weeds before any move.
+- Strictly water planted crops every day.

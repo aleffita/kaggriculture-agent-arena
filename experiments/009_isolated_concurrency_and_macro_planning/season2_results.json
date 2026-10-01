@@ -1,0 +1,222 @@
+{
+  "seeds": [
+    42,
+    101,
+    777,
+    2026
+  ],
+  "phase1_matches_count": 60,
+  "phase1_duration_s": 9928.14,
+  "leaderboard_phase1": [
+    {
+      "name": "H24",
+      "elo": 785.6,
+      "matches": 20,
+      "wins": 17,
+      "draws": 5,
+      "losses": 0,
+      "total_coins": 57540.0,
+      "total_inferences": 180,
+      "replan_events": 0
+    },
+    {
+      "name": "H24-Hybrid",
+      "elo": 768.6,
+      "matches": 20,
+      "wins": 17,
+      "draws": 5,
+      "losses": 0,
+      "total_coins": 57300.0,
+      "total_inferences": 181,
+      "replan_events": 2
+    },
+    {
+      "name": "H12",
+      "elo": 615.5,
+      "matches": 20,
+      "wins": 9,
+      "draws": 4,
+      "losses": 9,
+      "total_coins": 52980.0,
+      "total_inferences": 360,
+      "replan_events": 0
+    },
+    {
+      "name": "H12-Hybrid",
+      "elo": 569.1,
+      "matches": 20,
+      "wins": 8,
+      "draws": 3,
+      "losses": 11,
+      "total_coins": 51000.0,
+      "total_inferences": 488,
+      "replan_events": 208
+    },
+    {
+      "name": "H6-Hybrid",
+      "elo": 441.7,
+      "matches": 20,
+      "wins": 0,
+      "draws": 5,
+      "losses": 15,
+      "total_coins": 47220.0,
+      "total_inferences": 481,
+      "replan_events": 1
+    },
+    {
+      "name": "H6",
+      "elo": 419.5,
+      "matches": 20,
+      "wins": 0,
+      "draws": 4,
+      "losses": 16,
+      "total_coins": 46500.0,
+      "total_inferences": 480,
+      "replan_events": 0
+    }
+  ],
+  "playoffs": [
+    {
+      "round": "Semifinal 1",
+      "p0": "H24",
+      "p1": "H12-Hybrid",
+      "seed": 42,
+      "steps": 720,
+      "winner": "H24",
+      "p0_bank": 1560.0,
+      "p1_bank": 0.0,
+      "score0": 1.0,
+      "score1": 0.0,
+      "inf0": 30,
+      "inf1": 132,
+      "ev0": 0,
+      "ev1": 87,
+      "duration_s": 1084.13
+    },
+    {
+      "round": "Semifinal 2",
+      "p0": "H24-Hybrid",
+      "p1": "H12",
+      "seed": 42,
+      "steps": 720,
+      "winner": "H24-Hybrid",
+      "p0_bank": 1380.0,
+      "p1_bank": 720.0,
+      "score0": 1.0,
+      "score1": 0.0,
+      "inf0": 31,
+      "inf1": 60,
+      "ev0": 2,
+      "ev1": 0,
+      "duration_s": 633.6
+    },
+    {
+      "round": "3rd Place Match",
+      "p0": "H12-Hybrid",
+      "p1": "H12",
+      "seed": 42,
+      "steps": 720,
+      "winner": "H12",
+      "p0_bank": 240.0,
+      "p1_bank": 1080.0,
+      "score0": 0.0,
+      "score1": 1.0,
+      "inf0": 81,
+      "inf1": 60,
+      "ev0": 35,
+      "ev1": 0,
+      "duration_s": 913.11
+    },
+    {
+      "round": "Grand Final",
+      "p0": "H24",
+      "p1": "H24-Hybrid",
+      "seed": 42,
+      "steps": 720,
+      "winner": "Draw",
+      "p0_bank": 1680.0,
+      "p1_bank": 1680.0,
+      "score0": 0.5,
+      "score1": 0.5,
+      "inf0": 30,
+      "inf1": 30,
+      "ev0": 0,
+      "ev1": 0,
+      "duration_s": 470.87
+    }
+  ],
+  "final_podium": {
+    "champion": "Draw",
+    "runner_up": "H24",
+    "third_place": "H12",
+    "fourth_place": "H12-Hybrid"
+  },
+  "final_leaderboard": [
+    {
+      "name": "H24",
+      "elo": 785.6,
+      "matches": 20,
+      "wins": 17,
+      "draws": 5,
+      "losses": 0,
+      "total_coins": 57540.0,
+      "total_inferences": 180,
+      "replan_events": 0
+    },
+    {
+      "name": "H24-Hybrid",
+      "elo": 768.6,
+      "matches": 20,
+      "wins": 17,
+      "draws": 5,
+      "losses": 0,
+      "total_coins": 57300.0,
+      "total_inferences": 181,
+      "replan_events": 2
+    },
+    {
+      "name": "H12",
+      "elo": 615.5,
+      "matches": 20,
+      "wins": 9,
+      "draws": 4,
+      "losses": 9,
+      "total_coins": 52980.0,
+      "total_inferences": 360,
+      "replan_events": 0
+    },
+    {
+      "name": "H12-Hybrid",
+      "elo": 569.1,
+      "matches": 20,
+      "wins": 8,
+      "draws": 3,
+      "losses": 11,
+      "total_coins": 51000.0,
+      "total_inferences": 488,
+      "replan_events": 208
+    },
+    {
+      "name": "H6-Hybrid",
+      "elo": 441.7,
+      "matches": 20,
+      "wins": 0,
+      "draws": 5,
+      "losses": 15,
+      "total_coins": 47220.0,
+      "total_inferences": 481,
+      "replan_events": 1
+    },
+    {
+      "name": "H6",
+      "elo": 419.5,
+      "matches": 20,
+      "wins": 0,
+      "draws": 4,
+      "losses": 16,
+      "total_coins": 46500.0,
+      "total_inferences": 480,
+      "replan_events": 0
+    }
+  ]
+}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import threading
 from typing import Generator, Optional
 
 try:
@@ -67,6 +68,7 @@ class LiteRtModelRunner:
         self.gpu_target = gpu_target
         self.max_num_tokens = max_num_tokens
         self.engine = None
+        self._lock = threading.Lock()
         self._init_engine()
 
     def _init_engine(self):
@@ -98,9 +100,22 @@ class LiteRtModelRunner:
 
     def generate(self, prompt: str) -> str:
         """Executes one-shot text generation, returning a decoded string."""
-        conversation = self.engine.create_conversation()
-        response = conversation.send_message(prompt)
-        return self._extract_text(response)
+        with self._lock:
+            conversation = self.engine.create_conversation()
+            response = conversation.send_message(prompt)
+            return self._extract_text(response)
+
+    def generate_structured(self, prompt: str, schema: dict) -> str:
+        """Executes one-shot constrained structured JSON decoding using LL_GUIDANCE."""
+        with self._lock:
+            cdc = litert_lm.ConstrainedDecodingConfig(
+                enable=True,
+                provider=litert_lm.LiteRtLmConstraintProviderType.LL_GUIDANCE
+            )
+            rf = litert_lm.ResponseFormat.json(schema)
+            conversation = self.engine.create_conversation(constrained_decoding_config=cdc)
+            response = conversation.send_message(prompt, response_format=rf)
+            return self._extract_text(response)
 
     def stream(self, prompt: str) -> Generator[str, None, None]:
         """Streams generation token by token."""

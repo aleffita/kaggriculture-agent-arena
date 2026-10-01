@@ -122,6 +122,22 @@ def initialize_schema():
         successor_agent_id VARCHAR,
         timestamp TIMESTAMP NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS replays (
+        replay_id VARCHAR PRIMARY KEY,
+        match_id VARCHAR,
+        title VARCHAR,
+        agent_p0 VARCHAR NOT NULL,
+        agent_p1 VARCHAR NOT NULL,
+        steps INTEGER NOT NULL,
+        p0_bank DOUBLE NOT NULL,
+        p1_bank DOUBLE NOT NULL,
+        winner VARCHAR NOT NULL,
+        margin DOUBLE NOT NULL,
+        replay_path VARCHAR NOT NULL,
+        source VARCHAR NOT NULL DEFAULT 'arena',
+        created_at TIMESTAMP NOT NULL
+    );
     """)
     con.close()
 
@@ -447,3 +463,73 @@ def log_dream_insight(epoch: int, agent_id: str, flaw: str, mutation: str, succe
         [insight_id, epoch, agent_id, flaw, mutation, successor_id, now],
     )
     con.close()
+
+
+def record_replay(
+    replay_id: str,
+    agent_p0: str,
+    agent_p1: str,
+    steps: int,
+    p0_bank: float,
+    p1_bank: float,
+    winner: str,
+    margin: float,
+    replay_path: str,
+    match_id: Optional[str] = None,
+    title: Optional[str] = None,
+    source: str = "arena",
+    created_at: Optional[datetime.datetime] = None,
+):
+    """Saves replay metadata to DuckDB."""
+    now = created_at or datetime.datetime.now()
+    con = get_connection()
+    exists = con.execute("SELECT 1 FROM replays WHERE replay_id = ?", [replay_id]).fetchone()
+    if exists:
+        con.execute(
+            """
+            UPDATE replays
+            SET p0_bank = ?, p1_bank = ?, winner = ?, margin = ?, replay_path = ?
+            WHERE replay_id = ?
+            """,
+            [p0_bank, p1_bank, winner, margin, str(replay_path), replay_id],
+        )
+    else:
+        con.execute(
+            """
+            INSERT INTO replays VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                replay_id, match_id, title or f"{agent_p0} vs {agent_p1}",
+                agent_p0, agent_p1, steps, p0_bank, p1_bank, winner, margin,
+                str(replay_path), source, now,
+            ],
+        )
+    con.close()
+
+
+def list_replays(limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+    """Lists saved replays ordered by most recent."""
+    con = get_connection(read_only=True)
+    rows = con.execute(
+        """
+        SELECT replay_id, match_id, title, agent_p0, agent_p1, steps,
+               p0_bank, p1_bank, winner, margin, replay_path, source, created_at
+        FROM replays
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+        """,
+        [limit, offset],
+    ).fetchall()
+    con.close()
+    cols = [
+        "replay_id", "match_id", "title", "agent_p0", "agent_p1", "steps",
+        "p0_bank", "p1_bank", "winner", "margin", "replay_path", "source", "created_at"
+    ]
+    results = []
+    for r in rows:
+        d = dict(zip(cols, r))
+        if isinstance(d["created_at"], (datetime.datetime, datetime.date)):
+            d["created_at"] = d["created_at"].isoformat()
+        results.append(d)
+    return results
+

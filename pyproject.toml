@@ -3,11 +3,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "litert-explore"
+name = "kaggriculture-agent-arena"
 version = "0.1.0"
-description = "Exploration and benchmarking suite for Google LiteRT-LM on multi-GPU setups (RTX 2060, GTX 1050 Ti, CPU)"
+description = "Autonomous Agent Arena, Swiss Tournaments & LiteRT-LM Multi-GPU Runtime for Kaggriculture"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [
     { name = "Alefita (Alef Oliveira)" }
@@ -16,13 +16,18 @@ dependencies = [
     "litert-lm>=0.17.0",
     "huggingface-hub>=0.28.0",
     "rich>=13.0.0",
-    "google-antigravity>=0.1.20",
+    "torch>=2.14.0",
+    "kaggle-environments>=1.32.0",
+    "duckdb>=1.2.0",
+    "flask>=3.1.0",
+    "pydantic>=2.0.0",
 ]
 
 [project.scripts]
 litert-explore = "litert_explore.cli:main"
 litert-bench = "litert_explore.cli:bench_cli"
 litert-gpu = "litert_explore.cli:gpu_cli"
+kaggriculture-dashboard = "kaggriculture.dashboard.app:main"
 
 [dependency-groups]
 dev = [
@@ -30,4 +35,4 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/litert_explore"]
+packages = ["src/litert_explore", "kaggriculture"]

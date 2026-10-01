@@ -1,40 +1,66 @@
+# ==============================================================================
+# Git Ignore Configuration - Kaggriculture Agent Arena & LiteRT-LM Exploration
+# ==============================================================================
+
 # Python & Virtual Environments
 .venv/
+venv/
+env/
 __pycache__/
 *.py[cod]
 *$py.class
 *.egg-info/
 dist/
 build/
+*.egg
 
-# LiteRT & Large Models
+# LiteRT, PyTorch & Large Model Weights
 *.litertlm
 *.bin
 *.safetensors
 *.onnx
+*.pt
+*.pth
+*.ckpt
+*.tflite
 cache/
 .cache/
 
-# Upstream Clone
+# Submission Archives & Staged Uploads
+*.tar.gz
+*.zip
+*.tar
+*.gz
+
+# Analytical Databases, Logs & Ephemeral Game Replays
+*.duckdb*
+*.wal
+*.tmp
+kaggriculture/data/
+logs/
+*.log
+
+# Upstream Clones & External Sources
 upstream/
 
-# Build artifacts & Shims
+# C/C++ Build Artifacts & Windows Compilations
 *.obj
 *.lib
 *.exp
 *.pdb
 *.ilk
 
-# IDE & Editor caches
+# IDE, Editor & OS Specifics
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS specifics
+.DS_Store
 Thumbs.db
 Desktop.ini
+ehthumbs.db
 
-# Analytical databases
-*.duckdb*
-kaggriculture/data/
+# Environment Variables & Sensitive Credentials
+.env
+.env.*
+!.env.example

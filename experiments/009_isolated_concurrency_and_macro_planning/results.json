@@ -1,0 +1,76 @@
+{
+  "single_macro_game": {
+    "p0": "sprint_rusher",
+    "p1": "cautious_farmer",
+    "steps": 72,
+    "mode": "macro",
+    "horizon": 6,
+    "duration_s": 462.05,
+    "total_inferences": 74,
+    "inf_p0": 59,
+    "inf_p1": 15,
+    "p0_money": 0.0,
+    "p1_money": 2100.0,
+    "steps_per_sec": 0.156,
+    "inf_per_sec": 0.16
+  },
+  "parallel_3_games": {
+    "num_games": 3,
+    "mode": "macro",
+    "horizon": 6,
+    "total_wall_time_s": 1130.95,
+    "total_steps": 216,
+    "total_inferences": 181,
+    "steps_per_sec": 0.191,
+    "inferences_per_sec": 0.16,
+    "vram_start": "2099/4096 MB (Util: 77%)",
+    "vram_end": "1202/4096 MB (Util: 55%)",
+    "games": [
+      {
+        "p0": "sprint_rusher",
+        "p1": "cautious_farmer",
+        "steps": 72,
+        "mode": "macro",
+        "horizon": 6,
+        "duration_s": 1130.91,
+        "total_inferences": 74,
+        "inf_p0": 59,
+        "inf_p1": 15,
+        "p0_money": 0.0,
+        "p1_money": 2100.0,
+        "steps_per_sec": 0.064,
+        "inf_per_sec": 0.065
+      },
+      {
+        "p0": "labor_magnate",
+        "p1": "land_baron",
+        "steps": 72,
+        "mode": "macro",
+        "horizon": 6,
+        "duration_s": 751.65,
+        "total_inferences": 40,
+        "inf_p0": 17,
+        "inf_p1": 23,
+        "p0_money": 1940.0,
+        "p1_money": 620.0,
+        "steps_per_sec": 0.096,
+        "inf_per_sec": 0.053
+      },
+      {
+        "p0": "melon_monopolist",
+        "p1": "market_arbitrageur",
+        "steps": 72,
+        "mode": "macro",
+        "horizon": 6,
+        "duration_s": 1089.23,
+        "total_inferences": 67,
+        "inf_p0": 44,
+        "inf_p1": 23,
+        "p0_money": 360.0,
+        "p1_money": 1620.0,
+        "steps_per_sec": 0.066,
+        "inf_per_sec": 0.062
+      }
+    ]
+  }
+}

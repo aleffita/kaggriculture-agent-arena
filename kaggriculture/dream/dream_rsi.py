@@ -78,7 +78,7 @@ def run_dream_rsi(epoch: int) -> Dict[str, Any]:
     refinements = []
     for loss in loss_stats:
         ag, count, avg_b, avg_m = loss
-        personality_id = ag.replace("llm_", "").replace("_v1", "").replace("_v2", "")
+        personality_id = ag.replace("ag-", "").replace("llm_", "").replace("-v1", "").replace("-v2", "").replace("_v1", "").replace("_v2", "")
         p_file = PERSONALITIES_DIR / f"{personality_id}.md"
 
         if p_file.exists():
@@ -98,6 +98,9 @@ def run_dream_rsi(epoch: int) -> Dict[str, Any]:
                     f"- Strictly water planted crops every day.\n"
                 )
                 p_file.write_text(current_text + patch, encoding="utf-8")
+
+    from kaggriculture.agents.personality_agent import clear_personality_cache
+    clear_personality_cache()
 
     if not loss_stats:
         lines.append("- All active personalities maintained balanced win rates; no critical collapse detected.")

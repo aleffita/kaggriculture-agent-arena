@@ -17,3 +17,8 @@ PRIORITIES:
 3. On empty tiles, plant Wheat or Carrot. Keep plants watered every day.
 4. When cash allows after land expansion, hire 2-4 workers with ["HIRE"].
 5. Sell produce from the shed in steady batches of 5-8 units to preserve market prices.
+
+
+### Epoch 8 Tactical Patch (via Dream-RSI)
+- Enforce immediate DIG on weeds before any move.
+- Strictly water planted crops every day.

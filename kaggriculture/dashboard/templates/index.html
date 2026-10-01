@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaggriculture Arena - Leaderboard, Jogos & Live Monitor</title>
+    <link rel="stylesheet" href="/static/style.css?v={{ v }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="navbar">
+        <div class="brand">
+            <span class="logo">🌾</span>
+            <div class="brand-text">
+                <h1>Kaggriculture Arena</h1>
+                <span class="subbrand">Leaderboard, Replays & Live Monitor</span>
+            </div>
+        </div>
+
+        <div class="system-pills">
+            <div class="pill pill-gpu" title="Decodificação Direct3D 12">
+                <span class="dot green"></span>
+                <span>GTX 1050 Ti (GPU 1 D3D12)</span>
+            </div>
+            <div class="pill pill-db" title="Persistência Analítica">
+                <span class="dot blue"></span>
+                <span>DuckDB (arena.duckdb)</span>
+            </div>
+            <div class="pill pill-season" title="Status da Temporada">
+                <span class="dot purple"></span>
+                <span>Season 3 Dream-RSI</span>
+            </div>
+        </div>
+
+        <div class="nav-actions">
+            <button class="btn btn-secondary" onclick="openUploadModal()">
+                <span>📤</span> Upload Replay JSON
+            </button>
+            <button class="btn btn-primary" onclick="switchTab('sandbox')">
+                <span>⚔️</span> Testar Submissão
+            </button>
+        </div>
+    </header>
+
+    <div class="tab-bar">
+        <button class="tab-btn active" id="tabbtn-leaderboard" onclick="switchTab('leaderboard')">
+            <span class="icon">🏆</span> Leaderboard & Lista de Jogos
+        </button>
+        <button class="tab-btn" id="tabbtn-matches" onclick="switchTab('matches')">
+            <span class="icon">📋</span> Todas as Partidas (120+)
+            <span class="badge" id="matches-count">120</span>
+        </button>
+        <button class="tab-btn" id="tabbtn-live" onclick="switchTab('live')">
+            <span class="live-dot" id="live-indicator"></span>
+            <span class="icon">🔴</span> Arena Ao Vivo (Tiles Live)
+            <span class="badge" id="live-badge" style="display: none;">AO VIVO</span>
+        </button>
+        <button class="tab-btn" id="tabbtn-sandbox" onclick="switchTab('sandbox')">
+            <span class="icon">🚀</span> Sandbox Kaggle (.tar.gz)
+        </button>
+    </div>
+
+    <main class="container">
+        <!-- TAB 1: LEADERBOARD OFICIAL + PÓDIO + LISTA DE JOGOS CONECTADA -->
+        <section id="tab-leaderboard" class="tab-content active">
+            <!-- PÓDIO DOS CAMPEÕES -->
+            <div class="leaderboard-podium">
+                <div class="podium-card rank-2">
+                    <span class="podium-badge">🥈 2º Lugar (Top Elo)</span>
+                    <h3>Sprint Rusher</h3>
+                    <span class="podium-tag">Peak Elo 694.9 • 97.5% Invicto</span>
+                    <button class="btn btn-sm btn-outline" onclick="filterByAgentAndScroll('sprint_rusher')">
+                        🎮 Ver Partidas (40)
+                    </button>
+                </div>
+                <div class="podium-card rank-1">
+                    <span class="podium-badge gold">🥇 1º Lugar (Campeão Suíço)</span>
+                    <h3>Labor Magnate</h3>
+                    <span class="podium-tag">72 Pontos • 18 Vitórias • Campeão 720s</span>
+                    <button class="btn btn-sm btn-primary" onclick="filterByAgentAndScroll('labor_magnate')">
+                        🎮 Ver Partidas (40)
+                    </button>
+                </div>
+                <div class="podium-card rank-3">
+                    <span class="podium-badge">🥉 3º Lugar (Top Capital)</span>
+                    <h3>Land Baron</h3>
+                    <span class="podium-tag">104.100 Moedas • Tabela Mais Difícil</span>
+                    <button class="btn btn-sm btn-outline" onclick="filterByAgentAndScroll('land_baron')">
+                        🎮 Ver Partidas (40)
+                    </button>
+                </div>
+            </div>
+
+            <!-- TABELA DO LEADERBOARD -->
+            <div class="leaderboard-card">
+                <div class="card-header">
+                    <div>
+                        <h2>🏆 Tabela de Classificação dos Agentes</h2>
+                        <span class="db-tag">Fonte: Tabela <code>agents</code> em <code>arena.duckdb</code></span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Agente</th>
+                                <th>Liga / Arquitetura</th>
+                                <th>Rating Elo</th>
+                                <th>Partidas</th>
+                                <th>V - E - D</th>
+                                <th>Aproveitamento</th>
+                                <th>Capital Acumulado</th>
+                                <th style="text-align: right;">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SEÇÃO DE JOGOS CONECTADA DIRETAMENTE NA MESMA PÁGINA -->
+            <div class="matches-card" id="leaderboard-matches-section" style="margin-top: 32px;">
+                <div class="card-header">
+                    <div>
+                        <h2 id="matches-section-title">📋 Partidas para Assistir</h2>
+                        <p class="subtitle" id="matches-section-subtitle">Exibindo partidas da Arena. Clique em <strong>▶️ Assistir Replay</strong> em qualquer linha para abrir o player oficial do Kaggle.</p>
+                    </div>
+                    <div class="header-filters">
+                        <select id="home-filter-league" onchange="loadHomeMatches()">
+                            <option value="">Todas as Ligas</option>
+                            <option value="h48">Liga H48-Hybrid</option>
+                            <option value="h24">Liga H24 Daily Macro</option>
+                        </select>
+                        <select id="home-filter-stage" onchange="loadHomeMatches()">
+                            <option value="all">Todos os Estágios</option>
+                            <option value="72">Sprint (72 passos)</option>
+                            <option value="144">Expansion (144 passos)</option>
+                            <option value="240">Scaling (240 passos)</option>
+                            <option value="720">Full Season (720 passos)</option>
+                        </select>
+                        <input type="text" id="home-filter-agent" placeholder="Filtrar agente..." oninput="filterHomeMatchesDebounced()">
+                        <button class="btn btn-sm btn-outline" onclick="resetHomeMatchesFilter()">
+                            Limpar Filtro
+                        </button>
+                    </div>
+                </div>
+
+                <div class="agent-quick-chips" id="home-quick-chips">
+                    <button class="chip active" onclick="selectQuickHomeAgent('', this)">Todos os Confrontos</button>
+                    <button class="chip" onclick="selectQuickHomeAgent('labor_magnate', this)">🌾 Labor Magnate (40)</button>
+                    <button class="chip" onclick="selectQuickHomeAgent('sprint_rusher', this)">⚡ Sprint Rusher (40)</button>
+                    <button class="chip" onclick="selectQuickHomeAgent('land_baron', this)">🏰 Land Baron (40)</button>
+                    <button class="chip" onclick="selectQuickHomeAgent('market_arbitrageur', this)">📈 Market Arbitrageur (40)</button>
+                    <button class="chip" onclick="selectQuickHomeAgent('cautious_farmer', this)">🥕 Cautious Farmer (40)</button>
+                    <button class="chip" onclick="selectQuickHomeAgent('melon_monopolist', this)">🍉 Melon Monopolist (40)</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table matches-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Época</th>
+                                <th>Estágio / Turnos</th>
+                                <th>Confronto (P0 vs P1)</th>
+                                <th>Moedas Finais</th>
+                                <th>Vencedor</th>
+                                <th>Margem</th>
+                                <th>Chave</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="home-matches-tbody">
+                            <!-- Populated dynamically with direct watch buttons -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: TODAS AS PARTIDAS (LISTA DEDICADA COMPLETA) -->
+        <section id="tab-matches" class="tab-content">
+            <div class="matches-card">
+                <div class="card-header">
+                    <div>
+                        <h2>📋 Todas as 120 Partidas da Arena (DuckDB)</h2>
+                        <p class="subtitle">Lista pura de todos os 120 duelos das 10 épocas. Todo jogo possui replay gravado e pronto para assistir.</p>
+                    </div>
+                    <div class="header-filters">
+                        <select id="match-filter-league" onchange="loadFullMatches()">
+                            <option value="">Todas as Ligas</option>
+                            <option value="h48">Liga H48-Hybrid</option>
+                            <option value="h24">Liga H24 Daily Macro</option>
+                        </select>
+                        <select id="match-filter-stage" onchange="loadFullMatches()">
+                            <option value="all">Todos os Estágios</option>
+                            <option value="72">Sprint (72 passos)</option>
+                            <option value="144">Expansion (144 passos)</option>
+                            <option value="240">Scaling (240 passos)</option>
+                            <option value="720">Full Season (720 passos)</option>
+                        </select>
+                        <input type="text" id="match-filter-agent" placeholder="Buscar por agente (ex: labor_magnate)..." oninput="filterFullMatchesDebounced()">
+                        <button class="btn btn-sm btn-outline" onclick="resetFullMatchesFilter()">
+                            Limpar Filtros
+                        </button>
+                    </div>
+                </div>
+
+                <div class="agent-quick-chips" id="full-quick-chips">
+                    <button class="chip active" onclick="selectQuickFullAgent('', this)">Todos os 120 Jogos</button>
+                    <button class="chip" onclick="selectQuickFullAgent('labor_magnate', this)">🌾 Labor Magnate (40)</button>
+                    <button class="chip" onclick="selectQuickFullAgent('sprint_rusher', this)">⚡ Sprint Rusher (40)</button>
+                    <button class="chip" onclick="selectQuickFullAgent('land_baron', this)">🏰 Land Baron (40)</button>
+                    <button class="chip" onclick="selectQuickFullAgent('market_arbitrageur', this)">📈 Market Arbitrageur (40)</button>
+                    <button class="chip" onclick="selectQuickFullAgent('cautious_farmer', this)">🥕 Cautious Farmer (40)</button>
+                    <button class="chip" onclick="selectQuickFullAgent('melon_monopolist', this)">🍉 Melon Monopolist (40)</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table matches-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Época</th>
+                                <th>Estágio / Turnos</th>
+                                <th>Confronto (Player 0 vs Player 1)</th>
+                                <th>Moedas Finais</th>
+                                <th>Vencedor</th>
+                                <th>Margem</th>
+                                <th>Chave</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matches-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="matches-empty" class="empty-state" style="display: none;">
+                    <p>Nenhuma partida encontrada com os filtros informados.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: ARENA AO VIVO (TILES LIVE - APENAS QUANDO A ARENA ESTIVER RODANDO) -->
+        <section id="tab-live" class="tab-content">
+            <!-- Active Live Duels Grid -->
+            <div id="live-active-container" style="display: none;">
+                <div class="live-header-bar">
+                    <div class="live-status-tag">
+                        <span class="pulse-circle"></span>
+                        <h2>Duelos Ao Vivo na Arena (Simultâneos na GPU)</h2>
+                    </div>
+                    <div class="live-actions">
+                        <button class="btn btn-sm btn-outline" onclick="loadLiveDuels()">
+                            <span>🔄</span> Atualizar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="live-tiles-grid" class="games-grid">
+                    <!-- Populated dynamically with live tiles -->
+                </div>
+            </div>
+
+            <!-- Idle Arena State -->
+            <div id="live-idle-container" class="arena-idle-card">
+                <div class="idle-hero">
+                    <span class="idle-icon">🏟️</span>
+                    <h2>Arena em Repouso (Nenhum duelo ao vivo no momento)</h2>
+                    <p class="idle-desc">
+                        A visualização de <strong>tiles simultâneos</strong> é reservada exclusivamente para o momento em que rodadas da arena ou testes de submissão estão em execução na GPU.
+                    </p>
+                </div>
+
+                <div class="idle-quick-actions">
+                    <div class="quick-action-box">
+                        <h3>▶️ Iniciar Rodada de Duelos Ao Vivo</h3>
+                        <p>Simula 2 duelos simultâneos na GTX 1050 Ti e ativa os tiles ao vivo para acompanhamento imediato.</p>
+                        <button class="btn btn-primary" onclick="launchLiveRound(72)">
+                            <span>⚡</span> Lançar Duelos na Arena (72s)
+                        </button>
+                    </div>
+
+                    <div class="quick-action-box">
+                        <h3>📋 Consultar a Lista Completa de Partidas</h3>
+                        <p>Acesse a lista com os 120 duelos do DuckDB e assista qualquer jogo no visualizador oficial.</p>
+                        <button class="btn btn-secondary" onclick="switchTab('matches')">
+                            <span>🔍</span> Abrir Lista de Partidas
+                        </button>
+                    </div>
+
+                    <div class="quick-action-box">
+                        <h3>⚔️ Testar uma Submissão Kaggle</h3>
+                        <p>Envie seu <code>submission.tar.gz</code> e veja ele jogando ao vivo contra o campeão da arena.</p>
+                        <button class="btn btn-outline" onclick="switchTab('sandbox')">
+                            <span>📦</span> Abrir Sandbox
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: SUBMISSION SANDBOX -->
+        <section id="tab-sandbox" class="tab-content">
+            <div class="sandbox-container">
+                <div class="sandbox-card">
+                    <h2>🚀 Validador de Submissão Kaggle 1v1</h2>
+                    <p class="subtitle">
+                        Envie seu pacote <code>submission.tar.gz</code>, <code>submission.zip</code> ou <code>agent.py</code> e simule uma partida completa contra o <strong>Top 1 da Arena (Labor Magnate)</strong> ou outro agente do torneio antes de submeter ao Kaggle.
+                    </p>
+
+                    <form id="submission-form" onsubmit="handleRunSubmission(event)">
+                        <div class="dropzone" id="sub-dropzone" onclick="document.getElementById('sub-file-input').click()">
+                            <input type="file" id="sub-file-input" accept=".tar.gz,.tgz,.zip,.py" style="display: none;" onchange="handleSubFileSelect(this)">
+                            <div class="dropzone-inner">
+                                <span class="drop-icon">📦</span>
+                                <h3>Arraste sua submissão (.tar.gz, .zip, .py)</h3>
+                                <p class="hint">Ou clique para selecionar do disco local</p>
+                                <div id="sub-file-info" class="file-info" style="display: none;">
+                                    <span class="file-name" id="sub-file-name"></span>
+                                    <span class="file-badge" id="sub-file-size"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="sub-opponent">Adversário da Arena:</label>
+                                <select id="sub-opponent" required>
+                                    <option value="llm_labor_magnate_v1" selected>🌾 llm_labor_magnate_v1 (Top 1 Suíço Season 3 - H48-Hybrid)</option>
+                                    <option value="llm_sprint_rusher_v1">⚡ llm_sprint_rusher_v1 (Top Elo 694.9 - H48-Hybrid)</option>
+                                    <option value="llm_land_baron_v1">🏰 llm_land_baron_v1 (Top Capital 104k - H48-Hybrid)</option>
+                                    <option value="llm_market_arbitrageur_v1">📈 llm_market_arbitrageur_v1 (H24 Daily Macro)</option>
+                                    <option value="llm_cautious_farmer_v1">🥕 llm_cautious_farmer_v1 (H24 Daily Macro)</option>
+                                    <option value="llm_melon_monopolist_v1">🍉 llm_melon_monopolist_v1 (H48-Hybrid Melão)</option>
+                                    <option value="starter">🤖 starter (Baseline Kaggle - Rápido)</option>
+                                    <option value="random">🎲 random (Ações Estocásticas)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="sub-steps">Duração da Partida:</label>
+                                <select id="sub-steps" required>
+                                    <option value="72" selected>Sprint: 72 passos (3 dias) - Rápido</option>
+                                    <option value="144">Expansion: 144 passos (6 dias)</option>
+                                    <option value="240">Scaling: 240 passos (10 dias)</option>
+                                    <option value="720">Full Season: 720 passos (30 dias) - Completo</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="sub-seed">Seed Aleatória (Opcional):</label>
+                                <input type="number" id="sub-seed" placeholder="Ex: 42 (Deixe vazio para aleatória)">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" id="btn-run-match" class="btn btn-primary btn-lg" disabled>
+                                <span>⚔️</span> Iniciar Duelo de Validação Ao Vivo
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- LIVE SANDBOX DUEL PROGRESS CARD -->
+                    <div id="sandbox-duel-status" class="sandbox-status-card" style="display: none; margin-top: 24px;">
+                        <div class="sandbox-status-header">
+                            <div class="sandbox-title-wrap">
+                                <span class="live-pulse-dot"></span>
+                                <h3 id="sandbox-match-title">⚔️ Duelo de Validação em Andamento</h3>
+                            </div>
+                            <span class="badge" id="sandbox-status-badge">AO VIVO NA GPU</span>
+                        </div>
+
+                        <div class="sandbox-progress-wrap">
+                            <div class="sandbox-progress-bar">
+                                <div class="sandbox-progress-fill" id="sandbox-progress-fill" style="width: 0%;"></div>
+                            </div>
+                            <div class="sandbox-progress-labels">
+                                <span id="sandbox-step-text">Passo 0 / 72 (0%)</span>
+                                <span id="sandbox-time-elapsed">Tempo: 0s</span>
+                            </div>
+                        </div>
+
+                        <div class="sandbox-duel-scoreboard">
+                            <div class="sb-player-score sb-p0">
+                                <span class="sb-avatar">📦</span>
+                                <div class="sb-details">
+                                    <span class="sb-name" id="sb-p0-name">Sua Submissão</span>
+                                    <span class="sb-coins" id="sb-p0-coins">💰 0 moedas</span>
+                                </div>
+                            </div>
+
+                            <span class="sb-vs">VS</span>
+
+                            <div class="sb-player-score sb-p1">
+                                <div class="sb-details" style="text-align: right;">
+                                    <span class="sb-name" id="sb-p1-name">Adversário</span>
+                                    <span class="sb-coins" id="sb-p1-coins">💰 0 moedas</span>
+                                </div>
+                                <span class="sb-avatar">🌾</span>
+                            </div>
+                        </div>
+
+                        <div class="sandbox-actions-row">
+                            <button type="button" class="btn btn-primary btn-lg" id="btn-watch-sandbox-live" onclick="openCurrentSandboxModal()">
+                                <span>▶️</span> Assistir Duelo Ao Vivo (Abrir Player)
+                            </button>
+                            <button type="button" class="btn btn-outline" id="btn-new-sandbox-window" onclick="openCurrentSandboxPopout()">
+                                <span>↗</span> Abrir em Nova Janela
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- FULLSCREEN / ZOOM MODAL -->
+    <div id="zoom-modal" class="modal-backdrop" style="display: none;">
+        <div class="modal-window">
+            <div class="modal-header">
+                <div class="modal-title-box">
+                    <span class="modal-icon">🎮</span>
+                    <div>
+                        <h3 id="modal-match-title">Replay do Duelo</h3>
+                        <span id="modal-match-meta" class="modal-meta"></span>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-sm btn-outline" id="btn-popout" title="Abrir em Nova Janela">
+                        <span>↗</span> Nova Janela
+                    </button>
+                    <button class="btn btn-sm btn-close" onclick="closeZoomModal()">✕</button>
+                </div>
+            </div>
+
+            <!-- LIVE GAME TELEMETRY & HUD BAR (INVENTÁRIOS, PREÇOS E PROGRESSÃO) -->
+            <div class="game-hud-bar" id="game-hud-bar">
+                <!-- Player 0 Live HUD Card -->
+                <div class="hud-player-card p0">
+                    <div class="hud-player-top">
+                        <span class="hud-avatar">🌾</span>
+                        <div class="hud-name-box">
+                            <span class="hud-player-name" id="hud-p0-name">Player 0</span>
+                            <span class="hud-player-role">Fazenda Esquerda (P0)</span>
+                        </div>
+                        <span class="hud-coin-badge">💰 <span id="hud-p0-coins">--</span></span>
+                    </div>
+                    <div class="hud-inventory-box" id="hud-p0-inventory">
+                        <span class="hud-inv-pill">Carregando inventário...</span>
+                    </div>
+                </div>
+
+                <!-- Central Market & Match Progression -->
+                <div class="hud-center-card">
+                    <div class="hud-turn-clock">
+                        <span class="hud-clock-pill">📅 Dia <strong id="hud-day-val">1</strong></span>
+                        <span class="hud-clock-pill">⏱️ Turno <strong id="hud-turn-val">1 / 24</strong></span>
+                        <span class="hud-clock-pill step">Passo <strong id="hud-step-val">0</strong> / <span id="hud-total-steps">--</span></span>
+                    </div>
+                    <div class="hud-market-prices" id="hud-market-prices">
+                        <span class="mkt-pill" title="Preço do Trigo">🌾 Trigo: <strong id="mkt-wheat">--</strong></span>
+                        <span class="mkt-pill" title="Preço da Cenoura">🥕 Cenoura: <strong id="mkt-carrot">--</strong></span>
+                        <span class="mkt-pill" title="Preço do Tomate">🍅 Tomate: <strong id="mkt-tomato">--</strong></span>
+                        <span class="mkt-pill" title="Preço do Morango">🍓 Morango: <strong id="mkt-strawberry">--</strong></span>
+                        <span class="mkt-pill" title="Preço da Melancia">🍉 Melancia: <strong id="mkt-melon">--</strong></span>
+                        <span class="mkt-pill" title="Preço do Ovo">🥚 Ovo: <strong id="mkt-egg">--</strong></span>
+                        <span class="mkt-pill" title="Preço do Leite">🥛 Leite: <strong id="mkt-milk">--</strong></span>
+                        <span class="mkt-pill" title="Preço da Lã">🐑 Lã: <strong id="mkt-wool">--</strong></span>
+                    </div>
+                </div>
+
+                <!-- Player 1 Live HUD Card -->
+                <div class="hud-player-card p1">
+                    <div class="hud-player-top">
+                        <span class="hud-coin-badge">💰 <span id="hud-p1-coins">--</span></span>
+                        <div class="hud-name-box" style="text-align: right;">
+                            <span class="hud-player-name" id="hud-p1-name">Player 1</span>
+                            <span class="hud-player-role">Fazenda Direita (P1)</span>
+                        </div>
+                        <span class="hud-avatar">⚡</span>
+                    </div>
+                    <div class="hud-inventory-box" id="hud-p1-inventory" style="justify-content: flex-end;">
+                        <span class="hud-inv-pill">Carregando inventário...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <iframe id="modal-iframe" src="about:blank" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPLOAD REPLAY MODAL -->
+    <div id="upload-modal" class="modal-backdrop" style="display: none;">
+        <div class="modal-window modal-sm">
+            <div class="modal-header">
+                <h3>📤 Upload de Replay Oficial (.json)</h3>
+                <button class="btn btn-sm btn-close" onclick="closeUploadModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="dropzone" onclick="document.getElementById('replay-file-input').click()">
+                    <input type="file" id="replay-file-input" accept=".json" style="display: none;" onchange="handleReplayUpload(this)">
+                    <div class="dropzone-inner">
+                        <span class="drop-icon">📄</span>
+                        <h4>Selecione um arquivo de replay JSON</h4>
+                        <p class="hint">Compatível com replays oficiais do Kaggle Environments</p>
+                    </div>
+                </div>
+                <div id="upload-status" class="status-msg" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v={{ v }}"></script>
+</body>
+</html>

@@ -16,3 +16,23 @@ PRIORITIES:
 2. If Wheat < $15, do not sell Wheat; hold in shed until price recovers or sell minimally.
 3. If an item price is high, sell in measured batches of 4-6 units.
 4. Keep farm weed-free and all planted crops watered daily.
+
+
+### Epoch 1 Tactical Patch (via Dream-RSI)
+- Enforce immediate DIG on weeds before any move.
+- Strictly water planted crops every day.
+
+
+### Epoch 2 Tactical Patch (via Dream-RSI)
+- Enforce immediate DIG on weeds before any move.
+- Strictly water planted crops every day.
+
+
+### Epoch 3 Tactical Patch (via Dream-RSI)
+- Enforce immediate DIG on weeds before any move.
+- Strictly water planted crops every day.
+
+
+### Epoch 4 Tactical Patch (via Dream-RSI)
+- Enforce immediate DIG on weeds before any move.
+- Strictly water planted crops every day.

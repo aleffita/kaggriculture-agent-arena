@@ -16,3 +16,18 @@ PRIORITIES:
 2. Coordinate: Keep workers watered, clear any emerging weeds on sight.
 3. Keep seed supply steady: buy 5-10 seeds so idle workers always have crops to sow.
 4. Maintain a lean inventory: drop produce at the shed and sell periodically.
+
+
+### Epoch 2 Tactical Patch (via Dream-RSI)
+- Enforce immediate DIG on weeds before any move.
+- Strictly water planted crops every day.
+
+
+### Epoch 6 Tactical Patch (via Dream-RSI)
+- Enforce immediate DIG on weeds before any move.
+- Strictly water planted crops every day.
+
+
+### Epoch 8 Tactical Patch (via Dream-RSI)
+- Enforce immediate DIG on weeds before any move.
+- Strictly water planted crops every day.

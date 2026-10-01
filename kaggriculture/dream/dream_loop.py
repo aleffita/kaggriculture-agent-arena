@@ -45,12 +45,12 @@ def seed_initial_roster():
     initialize_schema()
 
     llm_personalities = [
-        ("llm_sprint_rusher", "v1", "LLM Sprint Rusher: 2-day wheat turnaround, zero weed tolerance"),
-        ("llm_land_baron", "v1", "LLM Land Baron: Day 4-5 NE territorial expansion gate ($1050)"),
-        ("llm_labor_magnate", "v1", "LLM Labor Magnate: Daily Fibonacci labor scaling and action economy"),
-        ("llm_melon_monopolist", "v1", "LLM Melon Monopolist: High-margin Melon compounding & batched selling"),
-        ("llm_market_arbitrageur", "v1", "LLM Market Arbitrageur: Dynamic crop portfolio exploiting price spikes"),
-        ("llm_cautious_farmer", "v1", "LLM Cautious Farmer: Low-variance shed perimeter carrot cultivation"),
+        ("llm_sprint_rusher", "v1", "LLM Sprint Rusher: H48-Hybrid fast-cycle wheat turnaround & debounced reactivity"),
+        ("llm_land_baron", "v1", "LLM Land Baron: H48-Hybrid Day 4-5 NE territorial expansion gate ($1050)"),
+        ("llm_labor_magnate", "v1", "LLM Labor Magnate: H48-Hybrid daily labor scaling and action economy"),
+        ("llm_melon_monopolist", "v1", "LLM Melon Monopolist: H48-Hybrid high-margin Melon compounding & batched selling"),
+        ("llm_market_arbitrageur", "v1", "LLM Market Arbitrageur: H24 Daily macro portfolio exploiting price spikes"),
+        ("llm_cautious_farmer", "v1", "LLM Cautious Farmer: H24 Daily low-variance shed perimeter cultivation"),
     ]
 
     for name, ver, desc in llm_personalities:
@@ -144,6 +144,10 @@ def run_dream_loop(epochs: int = 10, rounds_per_stage: int = 1, active_stages: O
     ))
 
     seed_initial_roster()
+
+    console.print("[dim]Pre-warming Dual LiteRT-LM Engines in NVIDIA GTX 1050 Ti VRAM (~2,060 MB)...[/dim]")
+    from kaggriculture.agents.llm_player import get_dual_llm_runners
+    get_dual_llm_runners()
 
     for ep in range(1, epochs + 1):
         console.print(f"\n[bold magenta]===========================================================================[/bold magenta]")

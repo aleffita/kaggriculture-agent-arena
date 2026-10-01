@@ -16,22 +16,47 @@ from typing import Any, Dict, List, Optional, Tuple
 repo_root = pathlib.Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(repo_root))
 
+import threading
 from src.litert_explore.engine import LiteRtModelRunner
 
-_GLOBAL_RUNNER: Optional[LiteRtModelRunner] = None
+_ENGINE_POOL: Dict[int, LiteRtModelRunner] = {}
+_RUNNER_LOCK = threading.Lock()
 
 
-def get_llm_runner() -> LiteRtModelRunner:
-    """Singleton getter to keep model weights loaded in GTX 1050 Ti VRAM."""
-    global _GLOBAL_RUNNER
-    if _GLOBAL_RUNNER is None:
-        # Target GPU 1 (GTX 1050 Ti) via DXGI vtable interceptor
-        _GLOBAL_RUNNER = LiteRtModelRunner(
-            backend="gpu",
-            gpu_target="1050ti",
-            max_num_tokens=512,
-        )
-    return _GLOBAL_RUNNER
+def get_llm_runner(player_idx: int = 0) -> LiteRtModelRunner:
+    """Singleton getter to keep model weights loaded in GTX 1050 Ti VRAM for player 0 or 1."""
+    global _ENGINE_POOL
+    idx = int(player_idx) % 2
+    if idx not in _ENGINE_POOL:
+        with _RUNNER_LOCK:
+            if idx not in _ENGINE_POOL:
+                # Target GPU 1 (GTX 1050 Ti) via DXGI vtable interceptor
+                _ENGINE_POOL[idx] = LiteRtModelRunner(
+                    backend="gpu",
+                    gpu_target="1050ti",
+                    max_num_tokens=512,
+                )
+    return _ENGINE_POOL[idx]
+
+
+def get_dual_llm_runners() -> Tuple[LiteRtModelRunner, LiteRtModelRunner]:
+    """Initializes and returns both Engine 0 and Engine 1 in GTX 1050 Ti VRAM (~2,060 MB total)."""
+    e0 = get_llm_runner(0)
+    e1 = get_llm_runner(1)
+    return e0, e1
+
+
+def parse_action_string(act_str: str) -> List[str]:
+    """Converts a shorthand action string into a Kaggle environment action list."""
+    act = act_str.strip().upper()
+    if act.startswith("PLANT_"):
+        crop = act.replace("PLANT_", "")
+        return ["PLANT", crop]
+    if act in ("NORTH", "SOUTH", "EAST", "WEST", "WATER", "HARVEST", "DIG", "DROP", "PASS"):
+        return [act]
+    if "PLANT" in act:
+        return ["PLANT", "WHEAT"]
+    return ["PASS"]
 
 
 def format_observation_for_llm(obs: dict) -> str:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import collections
+import concurrent.futures
 import importlib
 import itertools
 import os
@@ -34,22 +35,42 @@ from kaggriculture.db.schema import (
 )
 
 
+import threading
+
+_LOAD_LOCK = threading.Lock()
+_AGENT_CACHE: Dict[str, Any] = {}
+
+
 def load_agent_callable(name: str):
-    """Loads an agent callable from built-ins or kaggriculture/agents/."""
+    """Loads an agent callable from built-ins or kaggriculture/agents/ thread-safely."""
     builtins = {"starter", "random", "pass"}
     if name.lower() in builtins:
         return name.lower()
 
-    agent_path = repo_root / "kaggriculture" / "agents" / f"{name}.py"
-    if agent_path.exists():
-        importlib.invalidate_caches()
-        mod_name = f"kaggriculture.agents.{name}"
-        if mod_name in sys.modules:
-            mod = importlib.reload(sys.modules[mod_name])
-        else:
-            mod = importlib.import_module(mod_name)
-        if hasattr(mod, "agent"):
-            return mod.agent
+    with _LOAD_LOCK:
+        if name in _AGENT_CACHE:
+            return _AGENT_CACHE[name]
+
+        base_name = name
+        agent_path = repo_root / "kaggriculture" / "agents" / f"{base_name}.py"
+        if not agent_path.exists():
+            for sfx in ["_v1", "_v2", "_v3"]:
+                if base_name.endswith(sfx):
+                    candidate = base_name[:-len(sfx)]
+                    if (repo_root / "kaggriculture" / "agents" / f"{candidate}.py").exists():
+                        base_name = candidate
+                        agent_path = repo_root / "kaggriculture" / "agents" / f"{base_name}.py"
+                        break
+
+        if agent_path.exists():
+            mod_name = f"kaggriculture.agents.{base_name}"
+            if mod_name in sys.modules:
+                mod = sys.modules[mod_name]
+            else:
+                mod = importlib.import_module(mod_name)
+            if hasattr(mod, "agent"):
+                _AGENT_CACHE[name] = mod.agent
+                return mod.agent
 
     raise ValueError(f"Could not load agent: {name}")
 
@@ -63,14 +84,28 @@ def run_single_duel(
     func_a = load_agent_callable(agent_a_name)
     func_b = load_agent_callable(agent_b_name)
 
-    env = make("kaggriculture", configuration={"episodeSteps": steps}, debug=True)
+    env = make(
+        "kaggriculture",
+        configuration={
+            "episodeSteps": steps,
+            "actTimeout": 60,
+            "runTimeout": 3600,
+        },
+        debug=True,
+    )
     t0 = time.time()
     env.run([func_a, func_b])
     duration = time.time() - t0
 
     final_step = env.steps[-1]
-    p0_bank = float(final_step[0].reward or 0.0)
-    p1_bank = float(final_step[1].reward or 0.0)
+    p0_bank = float(final_step[0].reward if final_step[0].reward is not None else 0.0)
+    p1_bank = float(final_step[1].reward if final_step[1].reward is not None else 0.0)
+    if p0_bank == 0.0 and p1_bank == 0.0:
+        obs_last = final_step[0].get("observation", {})
+        farms_last = obs_last.get("farms", [{}, {}])
+        if farms_last and len(farms_last) >= 2:
+            p0_bank = float(farms_last[0].get("money", p0_bank))
+            p1_bank = float(farms_last[1].get("money", p1_bank))
 
     if p0_bank > p1_bank:
         winner = agent_a_name
@@ -245,11 +280,14 @@ def run_stage_swiss_round(
     results = []
     played_pairs: set[Tuple[str, str]] = set()
 
-    # Split into Upper and Lower brackets
-    upper_bracket, lower_bracket = split_upper_lower_brackets(agent_records)
-    brackets = [("Upper", upper_bracket)]
-    if lower_bracket:
-        brackets.append(("Lower", lower_bracket))
+    # For rosters <= 6 agents, keep unified Swiss pool to pair all agents concurrently
+    if len(agent_records) <= 6:
+        brackets = [("Swiss", agent_records)]
+    else:
+        upper_bracket, lower_bracket = split_upper_lower_brackets(agent_records)
+        brackets = [("Upper", upper_bracket)]
+        if lower_bracket:
+            brackets.append(("Lower", lower_bracket))
 
     match_counter = 1
     for bracket_name, pool in brackets:
@@ -259,27 +297,61 @@ def run_stage_swiss_round(
         for r_num in range(1, rounds + 1):
             pairs = swiss_pairings(pool, played_pairs)
             for ag_a, ag_b in pairs:
-                p0_id, name_a, elo_a, m_a = ag_a["agent_id"], ag_a["name"], ag_a["elo"], ag_a["matches"]
-                p1_id, name_b, elo_b, m_b = ag_b["agent_id"], ag_b["name"], ag_b["elo"], ag_b["matches"]
+                played_pairs.add((ag_a["agent_id"], ag_b["agent_id"]))
 
-                played_pairs.add((p0_id, p1_id))
+            def _get_vram():
+                try:
+                    import subprocess
+                    out = subprocess.check_output(
+                        ["nvidia-smi", "--id=1", "--query-gpu=memory.used,memory.total,utilization.gpu", "--format=csv,noheader,nounits"],
+                        encoding="utf-8", errors="ignore"
+                    ).strip()
+                    parts = [p.strip() for p in out.split(",")]
+                    return f"{parts[0]}/{parts[1]} MB (Util: {parts[2]}%)"
+                except Exception:
+                    return "N/A"
 
+            vram_before = _get_vram()
+            print(f"  [Round {r_num}] Executing {len(pairs)} duels simultaneously in parallel on GTX 1050 Ti ({stage.step_horizon} steps) | VRAM: {vram_before}...", flush=True)
+
+            def _run_pair(pair_info):
+                idx, ag_a, ag_b = pair_info
+                p0_id, name_a = ag_a["agent_id"], ag_a["name"]
+                p1_id, name_b = ag_b["agent_id"], ag_b["name"]
                 p0_bank, p1_bank, winner_name, margin, duration, telem = run_single_duel(
                     name_a, name_b, steps=stage.step_horizon
                 )
+                return idx, ag_a, ag_b, p0_bank, p1_bank, winner_name, margin, duration, telem
+
+            indexed_pairs = [(match_counter + i, ag_a, ag_b) for i, (ag_a, ag_b) in enumerate(pairs)]
+            match_counter += len(pairs)
+
+            t_round_start = time.time()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, min(2, len(pairs)))) as pool_exec:
+                duel_outcomes = list(pool_exec.map(_run_pair, indexed_pairs))
+            t_round_duration = time.time() - t_round_start
+            vram_after = _get_vram()
+
+            total_steps = len(pairs) * stage.step_horizon
+            print(f"  [Round {r_num} Finished] {len(pairs)} duels completed in {t_round_duration:.2f}s ({t_round_duration/60:.2f} min) | VRAM: {vram_after} | Throughput: {total_steps/t_round_duration:.2f} steps/s.", flush=True)
+
+            for m_idx, ag_a, ag_b, p0_bank, p1_bank, winner_name, margin, duration, telem in duel_outcomes:
+                p0_id, name_a, elo_a, m_a = ag_a["agent_id"], ag_a["name"], ag_a["elo"], ag_a["matches"]
+                p1_id, name_b, elo_b, m_b = ag_b["agent_id"], ag_b["name"], ag_b["elo"], ag_b["matches"]
 
                 winner_id = p0_id if winner_name == name_a else (p1_id if winner_name == name_b else "Draw")
                 score_a = 1.0 if winner_name == name_a else (0.5 if winner_name == "Draw" else 0.0)
 
                 new_elo_a, new_elo_b = update_elo(elo_a, elo_b, score_a, m_a, m_b)
 
+                print(f"    -> [Duel {m_idx}] Winner: {winner_name} (${p0_bank:.0f} vs ${p1_bank:.0f} in {duration:.1f}s) | Elo: {name_a}={new_elo_a:.0f}, {name_b}={new_elo_b:.0f}", flush=True)
+
                 ag_a["elo"] = new_elo_a
                 ag_a["matches"] += 1
                 ag_b["elo"] = new_elo_b
                 ag_b["matches"] += 1
 
-                mid = f"m_{epoch}_{stage_id}_{bracket_name}_{p0_id}_vs_{p1_id}_{match_counter}"
-                match_counter += 1
+                mid = f"m_{epoch}_{stage_id}_{bracket_name}_{p0_id}_vs_{p1_id}_{m_idx}"
 
                 record_stage_match(
                     match_id=mid,

@@ -1,0 +1,142 @@
+{
+  "seed": 42,
+  "steps": 72,
+  "leaderboard": [
+    {
+      "name": "H24",
+      "elo": 645.9,
+      "matches": 3,
+      "wins": 3,
+      "draws": 0,
+      "losses": 0,
+      "total_coins": 8460.0,
+      "total_inferences": 9,
+      "replan_events": 0
+    },
+    {
+      "name": "Hybrid",
+      "elo": 616.6,
+      "matches": 3,
+      "wins": 2,
+      "draws": 0,
+      "losses": 1,
+      "total_coins": 8400.0,
+      "total_inferences": 10,
+      "replan_events": 1
+    },
+    {
+      "name": "H12",
+      "elo": 583.3,
+      "matches": 3,
+      "wins": 1,
+      "draws": 0,
+      "losses": 2,
+      "total_coins": 7920.0,
+      "total_inferences": 18,
+      "replan_events": 0
+    },
+    {
+      "name": "H6",
+      "elo": 554.2,
+      "matches": 3,
+      "wins": 0,
+      "draws": 0,
+      "losses": 3,
+      "total_coins": 6840.0,
+      "total_inferences": 36,
+      "replan_events": 0
+    }
+  ],
+  "matches": [
+    {
+      "match": 1,
+      "p0": "H24",
+      "p1": "H12",
+      "winner": "H24",
+      "p0_bank": 2820.0,
+      "p1_bank": 2640.0,
+      "inf_p0": 3,
+      "inf_p1": 6,
+      "events_p0": 0,
+      "events_p1": 0,
+      "duration_s": 61.97,
+      "elo_p0": 616.0,
+      "elo_p1": 584.0
+    },
+    {
+      "match": 2,
+      "p0": "H24",
+      "p1": "H6",
+      "winner": "H24",
+      "p0_bank": 2820.0,
+      "p1_bank": 2280.0,
+      "inf_p0": 3,
+      "inf_p1": 12,
+      "events_p0": 0,
+      "events_p1": 0,
+      "duration_s": 83.09,
+      "elo_p0": 631.3,
+      "elo_p1": 584.7
+    },
+    {
+      "match": 3,
+      "p0": "H24",
+      "p1": "Hybrid",
+      "winner": "H24",
+      "p0_bank": 2820.0,
+      "p1_bank": 2760.0,
+      "inf_p0": 3,
+      "inf_p1": 4,
+      "events_p0": 0,
+      "events_p1": 1,
+      "duration_s": 53.56,
+      "elo_p0": 645.9,
+      "elo_p1": 585.4
+    },
+    {
+      "match": 4,
+      "p0": "H12",
+      "p1": "H6",
+      "winner": "H12",
+      "p0_bank": 2640.0,
+      "p1_bank": 2280.0,
+      "inf_p0": 6,
+      "inf_p1": 12,
+      "events_p0": 0,
+      "events_p1": 0,
+      "duration_s": 109.24,
+      "elo_p0": 600.0,
+      "elo_p1": 568.7
+    },
+    {
+      "match": 5,
+      "p0": "H12",
+      "p1": "Hybrid",
+      "winner": "Hybrid",
+      "p0_bank": 2640.0,
+      "p1_bank": 2820.0,
+      "inf_p0": 6,
+      "inf_p1": 3,
+      "events_p0": 0,
+      "events_p1": 0,
+      "duration_s": 62.45,
+      "elo_p0": 583.3,
+      "elo_p1": 602.1
+    },
+    {
+      "match": 6,
+      "p0": "H6",
+      "p1": "Hybrid",
+      "winner": "Hybrid",
+      "p0_bank": 2280.0,
+      "p1_bank": 2820.0,
+      "inf_p0": 12,
+      "inf_p1": 3,
+      "events_p0": 0,
+      "events_p1": 0,
+      "duration_s": 86.36,
+      "elo_p0": 554.2,
+      "elo_p1": 616.6
+    }
+  ]
+}

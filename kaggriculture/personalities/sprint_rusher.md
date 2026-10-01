@@ -19,3 +19,8 @@ PRIORITIES:
 5. If carrying harvested crops (carried count > 0) and adjacent to shed (4,4), emit ["DROP"].
 6. If shed has produce, emit market order ["SELL", item, count].
 7. If cash >= $40 and seeds < 3, buy Wheat seeds: ["BUY_SEED", "WHEAT", 4].
+
+
+### Epoch 7 Tactical Patch (via Dream-RSI)
+- Enforce immediate DIG on weeds before any move.
+- Strictly water planted crops every day.

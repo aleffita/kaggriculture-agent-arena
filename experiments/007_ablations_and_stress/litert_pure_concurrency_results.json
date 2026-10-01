@@ -1,0 +1,101 @@
+{
+  "vram_init_mb": 1049.0,
+  "vram_base_engine_mb": 2084.0,
+  "session_scaling": [
+    {
+      "sessions": 1,
+      "vram_mb": 2084.0,
+      "delta_from_base_mb": 0.0,
+      "mb_per_session": 0.0
+    },
+    {
+      "sessions": 2,
+      "vram_mb": 2084.0,
+      "delta_from_base_mb": 0.0,
+      "mb_per_session": 0.0
+    },
+    {
+      "sessions": 4,
+      "vram_mb": 2084.0,
+      "delta_from_base_mb": 0.0,
+      "mb_per_session": 0.0
+    },
+    {
+      "sessions": 8,
+      "vram_mb": 2084.0,
+      "delta_from_base_mb": 0.0,
+      "mb_per_session": 0.0
+    },
+    {
+      "sessions": 16,
+      "vram_mb": 2084.0,
+      "delta_from_base_mb": 0.0,
+      "mb_per_session": 0.0
+    },
+    {
+      "sessions": 32,
+      "vram_mb": 2084.0,
+      "delta_from_base_mb": 0.0,
+      "mb_per_session": 0.0
+    },
+    {
+      "sessions": 64,
+      "vram_mb": 2084.0,
+      "delta_from_base_mb": 0.0,
+      "mb_per_session": 0.0
+    },
+    {
+      "sessions": 120,
+      "vram_mb": 2084.0,
+      "delta_from_base_mb": 0.0,
+      "mb_per_session": 0.0
+    }
+  ],
+  "throughput_concurrency": [
+    {
+      "workers": 1,
+      "mode": "structured",
+      "batch_time_s": 6.42,
+      "inf_per_sec": 0.156,
+      "avg_latency_s": 6.34,
+      "min_latency_s": 6.34,
+      "max_latency_s": 6.34,
+      "vram_mb": 2095.0
+    },
+    {
+      "workers": 2,
+      "mode": "structured",
+      "batch_time_s": 11.83,
+      "inf_per_sec": 0.169,
+      "avg_latency_s": 9.1,
+      "min_latency_s": 6.44,
+      "max_latency_s": 11.75,
+      "vram_mb": 2099.0
+    },
+    {
+      "workers": 4,
+      "mode": "structured",
+      "batch_time_s": 20.99,
+      "inf_per_sec": 0.191,
+      "avg_latency_s": 13.27,
+      "min_latency_s": 5.66,
+      "max_latency_s": 20.92,
+      "vram_mb": 2099.0
+    },
+    {
+      "workers": 8,
+      "mode": "structured",
+      "batch_time_s": 43.56,
+      "inf_per_sec": 0.184,
+      "avg_latency_s": 24.77,
+      "min_latency_s": 5.82,
+      "max_latency_s": 43.47,
+      "vram_mb": 2099.0
+    }
+  ],
+  "horizon_comparison": {
+    "turn_by_turn_144_calls_projected_s": 757.6,
+    "macro_queue_24_calls_projected_s": 140.25,
+    "speedup_factor": 5.4
+  }
+}
