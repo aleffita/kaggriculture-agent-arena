@@ -49,6 +49,9 @@ upstream/
 *.exp
 *.pdb
 *.ilk
+*.exe
+!probes/*.exe
+
 
 # IDE, Editor & OS Specifics
 .vscode/

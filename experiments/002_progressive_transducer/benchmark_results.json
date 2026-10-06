@@ -1,0 +1,51 @@
+{
+  "device": "NVIDIA GeForce RTX 2060",
+  "model": "gemma-4-E2B-it.litertlm",
+  "baseline": [
+    {
+      "prompt": "algorithmic_reasoning",
+      "elapsed_s": 24.767917699879035,
+      "tokens": 607,
+      "tps": 24.507510375123886,
+      "sample": "## Função Python para Calcular a Sequência de Fibonacci com Programação Dinâmica e Memoização\n\nAqui está uma função em P"
+    },
+    {
+      "prompt": "system_design",
+      "elapsed_s": 25.281973799923435,
+      "tokens": 1003,
+      "tps": 39.67253537787614,
+      "sample": "## Como Funciona uma Fila de Prioridade Usando uma Árvore Binária Heap (3 Passos)\n\nUma Fila de Prioridade (Priority Queu"
+    },
+    {
+      "prompt": "code_translation",
+      "elapsed_s": 29.74692830001004,
+      "tokens": 1020,
+      "tps": 34.28925466565419,
+      "sample": "Para converter a expressão matemática $z = (a \\times b) \\pmod{m}$ para uma declaração em linguagem C com tipos inteiros "
+    }
+  ],
+  "speculative": [
+    {
+      "prompt": "algorithmic_reasoning",
+      "elapsed_s": 16.045303399907425,
+      "tokens": 646,
+      "tps": 40.26100248149419,
+      "sample": "## Função Python para Calcular a Sequência de Fibonacci com Programação Dinâmica e Memoização\n\nAqui está uma função em P"
+    },
+    {
+      "prompt": "system_design",
+      "elapsed_s": 16.75657830014825,
+      "tokens": 832,
+      "tps": 49.65214169008712,
+      "sample": "## Como Funciona uma Fila de Prioridade Usando uma Árvore Binária Heap (3 Passos)\n\nUma Fila de Prioridade (Priority Queu"
+    },
+    {
+      "prompt": "code_translation",
+      "elapsed_s": 29.178904099855572,
+      "tokens": 1154,
+      "tps": 39.54912069523927,
+      "sample": "Para converter a expressão matemática $z = (a \\times b) \\pmod{m}$ para uma declaração em linguagem C com tipos inteiros "
+    }
+  ],
+  "avg_speedup": 1.3492496817927597
+}
