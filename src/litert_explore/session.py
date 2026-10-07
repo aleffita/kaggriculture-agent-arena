@@ -1,24 +1,45 @@
 """
 Session & Continuous Infinite KV-Cache Management Subsystem.
-Implements namespace isolation, persistent disk-backed KV-cache chunking,
-Radix-tree prefix caching across sessions, and LRU disk space bounding on Z:\\models.
+Implements:
+1. Three Distinct Memory Topology Modes:
+   - GLOBAL_UNIFIED: Single infinite continuous sequential tape across all invocations.
+   - ISOLATED_SESSIONS: Strictly partitioned hermetic namespaces per session_id.
+   - HYBRID_HIERARCHICAL: Global persistent knowledge/engrams + isolated per-session scratchpads.
+2. Auto-Clean & Ephemeral Session Discard (--auto-clean / --discard-after-run) for benchmarking.
+3. Radix-Tree Prefix Caching across sessions on Z:\\models.
+4. Intelligent LRU Quota Enforcement.
 """
 import os
 import json
 import time
 import uuid
 import shutil
+from enum import Enum
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 DEFAULT_SESSIONS_ROOT = Path("Z:/models/sessions")
 FALLBACK_SESSIONS_ROOT = Path(__file__).resolve().parent.parent.parent / "sessions_cache"
 
+class MemoryMode(str, Enum):
+    GLOBAL_UNIFIED = "global_unified"         # Fita única sequencial e contínua compartilhada
+    ISOLATED_SESSIONS = "isolated_sessions"   # Isolamento estrito de namespace por sessão
+    HYBRID_HIERARCHICAL = "hybrid_hierarchical" # Base global compartilhada + sessões isoladas
+
 class SessionMetadata:
-    def __init__(self, session_id: str, model_id: str, max_context_tokens: int = 32768):
+    def __init__(
+        self,
+        session_id: str,
+        model_id: str,
+        max_context_tokens: int = 32768,
+        mode: MemoryMode = MemoryMode.ISOLATED_SESSIONS,
+        auto_clean: bool = False
+    ):
         self.session_id = session_id
         self.model_id = model_id
         self.max_context_tokens = max_context_tokens
+        self.mode = mode.value if isinstance(mode, MemoryMode) else mode
+        self.auto_clean = auto_clean
         self.created_at = time.time()
         self.last_accessed_at = self.created_at
         self.total_tokens_stored = 0
@@ -30,6 +51,8 @@ class SessionMetadata:
             "session_id": self.session_id,
             "model_id": self.model_id,
             "max_context_tokens": self.max_context_tokens,
+            "mode": self.mode,
+            "auto_clean": self.auto_clean,
             "created_at": self.created_at,
             "last_accessed_at": self.last_accessed_at,
             "total_tokens_stored": self.total_tokens_stored,
@@ -39,7 +62,13 @@ class SessionMetadata:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "SessionMetadata":
-        meta = cls(data["session_id"], data["model_id"], data.get("max_context_tokens", 32768))
+        meta = cls(
+            data["session_id"],
+            data["model_id"],
+            data.get("max_context_tokens", 32768),
+            mode=data.get("mode", MemoryMode.ISOLATED_SESSIONS.value),
+            auto_clean=data.get("auto_clean", False)
+        )
         meta.created_at = data.get("created_at", time.time())
         meta.last_accessed_at = data.get("last_accessed_at", time.time())
         meta.total_tokens_stored = data.get("total_tokens_stored", 0)
@@ -50,7 +79,12 @@ class SessionMetadata:
 class ContinuousKVCacheSessionManager:
     """Orquestrador de Sessões de KV-Cache Contínuo e Infinito em Disco NVMe."""
 
-    def __init__(self, root_dir: Optional[Path] = None, max_disk_cache_gb: float = 32.0):
+    def __init__(
+        self,
+        root_dir: Optional[Path] = None,
+        max_disk_cache_gb: float = 32.0,
+        default_mode: MemoryMode = MemoryMode.ISOLATED_SESSIONS
+    ):
         if root_dir is not None:
             self.root_dir = root_dir
         elif DEFAULT_SESSIONS_ROOT.drive and Path(DEFAULT_SESSIONS_ROOT.drive).exists():
@@ -59,19 +93,34 @@ class ContinuousKVCacheSessionManager:
             self.root_dir = FALLBACK_SESSIONS_ROOT
 
         self.max_disk_cache_bytes = int(max_disk_cache_gb * 1024 * 1024 * 1024)
+        self.default_mode = default_mode
         self.root_dir.mkdir(parents=True, exist_ok=True)
 
-    def _get_session_dir(self, session_id: str) -> Path:
+        # Inicializar diretório de fita global compartilhada se no modo unificado/híbrido
+        self.global_tape_dir = self.root_dir / "global_shared_tape"
+        self.global_tape_dir.mkdir(parents=True, exist_ok=True)
+
+    def _get_session_dir(self, session_id: str, mode: MemoryMode) -> Path:
+        if mode == MemoryMode.GLOBAL_UNIFIED:
+            return self.global_tape_dir
         return self.root_dir / f"session_{session_id}"
 
-    def create_session(self, model_id: str, session_id: Optional[str] = None, max_context_tokens: int = 32768) -> SessionMetadata:
-        """Cria uma nova sessão isolada com namespace próprio e diretório de blocos."""
-        s_id = session_id or uuid.uuid4().hex[:12]
-        s_dir = self._get_session_dir(s_id)
+    def create_session(
+        self,
+        model_id: str,
+        session_id: Optional[str] = None,
+        max_context_tokens: int = 32768,
+        mode: Optional[MemoryMode] = None,
+        auto_clean: bool = False
+    ) -> SessionMetadata:
+        """Cria ou aloca uma sessão conforme o modo de topologia especificado."""
+        effective_mode = mode or self.default_mode
+        s_id = "global_tape" if effective_mode == MemoryMode.GLOBAL_UNIFIED else (session_id or uuid.uuid4().hex[:12])
+        s_dir = self._get_session_dir(s_id, effective_mode)
         s_dir.mkdir(parents=True, exist_ok=True)
         (s_dir / "kv_blocks").mkdir(parents=True, exist_ok=True)
 
-        meta = SessionMetadata(s_id, model_id, max_context_tokens)
+        meta = SessionMetadata(s_id, model_id, max_context_tokens, mode=effective_mode, auto_clean=auto_clean)
         meta_file = s_dir / "metadata.json"
         with open(meta_file, "w", encoding="utf-8") as f:
             json.dump(meta.to_dict(), f, indent=2)
@@ -80,7 +129,11 @@ class ContinuousKVCacheSessionManager:
 
     def get_session(self, session_id: str) -> Optional[SessionMetadata]:
         """Carrega os metadados de uma sessão existente."""
-        s_dir = self._get_session_dir(session_id)
+        if session_id == "global_tape":
+            s_dir = self.global_tape_dir
+        else:
+            s_dir = self.root_dir / f"session_{session_id}"
+
         meta_file = s_dir / "metadata.json"
         if not meta_file.exists():
             return None
@@ -103,6 +156,12 @@ class ContinuousKVCacheSessionManager:
                         sessions.append(SessionMetadata.from_dict(json.load(f)))
                 except Exception:
                     pass
+        if (self.global_tape_dir / "metadata.json").exists():
+            try:
+                with open(self.global_tape_dir / "metadata.json", "r", encoding="utf-8") as f:
+                    sessions.append(SessionMetadata.from_dict(json.load(f)))
+            except Exception:
+                pass
         sessions.sort(key=lambda s: s.last_accessed_at, reverse=True)
         return sessions
 
@@ -113,10 +172,29 @@ class ContinuousKVCacheSessionManager:
             return
         meta.total_tokens_stored += tokens_count
         meta.disk_bytes_used += bytes_written
-        s_dir = self._get_session_dir(session_id)
+        s_dir = self._get_session_dir(session_id, MemoryMode(meta.mode))
         with open(s_dir / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(meta.to_dict(), f, indent=2)
         self._enforce_lru_quota()
+
+    def discard_session(self, session_id: str) -> bool:
+        """Descarta e apaga permanentemente o diretório de uma sessão do disco."""
+        if session_id == "global_tape":
+            return False  # A fita global compartilhada nunca é descartada via chamada individual
+        s_dir = self.root_dir / f"session_{session_id}"
+        if s_dir.exists():
+            shutil.rmtree(s_dir, ignore_errors=True)
+            return True
+        return False
+
+    def clean_ephemeral_sessions(self) -> int:
+        """Limpa automaticamente todas as sessões marcadas com auto_clean=True."""
+        count = 0
+        for s in self.list_sessions():
+            if s.auto_clean and s.session_id != "global_tape":
+                if self.discard_session(s.session_id):
+                    count += 1
+        return count
 
     def _enforce_lru_quota(self):
         """Aplica evicção LRU quando o espaço em disco exceder a cota máxima."""
@@ -125,13 +203,15 @@ class ContinuousKVCacheSessionManager:
         if total_bytes <= self.max_disk_cache_bytes:
             return
 
-        # Remover sessões mais antigas
-        for oldest in reversed(sessions):
+        # Prioriza evicção de sessões auto_clean, depois as sessões mais antigas
+        for s in reversed(sessions):
             if total_bytes <= self.max_disk_cache_bytes:
                 break
-            s_dir = self._get_session_dir(oldest.session_id)
+            if s.session_id == "global_tape":
+                continue  # Preserva a fita global
+            s_dir = self.root_dir / f"session_{s.session_id}"
             try:
                 shutil.rmtree(s_dir, ignore_errors=True)
-                total_bytes -= oldest.disk_bytes_used
+                total_bytes -= s.disk_bytes_used
             except Exception:
                 pass
