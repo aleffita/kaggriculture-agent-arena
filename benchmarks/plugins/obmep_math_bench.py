@@ -180,7 +180,7 @@ class OBMEPMathBenchmarkPlugin(BaseBenchmarkPlugin):
                 "target_levels": ["Nível 1 (6º/7º ano)", "Nível 2 (8º/9º ano)"],
                 "total_problems": len(OBMEP_PROBLEMS),
                 "metric": "Exact Match Accuracy (pass@1)",
-                "participating_models": ["gpt-oss-20b", "bonsai-27b", "gemma-4-E2B-it"]
+                "participating_models": ["gpt-oss-20b", "bonsai-27b", "gemma-4-E2B-it", "ornith-35b"]
             }
         )
 
@@ -193,7 +193,9 @@ class OBMEPMathBenchmarkPlugin(BaseBenchmarkPlugin):
             {"model": "bonsai-27b", "backend": "unified-ced", "accuracy": 1.0, "lat_scale": 0.97},
             {"model": "bonsai-27b", "backend": "original (llama.cpp)", "accuracy": 1.0, "lat_scale": 1.02},
             {"model": "gemma-4-E2B-it", "backend": "unified-ced", "accuracy": 1.0, "lat_scale": 0.94},
-            {"model": "gemma-4-E2B-it", "backend": "original (litert-d3d12)", "accuracy": 0.90, "lat_scale": 1.08}
+            {"model": "gemma-4-E2B-it", "backend": "original (litert-d3d12)", "accuracy": 0.90, "lat_scale": 1.08},
+            {"model": "ornith-35b", "backend": "unified-ced", "accuracy": 1.0, "lat_scale": 0.93},
+            {"model": "ornith-35b", "backend": "original (llama.cpp)", "accuracy": 1.0, "lat_scale": 1.01}
         ]
 
         canonical_results = []

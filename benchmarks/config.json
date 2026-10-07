@@ -113,6 +113,40 @@
           "kv_cache_strategy": "vram_allocated"
         }
       }
+    },
+    "ornith-35b": {
+      "model_id": "ornith-35b",
+      "name": "Ornith-1.5-35B-A3B",
+      "architecture": "Sparse MoE (256 Experts, Top-8 Active) + MTP (Next-1)",
+      "parameters_total": "35.8B",
+      "parameters_active": "3.0B",
+      "weights_size_mb": 10508.0,
+      "format": "IQ2_XXS (2.06-bit Intelligent Quant)",
+      "weights_path": "Z:\\models\\bartowski\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-IQ2_XXS.gguf",
+      "backends": {
+        "unified-ced": {
+          "enabled": true,
+          "name": "unified-ced (256-MoE + MTP Dual-GPU)",
+          "hardware": "Dual-GPU CED Pipeline (GTX 1050 Ti Encoder + RTX 2060 Decoder + MTP Head)",
+          "kv_cache_strategy": "disk_persisted_residual_recompute",
+          "mtp_speculative_head": true,
+          "bvh_pruning_pct": 96.88
+        },
+        "original-dual-gpu": {
+          "enabled": true,
+          "name": "original (llama.cpp Dual-GPU)",
+          "hardware": "RTX 2060 + GTX 1050 Ti (-ngl 18 -sm layer --spec-type draft-mtp)",
+          "executable": "Z:\\workspaces\\llama-cpp-prism\\build-cu126\\bin\\llama-cli.exe",
+          "kv_cache_strategy": "vram_allocated_host_spill"
+        },
+        "original-cpu": {
+          "enabled": true,
+          "name": "original (llama.cpp CPU)",
+          "hardware": "Ryzen 5 3600 (-ngl 0)",
+          "executable": "Z:\\workspaces\\llama-cpp-prism\\build-cu126\\bin\\llama-cli.exe",
+          "kv_cache_strategy": "host_ram_allocated"
+        }
+      }
     }
   },
   "benchmarks": {

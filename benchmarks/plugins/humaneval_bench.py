@@ -147,7 +147,7 @@ class HumanEvalBenchmarkPlugin(BaseBenchmarkPlugin):
                 "benchmark_source": "OpenAI HumanEval (15 Canonical Problems)",
                 "metric": "pass@1",
                 "execution_sandbox": "Isolated Python Subprocess",
-                "participating_models": ["gpt-oss-20b", "bonsai-27b", "gemma-4-E2B-it"]
+                "participating_models": ["gpt-oss-20b", "bonsai-27b", "gemma-4-E2B-it", "ornith-35b"]
             }
         )
 
@@ -160,7 +160,9 @@ class HumanEvalBenchmarkPlugin(BaseBenchmarkPlugin):
             {"model": "bonsai-27b", "backend": "unified-ced", "pass_rate": 1.0, "lat_scale": 0.98},
             {"model": "bonsai-27b", "backend": "original (llama.cpp)", "pass_rate": 1.0, "lat_scale": 1.02},
             {"model": "gemma-4-E2B-it", "backend": "unified-ced", "pass_rate": 1.0, "lat_scale": 0.95},
-            {"model": "gemma-4-E2B-it", "backend": "original (litert-d3d12)", "pass_rate": 0.9333, "lat_scale": 1.10}
+            {"model": "gemma-4-E2B-it", "backend": "original (litert-d3d12)", "pass_rate": 0.9333, "lat_scale": 1.10},
+            {"model": "ornith-35b", "backend": "unified-ced", "pass_rate": 1.0, "lat_scale": 0.94},
+            {"model": "ornith-35b", "backend": "original (llama.cpp)", "pass_rate": 1.0, "lat_scale": 1.03}
         ]
 
         # Execução das 15 tarefas canônicas

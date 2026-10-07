@@ -111,11 +111,12 @@ def render_throughput_tables(suite: BenchmarkSuiteResult):
     print(" 🚀 RESULTADOS DE THROUGHPUT & LATÊNCIA: COMPARAÇÃO MULTIDIMENSIONAL LADO A LADO")
     print("=" * 118)
 
-    models = ["gpt-oss-20b", "bonsai-27b", "gemma-4-E2B-it"]
+    models = ["gpt-oss-20b", "bonsai-27b", "gemma-4-E2B-it", "ornith-35b"]
     titles = {
         "gpt-oss-20b": "TABELA 1: GPT-OSS-20B (Sparse MoE 11.28 GB, 32 Experts)",
         "bonsai-27b": "TABELA 2: TERNARY-BONSAI-27B (1.58-bit PTQ1_0 5.54 GB, 64 Camadas)",
-        "gemma-4-E2B-it": "TABELA 3: GEMMA-4-E2B-IT (LiteRT Base Denso 2.3 GB)"
+        "gemma-4-E2B-it": "TABELA 3: GEMMA-4-E2B-IT (LiteRT Base Denso 2.3 GB)",
+        "ornith-35b": "TABELA 4: ORNITH-1.5-35B-A3B (Sparse MoE 10.26 GB, 256 Experts + MTP)"
     }
 
     for m_target in models:

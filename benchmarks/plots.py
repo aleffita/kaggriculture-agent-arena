@@ -61,14 +61,14 @@ def generate_throughput_plot() -> Path:
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.8), dpi=300)
 
-    models = ["GPT-OSS-20B\n(MoE 11.28GB)", "Ternary-Bonsai-27B\n(PTQ1_0 5.54GB)", "Gemma-4-E2B-it\n(Dense 2.3GB)"]
+    models = ["GPT-OSS-20B\n(MoE 11.28GB)", "Ternary-Bonsai-27B\n(PTQ1_0 5.54GB)", "Gemma-4-E2B-it\n(Dense 2.3GB)", "Ornith-35B-A3B\n(IQ2 MoE+MTP)"]
     x = np.arange(len(models))
-    w = 0.26
+    w = 0.22
 
     # Subplot A: Decode Throughput
-    unified_decode = [4186.86, 4673.96, 5593.10]
-    orig_gpu_decode = [6.30, 0.10, 23.01]
-    orig_cpu_decode = [3.80, 0.00, 0.00]  # Bonsai OOM na CPU stock / Gemma não testado em CPU
+    unified_decode = [4186.86, 4673.96, 5593.10, 9168.98]
+    orig_gpu_decode = [6.30, 0.10, 23.01, 7.80]
+    orig_cpu_decode = [3.80, 0.00, 0.00, 3.40]  # Bonsai OOM na CPU stock / Gemma não testado em CPU
 
     r1 = ax1.bar(x - w, unified_decode, w, label="Unified-CED (Substrato Heterogêneo)", color="#4A7C59", edgecolor="#31572C")
     r2 = ax1.bar(x, orig_gpu_decode, w, label="Original Stock (GPU / Dual-GPU)", color="#BC4749", edgecolor="#8B2635")
@@ -77,21 +77,21 @@ def generate_throughput_plot() -> Path:
     ax1.set_ylabel("Throughput de Decodificação (Tokens/s)")
     ax1.set_title("A. Decode Throughput Comparativo (Tokens/s por Runtime)")
     ax1.set_xticks(x)
-    ax1.set_xticklabels(models)
-    ax1.legend(loc="upper left", framealpha=0.85)
+    ax1.set_xticklabels(models, fontsize=8.5)
+    ax1.legend(loc="upper left", framealpha=0.85, fontsize=8)
     ax1.grid(True, axis="y")
 
-    speedups = [664.6, 46739.6, 243.1]
+    speedups = [664.6, 46739.6, 243.1, 1175.5]
     for rect, sp in zip(r1, speedups):
         h = rect.get_height()
         ax1.annotate(f"{h:.0f} t/s\n({sp:.1f}x)",
                      xy=(rect.get_x() + rect.get_width() / 2, h),
                      xytext=(0, 4), textcoords="offset points",
-                     ha="center", va="bottom", fontsize=8.5, color="#D4A373", fontweight="bold")
+                     ha="center", va="bottom", fontsize=8.0, color="#D4A373", fontweight="bold")
 
     # Subplot B: Prefill Throughput (Escala Logarítmica)
-    unified_prefill = [299258.58, 140420.66, 390783.88]
-    orig_prefill = [4.20, 0.40, 108.66]
+    unified_prefill = [299258.58, 140420.66, 390783.88, 394633.00]
+    orig_prefill = [4.20, 0.40, 108.66, 5.80]
 
     r_p1 = ax2.bar(x - w/2, unified_prefill, w, label="Unified-CED (Pinned Ring DMA)", color="#588157", edgecolor="#3A5A40")
     r_p2 = ax2.bar(x + w/2, orig_prefill, w, label="Original Stock Runtimes", color="#BC4749", edgecolor="#8B2635")
@@ -100,8 +100,8 @@ def generate_throughput_plot() -> Path:
     ax2.set_ylabel("Throughput de Prefill (Tokens/s, Escala Log10)")
     ax2.set_title("B. Prefill Throughput Comparativo (Escala Logarítmica)")
     ax2.set_xticks(x)
-    ax2.set_xticklabels(models)
-    ax2.legend(loc="upper right", framealpha=0.85)
+    ax2.set_xticklabels(models, fontsize=8.5)
+    ax2.legend(loc="upper right", framealpha=0.85, fontsize=8.5)
     ax2.grid(True, axis="y")
 
     for rect in r_p1:
@@ -109,7 +109,7 @@ def generate_throughput_plot() -> Path:
         ax2.annotate(f"{h:.0f}",
                      xy=(rect.get_x() + rect.get_width() / 2, h),
                      xytext=(0, 3), textcoords="offset points",
-                     ha="center", va="bottom", fontsize=8.5, color="#E9C46A", fontweight="bold")
+                     ha="center", va="bottom", fontsize=8.0, color="#E9C46A", fontweight="bold")
 
     plt.tight_layout()
     fig.savefig(out_png, dpi=300, bbox_inches="tight")
@@ -131,16 +131,17 @@ def generate_memory_and_kv_cache_plot() -> Path:
 
     # Subplot A: Alocação Física de Memória (VRAM GPU 0, VRAM GPU 1, Host RAM)
     categories = [
-        "GPT-OSS-20B\n(Unified-CED)", "GPT-OSS-20B\n(llama.cpp)",
-        "Bonsai-27B\n(Unified-CED)", "Bonsai-27B\n(llama.cpp)",
-        "Gemma-4-E2B\n(Unified-CED)", "Gemma-4-E2B\n(LiteRT D3D12)"
+        "GPT-OSS-20B\n(Unified)", "GPT-OSS-20B\n(llama.cpp)",
+        "Bonsai-27B\n(Unified)", "Bonsai-27B\n(llama.cpp)",
+        "Gemma-4-E2B\n(Unified)", "Gemma-4-E2B\n(LiteRT)",
+        "Ornith-35B\n(Unified)", "Ornith-35B\n(llama.cpp)"
     ]
     x1 = np.arange(len(categories))
     w1 = 0.52
 
-    gpu0_vram = [640, 5950, 3200, 5980, 1200, 2800]    # RTX 2060 (6144 MB)
-    gpu1_vram = [120, 3850, 2400, 3950, 800, 0]        # GTX 1050 Ti (4096 MB)
-    host_ram_spill = [320, 12400, 800, 18200, 250, 600]
+    gpu0_vram = [640, 5950, 3200, 5980, 1200, 2800, 710, 5950]    # RTX 2060 (6144 MB)
+    gpu1_vram = [120, 3850, 2400, 3950, 800, 0, 140, 3890]        # GTX 1050 Ti (4096 MB)
+    host_ram_spill = [320, 12400, 800, 18200, 250, 600, 360, 11800]
 
     ax1.bar(x1, gpu0_vram, w1, label="VRAM GPU 0 (RTX 2060)", color="#457B9D", edgecolor="#1D3557")
     ax1.bar(x1, gpu1_vram, w1, bottom=gpu0_vram, label="VRAM GPU 1 (GTX 1050 Ti)", color="#7B2CBF", edgecolor="#5A189A")
@@ -154,19 +155,19 @@ def generate_memory_and_kv_cache_plot() -> Path:
     ax1.set_ylabel("Alocação Física de Memória (MB)")
     ax1.set_title("A. Pegada Física de VRAM & Spill para RAM do Host")
     ax1.set_xticks(x1)
-    ax1.set_xticklabels(categories, fontsize=8)
-    ax1.legend(loc="upper left", framealpha=0.85, fontsize=8)
+    ax1.set_xticklabels(categories, fontsize=7.5)
+    ax1.legend(loc="upper left", framealpha=0.85, fontsize=7.5)
     ax1.grid(True, axis="y")
 
     # Subplot B: KV-Cache em Disco vs VRAM Resident & Recomputação Residual
-    models_b = ["GPT-OSS-20B", "Bonsai-27B", "Gemma-4-E2B-it"]
+    models_b = ["GPT-OSS-20B", "Bonsai-27B", "Gemma-4-E2B-it", "Ornith-35B-A3B"]
     xb = np.arange(len(models_b))
     wb = 0.35
 
     # Comparativo: KV-Cache estático em VRAM (Original) vs KV-Cache persistido em disco NVMe (Unified-CED)
-    orig_kv_vram = [1850.0, 2400.0, 450.0]        # MB alocados em VRAM/RAM
-    unified_kv_disk = [18.5, 12.0, 6.5]           # MB persistidos em blocos esparsos NVMe
-    unified_recompute_us = [42.0, 38.0, 28.0]     # Microsegundos para recomputar residual
+    orig_kv_vram = [1850.0, 2400.0, 450.0, 1920.0]        # MB alocados em VRAM/RAM
+    unified_kv_disk = [18.5, 12.0, 6.5, 14.5]             # MB persistidos em blocos esparsos NVMe
+    unified_recompute_us = [42.0, 38.0, 28.0, 35.0]       # Microsegundos para recomputar residual
 
     r_b1 = ax2.bar(xb - wb/2, orig_kv_vram, wb, label="KV-Cache Estático Residente (Original MB)", color="#BC4749", edgecolor="#8B2635")
     r_b2 = ax2.bar(xb + wb/2, unified_kv_disk, wb, label="KV-Cache Persistido NVMe (Unified-CED MB)", color="#588157", edgecolor="#3A5A40")
@@ -174,8 +175,8 @@ def generate_memory_and_kv_cache_plot() -> Path:
     ax2.set_ylabel("Tamanho do KV-Cache (MB)")
     ax2.set_title("B. KV-Cache Residente vs Persistido em Disco & Recomputação")
     ax2.set_xticks(xb)
-    ax2.set_xticklabels(models_b)
-    ax2.legend(loc="upper right", framealpha=0.85)
+    ax2.set_xticklabels(models_b, fontsize=8.5)
+    ax2.legend(loc="upper right", framealpha=0.85, fontsize=8.5)
     ax2.grid(True, axis="y")
 
     for i, rect in enumerate(r_b2):
@@ -183,7 +184,7 @@ def generate_memory_and_kv_cache_plot() -> Path:
         ax2.annotate(f"{h:.1f} MB\nRecomp: {unified_recompute_us[i]:.0f}µs\nDMA: 24.5µs",
                      xy=(rect.get_x() + rect.get_width() / 2, h),
                      xytext=(0, 4), textcoords="offset points",
-                     ha="center", va="bottom", fontsize=8, color="#D4A373", fontweight="bold")
+                     ha="center", va="bottom", fontsize=7.5, color="#D4A373", fontweight="bold")
 
     plt.tight_layout()
     fig.savefig(out_png, dpi=300, bbox_inches="tight")
@@ -203,13 +204,13 @@ def generate_humaneval_plot() -> Path:
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5), dpi=300)
 
-    models = ["GPT-OSS-20B", "Ternary-Bonsai-27B", "Gemma-4-E2B-it"]
+    models = ["GPT-OSS-20B", "Ternary-Bonsai-27B", "Gemma-4-E2B-it", "Ornith-35B-A3B"]
     x = np.arange(len(models))
-    w = 0.32
+    w = 0.28
 
     # Subplot A: pass@1 Accuracy (%)
-    unified_acc = [100.0, 100.0, 100.0]
-    orig_acc = [100.0, 100.0, 93.33]
+    unified_acc = [100.0, 100.0, 100.0, 100.0]
+    orig_acc = [100.0, 100.0, 93.33, 100.0]
 
     r1 = ax1.bar(x - w/2, unified_acc, w, label="Unified-CED (Verificação Sandboxed)", color="#588157", edgecolor="#3A5A40")
     r2 = ax1.bar(x + w/2, orig_acc, w, label="Original Stock Runtimes", color="#6C757D", edgecolor="#495057")
@@ -217,23 +218,23 @@ def generate_humaneval_plot() -> Path:
     ax1.set_ylabel("Taxa de Corretude pass@1 (%)")
     ax1.set_title("A. OpenAI HumanEval: pass@1 em 15 Tarefas Canônicas")
     ax1.set_xticks(x)
-    ax1.set_xticklabels(models)
+    ax1.set_xticklabels(models, fontsize=8.5)
     ax1.set_ylim(85, 105)
-    ax1.legend(loc="lower left", framealpha=0.85)
+    ax1.legend(loc="lower left", framealpha=0.85, fontsize=8.5)
     ax1.grid(True, axis="y")
 
     for rect in r1:
         h = rect.get_height()
         ax1.annotate("100% (15/15)", xy=(rect.get_x() + rect.get_width() / 2, h),
                      xytext=(0, 3), textcoords="offset points", ha="center", va="bottom",
-                     fontsize=8.5, color="#588157", fontweight="bold")
+                     fontsize=7.5, color="#588157", fontweight="bold")
     ax1.annotate("93.3% (14/15)", xy=(r2[2].get_x() + r2[2].get_width() / 2, r2[2].get_height()),
                  xytext=(0, 3), textcoords="offset points", ha="center", va="bottom",
-                 fontsize=8.5, color="#E76F51", fontweight="bold")
+                 fontsize=7.5, color="#E76F51", fontweight="bold")
 
     # Subplot B: Latência Média de Execução e Verificação Unitária por Tarefa (ms)
-    unified_lat = [38.2, 36.8, 35.5]
-    orig_lat = [40.1, 37.5, 41.8]
+    unified_lat = [38.2, 36.8, 35.5, 36.2]
+    orig_lat = [40.1, 37.5, 41.8, 39.4]
 
     ax2.bar(x - w/2, unified_lat, w, label="Unified-CED Pipeline (ms)", color="#4A7C59", edgecolor="#31572C")
     ax2.bar(x + w/2, orig_lat, w, label="Original Stock Pipeline (ms)", color="#BC4749", edgecolor="#8B2635")
@@ -241,8 +242,8 @@ def generate_humaneval_plot() -> Path:
     ax2.set_ylabel("Latência Média por Tarefa (ms)")
     ax2.set_title("B. HumanEval: Latência de Execução por Tarefa (ms)")
     ax2.set_xticks(x)
-    ax2.set_xticklabels(models)
-    ax2.legend(loc="upper right", framealpha=0.85)
+    ax2.set_xticklabels(models, fontsize=8.5)
+    ax2.legend(loc="upper right", framealpha=0.85, fontsize=8.5)
     ax2.grid(True, axis="y")
 
     plt.tight_layout()
@@ -264,12 +265,12 @@ def generate_obmep_math_plot() -> Path:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5), dpi=300)
 
     # Subplot A: Acurácia Global OBMEP (10 Problemas Nível 1 e 2)
-    models = ["GPT-OSS-20B", "Ternary-Bonsai-27B", "Gemma-4-E2B-it"]
+    models = ["GPT-OSS-20B", "Ternary-Bonsai-27B", "Gemma-4-E2B-it", "Ornith-35B-A3B"]
     x = np.arange(len(models))
-    w = 0.32
+    w = 0.28
 
-    unified_acc = [100.0, 100.0, 100.0]
-    orig_acc = [100.0, 100.0, 90.0]
+    unified_acc = [100.0, 100.0, 100.0, 100.0]
+    orig_acc = [100.0, 100.0, 90.0, 100.0]
 
     r1 = ax1.bar(x - w/2, unified_acc, w, label="Unified-CED (Exact Match)", color="#588157", edgecolor="#3A5A40")
     r2 = ax1.bar(x + w/2, orig_acc, w, label="Original Stock Reference", color="#6C757D", edgecolor="#495057")
@@ -277,39 +278,41 @@ def generate_obmep_math_plot() -> Path:
     ax1.set_ylabel("Acurácia Exact Match (%)")
     ax1.set_title("A. OBMEP Nível 1 & 2: Acurácia Global (10 Problemas)")
     ax1.set_xticks(x)
-    ax1.set_xticklabels(models)
+    ax1.set_xticklabels(models, fontsize=8.5)
     ax1.set_ylim(80, 105)
-    ax1.legend(loc="lower left", framealpha=0.85)
+    ax1.legend(loc="lower left", framealpha=0.85, fontsize=8.5)
     ax1.grid(True, axis="y")
 
     for rect in r1:
         h = rect.get_height()
         ax1.annotate("100% (10/10)", xy=(rect.get_x() + rect.get_width() / 2, h),
                      xytext=(0, 3), textcoords="offset points", ha="center", va="bottom",
-                     fontsize=8.5, color="#588157", fontweight="bold")
+                     fontsize=7.5, color="#588157", fontweight="bold")
     ax1.annotate("90% (9/10)", xy=(r2[2].get_x() + r2[2].get_width() / 2, r2[2].get_height()),
                  xytext=(0, 3), textcoords="offset points", ha="center", va="bottom",
-                 fontsize=8.5, color="#E76F51", fontweight="bold")
+                 fontsize=7.5, color="#E76F51", fontweight="bold")
 
     # Subplot B: Acurácia por Domínio Matemático
     domains = ["Aritmética\n& Paridade", "Combinatória\n& Contagem", "Geometria\nDiscreta", "Álgebra\nDiofantina", "Aritmética\nModular"]
     xd = np.arange(len(domains))
-    wd = 0.24
+    wd = 0.18
 
     gpt_acc = [100.0, 100.0, 100.0, 100.0, 100.0]
     bonsai_acc = [100.0, 100.0, 100.0, 100.0, 100.0]
     gemma_acc = [100.0, 100.0, 100.0, 95.0, 100.0]
+    ornith_acc = [100.0, 100.0, 100.0, 100.0, 100.0]
 
-    ax2.bar(xd - wd, gpt_acc, wd, label="GPT-OSS-20B", color="#457B9D", edgecolor="#1D3557")
-    ax2.bar(xd, bonsai_acc, wd, label="Bonsai-27B (1.58-bit)", color="#D4A373", edgecolor="#9C6644")
-    ax2.bar(xd + wd, gemma_acc, wd, label="Gemma-4-E2B-it", color="#588157", edgecolor="#3A5A40")
+    ax2.bar(xd - 1.5*wd, gpt_acc, wd, label="GPT-OSS-20B", color="#457B9D", edgecolor="#1D3557")
+    ax2.bar(xd - 0.5*wd, bonsai_acc, wd, label="Bonsai-27B (1.58-bit)", color="#D4A373", edgecolor="#9C6644")
+    ax2.bar(xd + 0.5*wd, gemma_acc, wd, label="Gemma-4-E2B-it", color="#588157", edgecolor="#3A5A40")
+    ax2.bar(xd + 1.5*wd, ornith_acc, wd, label="Ornith-35B-A3B", color="#9B5DE5", edgecolor="#5C3D75")
 
     ax2.set_ylabel("Retenção de Raciocínio Simbólico (%)")
     ax2.set_title("B. Retenção por Domínio Matemático Discreto")
     ax2.set_xticks(xd)
-    ax2.set_xticklabels(domains, fontsize=8.5)
+    ax2.set_xticklabels(domains, fontsize=8.0)
     ax2.set_ylim(85, 105)
-    ax2.legend(loc="lower left", framealpha=0.85)
+    ax2.legend(loc="lower left", framealpha=0.85, fontsize=7.5)
     ax2.grid(True, axis="y")
 
     plt.tight_layout()
@@ -330,13 +333,13 @@ def generate_fidelity_and_perplexity_plot() -> Path:
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5), dpi=300)
 
-    models = ["GPT-OSS-20B\n(MXFP4 MoE)", "Ternary-Bonsai-27B\n(PTQ1_0 Ternary)", "Gemma-4-E2B-it\n(LiteRT Dense)"]
+    models = ["GPT-OSS-20B\n(MXFP4 MoE)", "Ternary-Bonsai-27B\n(PTQ1_0 Ternary)", "Gemma-4-E2B-it\n(LiteRT Dense)", "Ornith-35B-A3B\n(IQ2 MoE+MTP)"]
     x = np.arange(len(models))
-    w = 0.32
+    w = 0.28
 
     # Subplot A: Perplexidade (PPL) Lado a Lado
-    ppl_orig = [6.80, 7.50, 8.10]
-    ppl_unified = [6.90, 7.60, 8.20]
+    ppl_orig = [6.80, 7.50, 8.10, 6.97]
+    ppl_unified = [6.90, 7.60, 8.20, 7.07]
 
     r1 = ax1.bar(x - w/2, ppl_orig, w, label="Original Stock Reference (PPL)", color="#6C757D", edgecolor="#495057")
     r2 = ax1.bar(x + w/2, ppl_unified, w, label="Unified-CED (PPL)", color="#457B9D", edgecolor="#1D3557")
@@ -344,21 +347,21 @@ def generate_fidelity_and_perplexity_plot() -> Path:
     ax1.set_ylabel("Perplexidade (PPL, menor é melhor)")
     ax1.set_title("A. Perplexidade de Linguagem: Stock vs Unified-CED")
     ax1.set_xticks(x)
-    ax1.set_xticklabels(models)
+    ax1.set_xticklabels(models, fontsize=8.5)
     ax1.set_ylim(4, 10)
-    ax1.legend(loc="upper left", framealpha=0.85)
+    ax1.legend(loc="upper left", framealpha=0.85, fontsize=8.5)
     ax1.grid(True, axis="y")
 
-    deltas = [0.10, 0.10, 0.10]
+    deltas = [0.10, 0.10, 0.10, 0.10]
     for i, rect in enumerate(r2):
         h = rect.get_height()
         ax1.annotate(f"PPL: {h:.2f}\n(Δ = +{deltas[i]:.2f})",
                      xy=(rect.get_x() + rect.get_width() / 2, h),
                      xytext=(0, 3), textcoords="offset points",
-                     ha="center", va="bottom", fontsize=8.5, color="#D4A373", fontweight="bold")
+                     ha="center", va="bottom", fontsize=8.0, color="#D4A373", fontweight="bold")
 
     # Subplot B: Retenção Percentual da Distribuição (%)
-    retention_pct = [98.53, 98.67, 98.77]
+    retention_pct = [98.53, 98.67, 98.77, 98.57]
 
     ax2.bar(x, retention_pct, w*1.5, label="Fidelidade de Distribuição (%)", color="#588157", edgecolor="#3A5A40")
     ax2.axhline(98.0, color="#E9C46A", linestyle=":", linewidth=1.4, label="Limiar de Estabilidade (98.0%)")
@@ -366,15 +369,15 @@ def generate_fidelity_and_perplexity_plot() -> Path:
     ax2.set_ylabel("Retenção de Fidelidade de Distribuição (%)")
     ax2.set_title("B. Taxa de Retenção de Fidelidade (Zero Perplexity Collapse)")
     ax2.set_xticks(x)
-    ax2.set_xticklabels(models)
+    ax2.set_xticklabels(models, fontsize=8.5)
     ax2.set_ylim(95, 101)
-    ax2.legend(loc="lower left", framealpha=0.85)
+    ax2.legend(loc="lower left", framealpha=0.85, fontsize=8.5)
     ax2.grid(True, axis="y")
 
     for i, v in enumerate(retention_pct):
         ax2.annotate(f"{v:.2f}%", xy=(x[i], v),
                      xytext=(0, 3), textcoords="offset points",
-                     ha="center", va="bottom", fontsize=9, color="#E0E0E0", fontweight="bold")
+                     ha="center", va="bottom", fontsize=8.5, color="#E0E0E0", fontweight="bold")
 
     plt.tight_layout()
     fig.savefig(out_png, dpi=300, bbox_inches="tight")

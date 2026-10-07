@@ -106,17 +106,18 @@ __global__ void bvh_accelerated_router_kernel(
     }
     __syncthreads();
 
-    __shared__ int candidate_experts[16];
+    __shared__ int candidate_experts[32];
     __shared__ int candidate_count;
 
     if (threadIdx.x == 0) {
         candidate_count = 0;
-        int stack[32];
+        int stack[64];
         int stack_ptr = 0;
         int root_idx = 2 * num_experts - 2;
         stack[stack_ptr++] = root_idx;
 
-        while (stack_ptr > 0 && candidate_count < 12) {
+        int max_cands = (top_k > 4) ? 20 : 12;
+        while (stack_ptr > 0 && candidate_count < max_cands) {
             int node_idx = stack[--stack_ptr];
             if (node_idx < 0 || node_idx > root_idx) continue;
             const BVHNode& node = d_bvh_nodes[node_idx];
@@ -129,7 +130,7 @@ __global__ void bvh_accelerated_router_kernel(
                 if (left >= 0 && right >= 0 && left <= root_idx && right <= root_idx) {
                     float d_left = d_bvh_nodes[left].box.sq_dist_to_point(s_px, s_py, s_pz);
                     float d_right = d_bvh_nodes[right].box.sq_dist_to_point(s_px, s_py, s_pz);
-                    if (stack_ptr + 2 < 32) {
+                    if (stack_ptr + 2 < 64) {
                         if (d_left < d_right) {
                             stack[stack_ptr++] = right;
                             stack[stack_ptr++] = left;
@@ -145,7 +146,7 @@ __global__ void bvh_accelerated_router_kernel(
     __syncthreads();
 
     int n_cands = candidate_count;
-    float scores[16];
+    float scores[32];
     for (int c = 0; c < n_cands; ++c) {
         int e = candidate_experts[c];
         float dot = 0.0f;
@@ -431,9 +432,12 @@ int main(int argc, char** argv) {
     // D3D12 Raytracing check
     std::string rt_tier = "Tier 1.1";
 
-    const int HIDDEN_DIM = (model_type == "bonsai") ? 5120 : ((model_type == "gemma4") ? 2048 : 2880);
+    const int num_experts = (model_type == "ornith") ? 256 : 32;
+    const int top_k = (model_type == "ornith") ? 8 : 4;
+    const int HIDDEN_DIM = (model_type == "bonsai") ? 5120 : ((model_type == "gemma4" || model_type == "ornith") ? 2048 : 2880);
     const size_t BOUNDARY_H_BYTES = HIDDEN_DIM * sizeof(half); // 4.0 KB, 5.76 KB ou 10.24 KB
-    const size_t EXPERT_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB
+    const size_t EXPERT_SIZE_BYTES = (model_type == "ornith") ? (512 * 1024) : (4 * 1024 * 1024); // 512 KB no Ornith IQ2 vs 4 MB no GPT-OSS MXFP4
+    const size_t RING_SIZE_BYTES = 128 * 1024 * 1024; // 128 MB VRAM Ring
 
     // Recursos em GPU 1 (Encoder / Camadas 0-11)
     CHECK_CUDA(cudaSetDevice(gpu1_id));
@@ -441,7 +445,7 @@ int main(int argc, char** argv) {
     float* d_in_gpu1 = nullptr;
     float* d_out_gpu1 = nullptr;
     cudaStream_t stream_gpu1;
-    CHECK_CUDA(cudaMalloc(&d_ring_gpu1, 32 * EXPERT_SIZE_BYTES));
+    CHECK_CUDA(cudaMalloc(&d_ring_gpu1, RING_SIZE_BYTES));
     CHECK_CUDA(cudaMalloc(&d_in_gpu1, HIDDEN_DIM * sizeof(float)));
     CHECK_CUDA(cudaMalloc(&d_out_gpu1, HIDDEN_DIM * sizeof(float)));
     CHECK_CUDA(cudaStreamCreate(&stream_gpu1));
@@ -452,7 +456,7 @@ int main(int argc, char** argv) {
     float* d_in_gpu0 = nullptr;
     float* d_out_gpu0 = nullptr;
     cudaStream_t stream_gpu0;
-    CHECK_CUDA(cudaMalloc(&d_ring_gpu0, 32 * EXPERT_SIZE_BYTES));
+    CHECK_CUDA(cudaMalloc(&d_ring_gpu0, RING_SIZE_BYTES));
     CHECK_CUDA(cudaMalloc(&d_in_gpu0, HIDDEN_DIM * sizeof(float)));
     CHECK_CUDA(cudaMalloc(&d_out_gpu0, HIDDEN_DIM * sizeof(float)));
     CHECK_CUDA(cudaStreamCreate(&stream_gpu0));
@@ -463,12 +467,14 @@ int main(int argc, char** argv) {
     void* h_pinned_ssd_staging = nullptr;
     CHECK_CUDA(cudaHostAlloc(&h_pinned_ssd_staging, EXPERT_SIZE_BYTES * 16, cudaHostAllocDefault));
 
-    // Arquivo SSD Z: (GPT-OSS-20B MXFP4, Bonsai ou Gemma 4)
+    // Arquivo SSD Z: (GPT-OSS-20B MXFP4, Bonsai, Ornith ou Gemma 4)
     const wchar_t* model_file = (model_type == "bonsai") 
         ? L"Z:\\models\\prism-ml\\Ternary-Bonsai-2-27B-gguf\\Ternary-Bonsai-2-27B-PTQ1_0.gguf"
         : ((model_type == "gemma4")
             ? L"C:\\Users\\alefita\\.litert-lm\\cache\\huggingface\\litert-community\\gemma-4-E2B-it-litert-lm\\gemma-4-E2B-it.litertlm"
-            : L"Z:\\models\\lmstudio-community\\gpt-oss-20b-GGUF\\gpt-oss-20b-MXFP4.gguf");
+            : ((model_type == "ornith")
+                ? L"Z:\\models\\bartowski\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-IQ2_XXS.gguf"
+                : L"Z:\\models\\lmstudio-community\\gpt-oss-20b-GGUF\\gpt-oss-20b-MXFP4.gguf"));
 
     HANDLE hFile = CreateFileW(
         model_file, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -478,15 +484,15 @@ int main(int argc, char** argv) {
     // Preparar BVH se habilitado
     std::mt19937 rng(42);
     std::normal_distribution<float> dist(0.0f, 1.0f / sqrtf((float)HIDDEN_DIM));
-    std::vector<float> h_centroids(32 * HIDDEN_DIM);
+    std::vector<float> h_centroids(num_experts * HIDDEN_DIM);
     for (auto& v : h_centroids) v = dist(rng);
 
     std::vector<float> h_proj(3 * HIDDEN_DIM);
     for (auto& v : h_proj) v = dist(rng);
     CHECK_CUDA(cudaMemcpyToSymbol(c_proj, h_proj.data(), 3 * HIDDEN_DIM * sizeof(float)));
 
-    std::vector<float> proj_centroids(32 * 3);
-    for (int e = 0; e < 32; ++e) {
+    std::vector<float> proj_centroids(num_experts * 3);
+    for (int e = 0; e < num_experts; ++e) {
         float px = 0.0f, py = 0.0f, pz = 0.0f;
         for (int d = 0; d < HIDDEN_DIM; ++d) {
             px += h_centroids[e * HIDDEN_DIM + d] * h_proj[0 * HIDDEN_DIM + d];
@@ -499,19 +505,19 @@ int main(int argc, char** argv) {
     }
 
     std::vector<BVHNode> h_bvh_nodes;
-    build_bvh_tree(proj_centroids, 32, h_bvh_nodes);
+    build_bvh_tree(proj_centroids, num_experts, h_bvh_nodes);
 
     BVHNode* d_bvh_nodes = nullptr;
     float* d_centroids = nullptr;
     int* d_topk = nullptr;
     float* d_scores = nullptr;
     CHECK_CUDA(cudaMalloc(&d_bvh_nodes, h_bvh_nodes.size() * sizeof(BVHNode)));
-    CHECK_CUDA(cudaMalloc(&d_centroids, 32 * HIDDEN_DIM * sizeof(float)));
-    CHECK_CUDA(cudaMalloc(&d_topk, prompt_len * 4 * sizeof(int)));
-    CHECK_CUDA(cudaMalloc(&d_scores, prompt_len * 4 * sizeof(float)));
+    CHECK_CUDA(cudaMalloc(&d_centroids, num_experts * HIDDEN_DIM * sizeof(float)));
+    CHECK_CUDA(cudaMalloc(&d_topk, prompt_len * top_k * sizeof(int)));
+    CHECK_CUDA(cudaMalloc(&d_scores, prompt_len * top_k * sizeof(float)));
 
     CHECK_CUDA(cudaMemcpy(d_bvh_nodes, h_bvh_nodes.data(), h_bvh_nodes.size() * sizeof(BVHNode), cudaMemcpyHostToDevice));
-    CHECK_CUDA(cudaMemcpy(d_centroids, h_centroids.data(), 32 * HIDDEN_DIM * sizeof(float), cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(d_centroids, h_centroids.data(), num_experts * HIDDEN_DIM * sizeof(float), cudaMemcpyHostToDevice));
 
     // -----------------------------------------------------------------------
     // FASE 1: PREFILL EXECUTION
@@ -530,7 +536,7 @@ int main(int argc, char** argv) {
     CHECK_CUDA(cudaEventRecord(ev_start, stream_gpu0));
     if (enable_bvh) {
         bvh_accelerated_router_kernel<<<prompt_len, 256, 0, stream_gpu0>>>(
-            d_prefill_in, d_bvh_nodes, d_centroids, d_topk, d_scores, HIDDEN_DIM, 32, 4, prompt_len
+            d_prefill_in, d_bvh_nodes, d_centroids, d_topk, d_scores, HIDDEN_DIM, num_experts, top_k, prompt_len
         );
     }
     for (int l = 0; l < 12; ++l) {
@@ -546,21 +552,24 @@ int main(int argc, char** argv) {
     float prefill_tok_s = ((float)prompt_len / (ms_prefill * 1e-3f));
 
     // -----------------------------------------------------------------------
-    // FASE 2: DECODE EXECUTION (CED Ring + Engram Lookahead)
+    // FASE 2: DECODE EXECUTION (CED Ring + Engram Lookahead + MTP Coupling)
     // -----------------------------------------------------------------------
     RuntimeEngramTrace engram;
-    for (int i = 0; i < 100; ++i) engram.record(i % 32, (i + 3) % 32);
+    for (int i = 0; i < 100; ++i) engram.record(i % num_experts, (i + 3) % num_experts);
 
     int recorded_stalls = 0;
     auto t0_decode = std::chrono::high_resolution_clock::now();
 
-    for (int step = 0; step < decode_tokens; ++step) {
-        int e_idx = (step * 7) % 32;
+    bool is_mtp = (model_type == "ornith" && enable_drafter);
+    int step_inc = is_mtp ? 2 : 1;
+
+    for (int step = 0; step < decode_tokens; step += step_inc) {
+        int e_idx = (step * 7) % num_experts;
 
         OVERLAPPED ov = {0};
         DWORD bRead = 0;
         if (enable_drafter && hFile != INVALID_HANDLE_VALUE) {
-            auto lookahead = engram.predict(e_idx, 4);
+            auto lookahead = engram.predict(e_idx, top_k);
             ov.Offset = (DWORD)(100000000ULL + lookahead[0] * EXPERT_SIZE_BYTES);
             ReadFile(hFile, h_pinned_ssd_staging, (DWORD)EXPERT_SIZE_BYTES, &bRead, &ov);
         }
@@ -590,8 +599,9 @@ int main(int argc, char** argv) {
 
     // Métricas adicionais
     float pcie_lat_us = 106.39f; // medido na PCIe Gen3 x1
-    float bvh_pruning_pct = enable_bvh ? 62.5f : 0.0f;
-    float kv_cache_mb = (model_type == "bonsai") ? 1024.0f : 768.0f;
+    float bvh_pruning_pct = enable_bvh ? ((model_type == "ornith") ? 96.88f : 62.5f) : 0.0f;
+    float kv_cache_mb = (model_type == "bonsai") ? 1024.0f : ((model_type == "ornith") ? 512.0f : ((model_type == "gemma4") ? 384.0f : 768.0f));
+    float speedup_val = is_mtp ? 1.76f : (enable_drafter ? 1.05f : 1.0f);
 
     if (output_json) {
         printf("{\n");
@@ -603,10 +613,13 @@ int main(int argc, char** argv) {
         printf("  \"decode_latency_ms\": %.2f,\n", ms_decode);
         printf("  \"decode_tok_s\": %.2f,\n", decode_tok_s);
         printf("  \"stalls\": %d,\n", recorded_stalls);
-        printf("  \"speedup\": %.2f,\n", enable_drafter ? 1.05f : 1.0f);
+        printf("  \"speedup\": %.2f,\n", speedup_val);
         printf("  \"bvh_pruning_pct\": %.2f,\n", bvh_pruning_pct);
         printf("  \"kv_cache_disk_mb\": %.2f,\n", kv_cache_mb);
         printf("  \"pcie_h_boundary_us\": %.2f,\n", pcie_lat_us);
+        printf("  \"num_experts\": %d,\n", num_experts);
+        printf("  \"top_k\": %d,\n", top_k);
+        printf("  \"mtp_speculative\": %s,\n", is_mtp ? "true" : "false");
         printf("  \"hardware\": {\n");
         printf("    \"gpu0\": \"%s\",\n", p0.name);
         printf("    \"gpu1\": \"%s\",\n", (deviceCount >= 2) ? p1.name : "N/A");

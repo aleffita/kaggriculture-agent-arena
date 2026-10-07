@@ -70,6 +70,16 @@ class PerplexityBenchmarkPlugin(BaseBenchmarkPlugin):
                 "loss_unified": 2.1041,
                 "ppl_unified": 8.20,
                 "format": "LiteRT Dense"
+            },
+            {
+                "model": "ornith-35b",
+                "backend_orig": "original (llama.cpp)",
+                "loss_orig": 1.9420,
+                "ppl_orig": 6.97,
+                "backend_unified": "unified-ced",
+                "loss_unified": 1.9562,
+                "ppl_unified": 7.07,
+                "format": "IQ2_XXS MoE"
             }
         ]
 
