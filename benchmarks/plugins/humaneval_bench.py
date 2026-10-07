@@ -215,6 +215,8 @@ class HumanEvalBenchmarkPlugin(BaseBenchmarkPlugin):
                     "total_tasks": len(problems),
                     "accuracy_pct": round(rate * 100.0, 2),
                     "avg_latency_ms": round(avg_lat, 2),
+                    "reasoning_effort": "medium",
+                    "thinking_budget_tokens": 512,
                     "tasks_detail": canonical_task_results
                 }
             )

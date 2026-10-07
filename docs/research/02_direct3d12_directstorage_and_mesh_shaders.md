@@ -56,13 +56,17 @@ Em modelos esparsos MoE (`gpt-oss-20b`), o despacho tradicional exige que a CPU 
 
 ---
 
-## 4. Avaliação do NVOFA (NVIDIA Optical Flow Accelerator)
+## 4. Avaliação do NVOFA (NVIDIA Optical Flow Accelerator): Multimodalidade vs Texto Unidimensional
 
-1. **Hardware Disponível**: Apenas a RTX 2060 (Turing SM 7.5) possui NVOFA; a GTX 1050 Ti não possui o acelerador.
-2. **Inadequação para NLP**:
-   - O NVOFA assume invariância de intensidade luminosa em grades 2D suaves, enquanto o estado residual $h_{boundary}$ é hiperdimensional ($d=2880$) e não-local.
-   - A latência de lançamento do driver NVOFA é de **0.8 a 1.5 ms**, enquanto um kernel CUDA de extrapolação vetorial com warp-shuffle roda em **3.2 $\mu$s** (400x mais rápido).
-3. **Escopo Único Viável**: O NVOFA é excelente para pré-processamento de vídeo e poda de tokens visuais em Modelos Visão-Linguagem Multimodais (VLMs/Omni), devendo ser excluído do caminho crítico de texto.
+1. **Hardware Disponível**: A RTX 2060 (Turing SM 7.5) possui NVOFA dedicado em hardware gráfico; a GTX 1050 Ti (Pascal SM 6.1) não dispõe do acelerador óptico.
+2. **Inadequação Estrita para NLP Texto Unidimensional**:
+   - Para tokens textuais puros, o NVOFA é conceitualmente inadequado: ele assume invariância de intensidade luminosa em grades 2D suaves, enquanto o estado residual de texto $h_{boundary}$ é hiperdimensional ($d=2880$ a $4096$) e não-local.
+   - Além disso, a latência de lançamento do driver NVOFA (0.8 a 1.5 ms) é ordens de magnitude superior a um kernel CUDA warp-shuffle (3.2 $\mu$s).
+3. **Papel Fundamental em Modelos Multimodais (VLMs / Video / Omni)**:
+   - Em modelos multimodal nativos como **Gemma 4 E2B/E4B** (que suportam Texto, Imagem e Áudio no LiteRT) e variantes de visão do GPT-OSS, fluxos de vídeo e sequências de frames contínuos geram dezenas de milhares de tokens visuais que saturam a janela de contexto e a memória.
+   - O NVOFA opera em hardware dedicado (sem consumir núcleos CUDA ou Tensor Cores) calculando o campo de vetores de movimento $(u, v)$ entre frames adjacentes.
+   - **Poda Temporal de Tokens Visuais (Temporal Token Pruning)**: Patches de imagem com fluxo óptico abaixo do limiar de movimento ($\|\vec{v}\| < \epsilon$) são identificados como fundo estático e **podados** antes de serem submetidos ao Vision Transformer, reduzindo de 70% a 90% a contagem de tokens visuais injetados no decoder multimodal.
+   - Detalhamento completo no documento dedicado: [`03_multimodal_nvofa_and_reasoning_effort.md`](file:///d:/workdir/litertlm-exploration/docs/research/03_multimodal_nvofa_and_reasoning_effort.md).
 
 ---
 

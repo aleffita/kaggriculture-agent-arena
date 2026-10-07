@@ -141,15 +141,40 @@
       "loss_function": "cross_entropy"
     }
   },
-  "profiling": {
-    "sample_interval_sec": 0.05,
-    "metrics": [
-      "peak_gpu0_vram_mb",
-      "peak_gpu1_vram_mb",
-      "peak_host_ram_mb",
-      "kv_cache_disk_mb",
-      "pcie_h_boundary_us",
-      "nvme_read_rate_mbs"
-    ]
+  "session_management": {
+    "sessions_root": "Z:\\models\\sessions",
+    "max_disk_cache_gb": 32.0,
+    "prefix_caching_radix": true,
+    "eviction_policy": "LRU"
+  },
+  "multimodal_acceleration": {
+    "nvofa_enabled": true,
+    "target_device": "NVIDIA GeForce RTX 2060",
+    "motion_threshold_tau": 0.05,
+    "patch_size": [16, 16],
+    "temporal_token_pruning_expected_pct": 82.5,
+    "supported_models": ["gemma-4-E2B-it", "gemma-4-E4B-it", "gpt-oss-multimodal"]
+  },
+  "reasoning_effort_matrix": {
+    "default_level": "medium",
+    "levels": {
+      "low": { "thinking_budget": 128, "cot_depth": 1, "target": "tarefas diretas / summarização" },
+      "medium": { "thinking_budget": 512, "cot_depth": 2, "target": "código canônico / HumanEval" },
+      "high": { "thinking_budget": 2048, "cot_depth": 4, "target": "raciocínio simbólico rigoroso / OBMEP" }
+    }
+  },
+  "prospective_participants": {
+    "gpt-oss-120b": {
+      "model_id": "gpt-oss-120b",
+      "name": "GPT-OSS-120B",
+      "architecture": "Sparse MoE (64 Experts, Top-4 Active)",
+      "parameters_total": "120B",
+      "active_parameters_per_token": "14B",
+      "estimated_weights_size_mb": 60500.0,
+      "format": "MXFP4",
+      "estimated_vram_peak_mb": 720.0,
+      "streaming_mode": "NVMe Direct Overlapped I/O",
+      "status": "AWAITING_NEW_SSD_ALLOCATION"
+    }
   }
 }

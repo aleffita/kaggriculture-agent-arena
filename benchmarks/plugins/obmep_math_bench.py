@@ -244,6 +244,8 @@ class OBMEPMathBenchmarkPlugin(BaseBenchmarkPlugin):
                     "total_problems": len(problems),
                     "accuracy_pct": round(acc * 100.0, 2),
                     "avg_latency_ms": round(avg_lat, 2),
+                    "reasoning_effort": "high",
+                    "thinking_budget_tokens": 1024,
                     "problems_detail": canonical_results
                 }
             )
