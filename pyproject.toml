@@ -27,7 +27,9 @@ dependencies = [
 litert-explore = "litert_explore.cli:main"
 litert-bench = "litert_explore.cli:bench_cli"
 litert-gpu = "litert_explore.cli:gpu_cli"
+litert-hpc = "litert_explore.cli:hpc_cli"
 kaggriculture-dashboard = "kaggriculture.dashboard.app:main"
+
 
 [dependency-groups]
 dev = [

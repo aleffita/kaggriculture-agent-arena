@@ -68,6 +68,15 @@ def chat_cli(target: str = "1050ti", model: str | None = None):
             break
 
 
+def hpc_cli(tokens: int = 50, model: str | None = None):
+    """Runs the Heterogeneous Causal Encoder-Decoder HPC Pipeline."""
+    from .hpc_runtime import HeterogeneousHPCRuntime
+    runtime = HeterogeneousHPCRuntime(model_path=model)
+    audit = runtime.audit_physical_silicon()
+    runtime.display_topology(audit)
+    runtime.run_pipeline(tokens=tokens)
+
+
 def main():
     """Main CLI entrypoint."""
     parser = argparse.ArgumentParser(prog="litert-explore", description="LiteRT-LM Exploration & Multi-GPU Suite")
@@ -86,6 +95,11 @@ def main():
     chat_parser.add_argument("--target", choices=["1050ti", "2060", "cpu"], default="1050ti")
     chat_parser.add_argument("--model", type=str, default=None)
 
+    # hpc-pipeline
+    hpc_parser = subparsers.add_parser("hpc-pipeline", help="Run the continuous heterogeneous Causal Encoder-Decoder HPC pipeline")
+    hpc_parser.add_argument("--tokens", type=int, default=50, help="Number of tokens to generate in pipeline benchmark")
+    hpc_parser.add_argument("--model", type=str, default=None, help="Path to .litertlm model file")
+
     args = parser.parse_args()
 
     if args.command == "bench":
@@ -99,8 +113,11 @@ def main():
         gpu_cli()
     elif args.command == "chat":
         chat_cli(args.target, args.model)
+    elif args.command == "hpc-pipeline":
+        hpc_cli(tokens=args.tokens, model=args.model)
     else:
         parser.print_help()
+
 
 
 if __name__ == "__main__":
