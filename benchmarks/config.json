@@ -147,6 +147,34 @@
           "kv_cache_strategy": "host_ram_allocated"
         }
       }
+    },
+    "gemma-4-12B": {
+      "model_id": "gemma-4-12B",
+      "name": "Gemma-4-12B-it-heretic-QAT",
+      "architecture": "Unified Dense Autoregressive Multimodal Transformer",
+      "parameters_total": "12.0B",
+      "weights_size_mb": 6716.36,
+      "format": "Q4_K_XL (UD Heretic QAT) + BF16 mmproj",
+      "weights_path": "Z:\\models\\SC117\\gemma-4-12B-it-heretic-QAT-GGUF\\gemma-4-12B-it-heretic-QAT-UD-Q4_K_XL.gguf",
+      "mmproj_path": "Z:\\models\\SC117\\gemma-4-12B-it-heretic-QAT-GGUF\\mmproj-BF16.gguf",
+      "backends": {
+        "unified-ced": {
+          "enabled": true,
+          "name": "unified-ced (Dual-GPU DSpark SAR + Engram + D3D12 Tiled)",
+          "hardware": "Dual-GPU CED Pipeline (GTX 1050 Ti Draft + RTX 2060 Decoder)",
+          "kv_cache_strategy": "disk_persisted_residual_recompute",
+          "tiled_resources_tier": "Tier 3 (Turing SM 7.5)",
+          "dspark_sar_speculative": true
+        },
+        "original-d3d12": {
+          "enabled": true,
+          "name": "original (litert-d3d12 Dawn / stock)",
+          "hardware": "RTX 2060 stock Dawn Direct3D 12",
+          "target": "2060",
+          "framework": "Google Dawn Direct3D 12",
+          "kv_cache_strategy": "vram_allocated_oom_above_4k"
+        }
+      }
     }
   },
   "benchmarks": {
