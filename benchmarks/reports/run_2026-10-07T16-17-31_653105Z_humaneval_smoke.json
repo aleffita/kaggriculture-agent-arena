@@ -1,0 +1,58 @@
+{
+  "benchmark_name": "humaneval",
+  "mode": "smoke",
+  "timestamp": "2026-10-07T16:17:31.653105Z",
+  "environment_metadata": {
+    "benchmark_source": "OpenAI HumanEval",
+    "metric": "pass@1",
+    "execution_sandbox": "Local Python Subprocess"
+  },
+  "measurements": [
+    {
+      "benchmark": "humaneval",
+      "backend": "python-exec",
+      "model": "eval-harness",
+      "mode": "smoke",
+      "prompt_tokens": 0,
+      "gen_tokens": 0,
+      "batch_size": 1,
+      "prefill_tok_s": 0.0,
+      "prefill_ttft_ms": 0.0,
+      "decode_tok_s": 0.0,
+      "decode_ms_per_tok": 0.0,
+      "metric_name": "pass@1",
+      "metric_value": 1.0,
+      "error_stddev": 0.0,
+      "status": "SUCCESS",
+      "details": {
+        "total_problems": 5,
+        "passed_problems": 5,
+        "pass_at_1_pct": 100.0,
+        "elapsed_seconds": 0.2598,
+        "problems": [
+          {
+            "task_id": "HumanEval/0",
+            "passed": true
+          },
+          {
+            "task_id": "HumanEval/1",
+            "passed": true
+          },
+          {
+            "task_id": "HumanEval/2",
+            "passed": true
+          },
+          {
+            "task_id": "HumanEval/3",
+            "passed": true
+          },
+          {
+            "task_id": "HumanEval/4",
+            "passed": true
+          }
+        ]
+      },
+      "timestamp": "2026-10-07T16:17:31.912807Z"
+    }
+  ]
+}

@@ -1,10 +1,11 @@
-timestamp,plugin,hardware,prefill_tok_s,prefill_ttft_ms,decode_tok_s,decode_latency_ms,stalls,speedup,status
-2026-10-07T15:28:58.640871Z,pcie_payload_curve,GTX 1050 Ti -> RTX 2060 (PCIe Gen3 x1),0.0,0.0,0.0,0.06,0,1.0,SUCCESS
-2026-10-07T15:29:53.706098Z,moe_dual_gpu_ring,GTX 1050 Ti (4GB) + RTX 2060 (6GB) + NVMe SSD Z:,438212.09,0.29,3944.0,7.61,0,0.85,SUCCESS
-2026-10-07T15:33:21.998726Z,bvh_moe_router,NVIDIA GeForce RTX 2060 (Turing SM 7.5 / D3D12 DXR Tier 1.1),566150.0,0.23,4423.05,0.23,0,1.08,SUCCESS
-2026-10-07T15:33:37.057342Z,pcie_payload_curve,GTX 1050 Ti -> RTX 2060 (PCIe Gen3 x1),0.0,0.0,0.0,0.06,0,1.0,SUCCESS
-2026-10-07T15:33:37.399556Z,moe_dual_gpu_ring,GTX 1050 Ti (4GB) + RTX 2060 (6GB) + NVMe SSD Z:,437876.25,0.29,5767.34,5.2,0,1.03,SUCCESS
-2026-10-07T15:33:38.337612Z,bvh_moe_router,NVIDIA GeForce RTX 2060 (Turing SM 7.5 / D3D12 DXR Tier 1.1),551220.0,0.23,4306.41,0.23,0,1.08,SUCCESS
-2026-10-07T15:53:54.730680Z,prefill_decode_eval,NVIDIA GeForce GTX 1050 Ti + NVIDIA GeForce RTX 2060,246913.56,0.52,3356.46,8.94,0,1.05,SUCCESS
-2026-10-07T15:53:55.432205Z,bvh_router_eval,NVIDIA GeForce RTX 2060 (Tier 1.1),140835.14,0.91,5735.59,5.23,0,1.08,SUCCESS
-2026-10-07T15:53:55.818411Z,pcie_channel_eval,NVIDIA GeForce GTX 1050 Ti -> NVIDIA GeForce RTX 2060 (PCIe Gen3 x1),0.0,0.0,0.0,0.11,0,1.0,SUCCESS
+timestamp,benchmark,backend,model,mode,prompt_tokens,gen_tokens,batch_size,prefill_tok_s,prefill_ttft_ms,decode_tok_s,decode_ms_per_tok,metric_name,metric_value,error_stddev,status
+2026-10-07T16:17:26.119318Z,throughput,unified-ced,moe,smoke,32,16,1,96982.03,0.39,4969.76,0.205,decode_tok_s,4969.755,670.995,SUCCESS
+2026-10-07T16:17:26.904124Z,throughput,unified-ced,moe,smoke,32,32,1,135256.23,0.24,5855.38,0.1711,decode_tok_s,5855.375,241.835,SUCCESS
+2026-10-07T16:17:27.698824Z,throughput,unified-ced,moe,smoke,128,16,1,250319.6,0.52,5101.48,0.2025,decode_tok_s,5101.48,916.5,SUCCESS
+2026-10-07T16:17:28.451206Z,throughput,unified-ced,moe,smoke,128,32,1,250501.98,0.51,5743.23,0.1745,decode_tok_s,5743.225,323.815,SUCCESS
+2026-10-07T16:17:29.255476Z,throughput,unified-ced,bonsai,smoke,32,16,1,74488.51,0.48,4548.78,0.2216,decode_tok_s,4548.78,430.06,SUCCESS
+2026-10-07T16:17:30.033837Z,throughput,unified-ced,bonsai,smoke,32,32,1,98931.05,0.33,3666.49,0.273,decode_tok_s,3666.495,77.245,SUCCESS
+2026-10-07T16:17:30.847674Z,throughput,unified-ced,bonsai,smoke,128,16,1,163921.42,0.78,5476.64,0.1841,decode_tok_s,5476.635,453.245,SUCCESS
+2026-10-07T16:17:31.651105Z,throughput,unified-ced,bonsai,smoke,128,32,1,160991.4,0.8,3580.15,0.2805,decode_tok_s,3580.15,237.14,SUCCESS
+2026-10-07T16:17:31.912807Z,humaneval,python-exec,eval-harness,smoke,0,0,1,0.0,0.0,0.0,0.0,pass@1,1.0,0.0,SUCCESS
+2026-10-07T16:17:31.913812Z,perplexity,unified-ced,gpt-oss-20b,smoke,150,0,1,0.0,0.0,0.0,0.0,perplexity,6.9999,0.08,SUCCESS

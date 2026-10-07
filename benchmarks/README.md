@@ -24,20 +24,23 @@ Inspirado na metodologia de **Auto-Research** de Andrej Karpathy e nas melhores 
 Utilizando o gerenciador padrão do projeto (`uv`):
 
 ```powershell
-# Executar todos os avaliadores registrados contra o Unified Runtime
-uv run litert-autoresearch --all
+# Executar todos os benchmarks em modo smoke (padrão de desenvolvimento rápido)
+uv run litert-autoresearch --all --mode smoke
 
-# Listar os avaliadores disponíveis
+# Listar os benchmarks disponíveis
 uv run litert-autoresearch --list
 
-# Executar a avaliação completa de Prefill e Decode nos modelos MoE e Ternário
-uv run litert-autoresearch --plugin prefill_decode_eval
+# Executar apenas o benchmark de Throughput & Latência em grade cartesiana
+uv run litert-autoresearch --benchmark throughput --mode smoke
 
-# Executar a avaliação da aceleração de roteamento MoE via poda BVH (RT Cores)
-uv run litert-autoresearch --plugin bvh_router_eval
+# Executar a avaliação de corretude de código (OpenAI HumanEval pass@1)
+uv run litert-autoresearch --benchmark humaneval --mode smoke
 
-# Executar a avaliação do canal de transporte DMA Pinned Memory inter-GPU
-uv run litert-autoresearch --plugin pcie_channel_eval
+# Executar a avaliação de Perplexidade e estabilidade de distribuição
+uv run litert-autoresearch --benchmark perplexity --mode smoke
+
+# Execução formal completa (modo full)
+uv run litert-autoresearch --all --mode full
 ```
 
 ---
@@ -48,12 +51,12 @@ uv run litert-autoresearch --plugin pcie_channel_eval
 benchmarks/
 ├── README.md               # Este documento de especificação
 ├── AGENTS.md               # Protocolo operacional e regras de isolamento
-├── results.csv             # Ledger tabular cumulativo de métricas
+├── results.csv             # Ledger tabular cumulativo e granular de medições
 ├── runner.py               # Orquestrador CLI modular
-├── plugins/                # Avaliadores externos desacoplados
-│   ├── base.py             # Classe base e dataclass BenchmarkResult
-│   ├── prefill_decode_eval.py # Avaliador de Prefill e Decode
-│   ├── bvh_router_eval.py     # Avaliador do Roteador Espacial BVH
-│   └── pcie_channel_eval.py   # Avaliador do Canal Pinned DMA
-└── reports/                # Relatórios JSON persistidos por execução
+├── plugins/                # Benchmarks e avaliadores agnósticos desacoplados
+│   ├── base.py             # Interfaces BaseBenchmarkPlugin e BenchmarkSuiteResult
+│   ├── throughput_bench.py # Throughput em grade (P x N x B) com stddev
+│   ├── humaneval_bench.py  # Functional correctness (pass@1 em Python)
+│   └── perplexity_bench.py # Perplexidade e cross-entropy loss
+└── reports/                # Relatórios JSON estruturados por execução
 ```

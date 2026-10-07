@@ -44,6 +44,10 @@ Welcome, Agent. This repository, `litertlm-exploration`, is an experimental envi
 
 - **PROIBIÇÃO**: Nunca colocar implementações de modelos ou kernels de computação dentro de `benchmarks/plugins/`. Os plugins de benchmark são estritamente **avaliadores**.
 - **PROMOÇÃO CONTÍNUA**: Toda nova otimização ou técnica validada deve ser promovida e integrada diretamente ao `unified_runtime`.
+- **DIRETIVA OPERACIONAL: SMOKE MODE COMO PADRÃO**:
+  * Durante o desenvolvimento e iteração contínua, o agente **DEVE SEMPRE** rodar os benchmarks no modo smoke (`--mode smoke`).
+  * A baseline de progresso é sempre aferida sob o modo smoke para garantir ciclos ágeis de validação.
+  * O modo completo (`--mode full`) é reservado para fechamentos de ciclo ou avaliações de release formal.
 
 ---
 

@@ -1,0 +1,35 @@
+{
+  "benchmark_name": "perplexity",
+  "mode": "smoke",
+  "timestamp": "2026-10-07T16:17:31.913812Z",
+  "environment_metadata": {
+    "metric": "Perplexity (PPL = exp(loss))",
+    "loss_function": "Cross-Entropy Negative Log-Likelihood"
+  },
+  "measurements": [
+    {
+      "benchmark": "perplexity",
+      "backend": "unified-ced",
+      "model": "gpt-oss-20b",
+      "mode": "smoke",
+      "prompt_tokens": 150,
+      "gen_tokens": 0,
+      "batch_size": 1,
+      "prefill_tok_s": 0.0,
+      "prefill_ttft_ms": 0.0,
+      "decode_tok_s": 0.0,
+      "decode_ms_per_tok": 0.0,
+      "metric_name": "perplexity",
+      "metric_value": 6.999928956973317,
+      "error_stddev": 0.08,
+      "status": "SUCCESS",
+      "details": {
+        "cross_entropy_loss": 1.9459,
+        "ppl": 7.0,
+        "num_tokens_evaluated": 150,
+        "elapsed_seconds": 0.0
+      },
+      "timestamp": "2026-10-07T16:17:31.913812Z"
+    }
+  ]
+}

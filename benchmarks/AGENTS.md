@@ -19,7 +19,11 @@ Este documento orienta agentes autônomos ao implementar, executar ou estender m
    - Toda execução bem-sucedida deve anexar uma nova linha ao `benchmarks/results.csv` e salvar o JSON correspondente em `benchmarks/reports/`.
    - O `results.csv` nunca deve ser apagado ou reescrito do zero.
 5. **Isolamento de Plugins**:
-   - Cada plugin deve herdar de `BaseBenchmarkPlugin` e implementar a interface padrão `run() -> BenchmarkResult`.
-6. **Comandos Atômicos e Zero Polling**:
+   - Cada plugin deve herdar de `BaseBenchmarkPlugin` e implementar a interface padrão `run(mode="smoke") -> BenchmarkSuiteResult`.
+6. **Diretiva de Smoke Mode Obrigatório**:
+   - Durante o trabalho e desenvolvimento contínuo, os benchmarks **DEVEM SEMPRE** ser executados no modo smoke (`--mode smoke`, padrão da CLI).
+   - O modo smoke define a baseline canônica de iteração rápida do projeto.
+   - O modo full (`--mode full`) só deve ser executado mediante solicitação explícita ou em releases.
+7. **Comandos Atômicos e Zero Polling**:
    - Executar comandos via `run_command` de forma atômica e síncrona.
    - Nunca realizar polling ativo em loops; confiar no wakeup reativo.

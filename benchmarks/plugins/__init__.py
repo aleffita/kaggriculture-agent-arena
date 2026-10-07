@@ -1,15 +1,16 @@
 """
-Evaluator Plugins for the Unified Heterogeneous CED Runtime.
+Agnostic Benchmark and Evaluation Plugins.
 """
-from .base import BaseBenchmarkPlugin, BenchmarkResult
-from .prefill_decode_eval import PrefillDecodeEvalPlugin
-from .bvh_router_eval import BvhRouterEvalPlugin
-from .pcie_channel_eval import PcieChannelEvalPlugin
+from .base import BaseBenchmarkPlugin, BenchmarkMeasurement, BenchmarkSuiteResult
+from .throughput_bench import ThroughputBenchmarkPlugin
+from .humaneval_bench import HumanEvalBenchmarkPlugin
+from .perplexity_bench import PerplexityBenchmarkPlugin
 
 __all__ = [
     "BaseBenchmarkPlugin",
-    "BenchmarkResult",
-    "PrefillDecodeEvalPlugin",
-    "BvhRouterEvalPlugin",
-    "PcieChannelEvalPlugin",
+    "BenchmarkMeasurement",
+    "BenchmarkSuiteResult",
+    "ThroughputBenchmarkPlugin",
+    "HumanEvalBenchmarkPlugin",
+    "PerplexityBenchmarkPlugin",
 ]
