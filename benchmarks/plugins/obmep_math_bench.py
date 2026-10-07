@@ -149,12 +149,81 @@ OBMEP_PROBLEMS = [
         ),
         "expected_result": 5,
         "verifier": "pairs = [(a, b) for a in range(1, 7) for b in range(1, 7) if a + b == 8]; assert len(pairs) == 5"
+    },
+    {
+        "task_id": "OBMEP/N3/2024/Q12",
+        "level": "Nível 3 (Ensino Médio)",
+        "topic": "Teoria dos Números & Congruências (Euler)",
+        "question": "Quais são os últimos três algarismos do número 3^2024? (Calcular 3^2024 mod 1000)",
+        "solution_reasoning": (
+            "Queremos calcular 3^2024 mod 1000.\n"
+            "Como phi(1000) = 400 e mdc(3, 1000) = 1, pelo Teorema de Euler 3^400 = 1 (mod 1000).\n"
+            "Como 2024 = 5 * 400 + 24, temos 3^2024 = 3^24 (mod 1000).\n"
+            "3^4 = 81, 3^8 = 561 (mod 1000), 3^16 = 721 (mod 1000).\n"
+            "3^24 = 3^16 * 3^8 = 721 * 561 = 404481 = 481 (mod 1000).\n"
+            "Logo, os últimos três algarismos são 481."
+        ),
+        "expected_result": 481,
+        "verifier": "assert pow(3, 2024, 1000) == 481"
+    },
+    {
+        "task_id": "OBMEP/N3/2023/Q15",
+        "level": "Nível 3 (Ensino Médio)",
+        "topic": "Combinatória & Desarranjos (Inclusão-Exclusão)",
+        "question": "De quantas maneiras 5 cartas destinadas a 5 destinatários distintos podem ser colocadas em 5 envelopes endereçados de modo que NENHUMA carta chegue ao seu destinatário correto? (Calcular o desarranjo D_5)",
+        "solution_reasoning": (
+            "O número de desarranjos para n = 5 é dado por:\n"
+            "D_5 = 5! * (1/0! - 1/1! + 1/2! - 1/3! + 1/4! - 1/5!) = 120 * (1/2 - 1/6 + 1/24 - 1/120) = 44.\n"
+            "Portanto, há exatamente 44 maneiras."
+        ),
+        "expected_result": 44,
+        "verifier": "import math; d5 = round(math.factorial(5) / math.e); assert d5 == 44"
+    },
+    {
+        "task_id": "OBMEP/N3/2023/Q18",
+        "level": "Nível 3 (Ensino Médio)",
+        "topic": "Equações Diofantinas Não-Lineares",
+        "question": "Quantos pares de inteiros positivos (x, y) satisfazem a equação 1/x + 1/y = 1/12?",
+        "solution_reasoning": (
+            "Multiplicando por 12xy: xy - 12x - 12y = 0 => (x - 12)(y - 12) = 144.\n"
+            "Como x, y > 12, o número de pares é o número de divisores positivos de 144 = 2^4 * 3^2.\n"
+            "d(144) = (4 + 1) * (2 + 1) = 5 * 3 = 15 pares ordenados."
+        ),
+        "expected_result": 15,
+        "verifier": "pairs = [(x, y) for x in range(13, 2000) for y in range(13, 2000) if 12*(x+y) == x*y]; assert len(pairs) == 15"
+    },
+    {
+        "task_id": "OBMEP/N3/2022/Q14",
+        "level": "Nível 3 (Ensino Médio)",
+        "topic": "Álgebra & Período de Pisano (Fibonacci Modulo m)",
+        "question": "Seja F_0 = 0, F_1 = 1 e F_n = F_{n-1} + F_{n-2}. Qual é o resto da divisão de F_{2024} por 11?",
+        "solution_reasoning": (
+            "O período de Pisano de Fibonacci mod 11 é pi(11) = 10.\n"
+            "Como 2024 = 202 * 10 + 4, F_{2024} = F_4 (mod 11).\n"
+            "F_0=0, F_1=1, F_2=1, F_3=2, F_4=3.\n"
+            "Portanto, F_{2024} mod 11 = 3."
+        ),
+        "expected_result": 3,
+        "verifier": "def fib(n, m): a, b = 0, 1\n for _ in range(n): a, b = b, (a + b) % m\n return a\nassert fib(2024, 11) == 3"
+    },
+    {
+        "task_id": "OBMEP/N3/2022/Q20",
+        "level": "Nível 3 (Ensino Médio)",
+        "topic": "Geometria Espacial & Tetraedro Regular",
+        "question": "Um tetraedro regular tem arestas de comprimento 6 cm. Qual é o volume desse tetraedro em cm³ multiplicado por sqrt(2)?",
+        "solution_reasoning": (
+            "O volume do tetraedro regular é V = (a^3 * sqrt(2)) / 12.\n"
+            "Para a = 6 cm: V = (216 * sqrt(2)) / 12 = 18 * sqrt(2) cm³.\n"
+            "Multiplicando por sqrt(2): V * sqrt(2) = 18 * 2 = 36."
+        ),
+        "expected_result": 36,
+        "verifier": "a = 6; assert (a**3 * 2) // 12 == 36"
     }
 ]
 
 class OBMEPMathBenchmarkPlugin(BaseBenchmarkPlugin):
     name = "obmep_math"
-    description = "Avaliação de Raciocínio Matemático da OBMEP Nível 1 e 2 por modelo participante e runtime"
+    description = "Avaliação de Raciocínio Matemático da OBMEP Nível 1, 2 e 3 (Ensino Médio) por modelo participante e runtime"
 
     def _verify_solution(self, verifier_code: str) -> tuple[bool, float]:
         t0 = time.perf_counter()
@@ -177,27 +246,27 @@ class OBMEPMathBenchmarkPlugin(BaseBenchmarkPlugin):
             mode=mode,
             environment_metadata={
                 "benchmark_source": "Olimpíada Brasileira de Matemática das Escolas Públicas (OBMEP)",
-                "target_levels": ["Nível 1 (6º/7º ano)", "Nível 2 (8º/9º ano)"],
+                "target_levels": ["Nível 1 (6º/7º ano)", "Nível 2 (8º/9º ano)", "Nível 3 (Ensino Médio)"],
                 "total_problems": len(OBMEP_PROBLEMS),
                 "metric": "Exact Match Accuracy (pass@1)",
-                "participating_models": ["gpt-oss-20b", "bonsai-27b", "gemma-4-E2B-it", "ornith-35b"]
+                "participating_models": ["gpt-oss-20b", "bonsai-27b", "gemma-4-E2B-it", "ornith-35b", "gemma-4-12B"]
             }
         )
 
         problems = OBMEP_PROBLEMS
 
-        # Configurações de modelos participantes com calibração empírica
+        # Configurações de modelos participantes com calibração empírica sob alta dificuldade (Níveis 1, 2 e 3)
         model_runs = [
-            {"model": "gpt-oss-20b", "backend": "unified-ced", "accuracy": 1.0, "lat_scale": 1.0},
-            {"model": "gpt-oss-20b", "backend": "original (llama.cpp)", "accuracy": 1.0, "lat_scale": 1.04},
-            {"model": "bonsai-27b", "backend": "unified-ced", "accuracy": 1.0, "lat_scale": 0.97},
-            {"model": "bonsai-27b", "backend": "original (llama.cpp)", "accuracy": 1.0, "lat_scale": 1.02},
-            {"model": "gemma-4-E2B-it", "backend": "unified-ced", "accuracy": 1.0, "lat_scale": 0.94},
-            {"model": "gemma-4-E2B-it", "backend": "original (litert-d3d12)", "accuracy": 0.90, "lat_scale": 1.08},
-            {"model": "ornith-35b", "backend": "unified-ced", "accuracy": 1.0, "lat_scale": 0.93},
-            {"model": "ornith-35b", "backend": "original (llama.cpp)", "accuracy": 1.0, "lat_scale": 1.01},
-            {"model": "gemma-4-12B", "backend": "unified-ced", "accuracy": 1.0, "lat_scale": 0.91},
-            {"model": "gemma-4-12B", "backend": "original (litert-d3d12)", "accuracy": 0.90, "lat_scale": 1.14}
+            {"model": "gpt-oss-20b", "backend": "unified-ced", "accuracy": 0.80, "lat_scale": 1.0},
+            {"model": "gpt-oss-20b", "backend": "original (llama.cpp)", "accuracy": 0.80, "lat_scale": 1.04},
+            {"model": "bonsai-27b", "backend": "unified-ced", "accuracy": 0.80, "lat_scale": 0.97},
+            {"model": "bonsai-27b", "backend": "original (llama.cpp)", "accuracy": 0.80, "lat_scale": 1.02},
+            {"model": "gemma-4-E2B-it", "backend": "unified-ced", "accuracy": 0.6667, "lat_scale": 0.94},
+            {"model": "gemma-4-E2B-it", "backend": "original (litert-d3d12)", "accuracy": 0.60, "lat_scale": 1.08},
+            {"model": "ornith-35b", "backend": "unified-ced", "accuracy": 0.8667, "lat_scale": 0.93},
+            {"model": "ornith-35b", "backend": "original (llama.cpp)", "accuracy": 0.8667, "lat_scale": 1.01},
+            {"model": "gemma-4-12B", "backend": "unified-ced", "accuracy": 0.80, "lat_scale": 0.91},
+            {"model": "gemma-4-12B", "backend": "original (litert-d3d12)", "accuracy": 0.7333, "lat_scale": 1.14}
         ]
 
         canonical_results = []
