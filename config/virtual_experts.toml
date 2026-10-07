@@ -1,0 +1,104 @@
+# ==============================================================================
+# VIRTUAL EXPERTS PLUGIN ARCHITECTURE (CORDIS SPATIOTEMPORAL COMPOSABILITY)
+# Configuration Protocol for Heterogeneous Autonomous Virtual Experts Substrate
+# Inspired by DeepSeek Harness (dsh) & Cordis Meta-Framework: "Everything is a Plugin"
+# ==============================================================================
+
+[cordis]
+version = "1.0.0"
+framework = "cordis-spatiotemporal-composability"
+context_scope = "unified_heterogeneous_runtime"
+service_bus = "shared_context_named_pipe"
+inplace_thought_patching = true # Default ativo: resolução em turno único na residual stream
+inter_plugin_service_discovery = true # Plugins expõem e consomem serviços entre si
+
+# ------------------------------------------------------------------------------
+# 1. PYTHON REPL VIRTUAL EXPERT (CHRIS HAY PROTOCOL)
+# ------------------------------------------------------------------------------
+[plugins.python_repl]
+enabled = true
+priority = 100
+transport = "inplace_dma"
+service_name = "math_symbolic_repl"
+provides = ["sympy_eval", "fractions_exact", "modular_arithmetic", "combinatorics"]
+consumes = ["context_slice"]
+timeout_ms = 50.0
+
+# ------------------------------------------------------------------------------
+# 2. MICROTEX & LEAN 4 FORMAL MATH VIRTUAL EXPERT
+# ------------------------------------------------------------------------------
+[plugins.microtex_lean4]
+enabled = true
+priority = 95
+transport = "inplace_dma"
+service_name = "formal_verification"
+provides = ["lean4_ast", "latex_expression_parser", "theorem_prover_bridge"]
+consumes = ["symbolic_equations"]
+timeout_ms = 15.0
+
+# ------------------------------------------------------------------------------
+# 3. LLVM JIT NATIVE COMPILER VIRTUAL EXPERT
+# ------------------------------------------------------------------------------
+[plugins.llvm_jit]
+enabled = true
+priority = 90
+transport = "host_memory_avx2"
+service_name = "native_execution_jit"
+provides = ["avx2_prime_sieve", "companion_matrix_eigenvalues", "gauss_elimination"]
+consumes = ["c_cpp_snippets"]
+timeout_ms = 5.0
+
+# ------------------------------------------------------------------------------
+# 4. LANGUAGE SERVER PROTOCOL (LSP) CODE ASSIST VIRTUAL EXPERT
+# ------------------------------------------------------------------------------
+[plugins.lsp_language_server]
+enabled = true
+priority = 85
+transport = "inplace_dma_named_pipe"
+service_name = "code_intelligence"
+named_pipe = "\\\\.\\pipe\\litert_lsp"
+provides = ["ast_linting", "type_verification", "inline_completion", "scope_diagnostics"]
+consumes = ["code_generation_stream"]
+timeout_ms = 2.0 # Execução ultra-rápida na janela DMA (80-106 µs)
+
+# ------------------------------------------------------------------------------
+# 5. WEBASSEMBLY (WASM) RUNTIME VIRTUAL EXPERT
+# ------------------------------------------------------------------------------
+[plugins.wasm_runtime]
+enabled = true
+priority = 80
+transport = "wasm_threads_shared_linear_memory"
+service_name = "sandboxed_plugins"
+engine = "wasm_micro_engine"
+threading_extensions = true # WebAssembly Threads & SharedArrayBuffer linear memory
+fault_isolation = true
+provides = ["sandboxed_exec", "dynamic_plugin_loader", "wasm_user_modules"]
+consumes = ["sandboxed_tasks", "cordis_services"]
+timeout_ms = 10.0
+
+# ------------------------------------------------------------------------------
+# 6. D3D12 TIER 1.1 / TIER 3 SPARSE ATTENTION IN SILICON
+# ------------------------------------------------------------------------------
+[plugins.d3d12_sparse_attention]
+enabled = true
+priority = 75
+transport = "directx12_graphics_silicon"
+service_name = "silicon_sparse_paging"
+tier = "D3D12_TILED_RESOURCES_TIER_3"
+tile_size_kb = 64 # 64 KB physical memory tiles
+hardware_target = "NVIDIA GeForce RTX 2060 (Turing SM 7.5)"
+provides = ["update_tile_mappings", "zero_overhead_sparse_attention", "tiled_kv_paging"]
+consumes = ["sparse_attention_centroids"]
+timeout_ms = 1.0
+
+# ------------------------------------------------------------------------------
+# 7. VISUAL VIRTUAL EXPERT (MULTIMODAL FUNCTION CALLING & NVOFA)
+# ------------------------------------------------------------------------------
+[plugins.visual_expert]
+enabled = true
+priority = 70
+transport = "inplace_stream_patch"
+service_name = "multimodal_vision_motion"
+provides = ["nvofa_motion_vectors", "vision_token_patching", "visual_function_call"]
+consumes = ["multimodal_tokens"]
+timeout_ms = 8.0
