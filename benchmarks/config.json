@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "environment": {
+    "os": "Windows 11 NT",
+    "cpu": "AMD Ryzen 5 3600 (6 Cores / 12 Threads)",
+    "host_ram_mb": 32768,
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA GeForce RTX 2060",
+        "vram_mb": 6144,
+        "architecture": "Turing SM 7.5",
+        "d3d12_raytracing": "Tier 1.1",
+        "role": "Generative Decoder / Main Compute"
+      },
+      {
+        "index": 1,
+        "name": "NVIDIA GeForce GTX 1050 Ti",
+        "vram_mb": 4096,
+        "architecture": "Pascal SM 6.1",
+        "d3d12_raytracing": "None",
+        "role": "Causal Encoder / Draft Accelerator"
+      }
+    ],
+    "storage": {
+      "nvme_mount": "Z:\\models",
+      "interface": "PCIe Gen3 x4",
+      "access_mode": "Win32 Direct Unbuffered Overlapped I/O"
+    }
+  },
+  "participants": {
+    "gpt-oss-20b": {
+      "model_id": "gpt-oss-20b",
+      "name": "GPT-OSS-20B",
+      "architecture": "Sparse MoE (32 Experts, Top-4 Active)",
+      "parameters_total": "20B",
+      "weights_size_mb": 11545.0,
+      "format": "MXFP4",
+      "weights_path": "Z:\\models\\lmstudio-community\\gpt-oss-20b-GGUF\\gpt-oss-20b-MXFP4.gguf",
+      "backends": {
+        "unified-ced": {
+          "enabled": true,
+          "name": "unified-ced (NVMe Direct + BVH RT)",
+          "hardware": "Dual-GPU + Direct NVMe Streaming",
+          "kv_cache_strategy": "disk_persisted_residual_recompute",
+          "staging_vram_mb": 32.0,
+          "bvh_pruning": true
+        },
+        "original-dual-gpu": {
+          "enabled": true,
+          "name": "original (llama.cpp Dual-GPU)",
+          "hardware": "RTX 2060 + GTX 1050 Ti (-ngl 12 -sm layer)",
+          "executable": "Z:\\workspaces\\llama-cpp-prism\\build-cu126\\bin\\llama-cli.exe",
+          "kv_cache_strategy": "vram_allocated_host_spill"
+        },
+        "original-cpu": {
+          "enabled": true,
+          "name": "original (llama.cpp CPU)",
+          "hardware": "Ryzen 5 3600 (-ngl 0)",
+          "executable": "Z:\\workspaces\\llama-cpp-prism\\build-cu126\\bin\\llama-cli.exe",
+          "kv_cache_strategy": "host_ram_allocated"
+        }
+      }
+    },
+    "bonsai-27b": {
+      "model_id": "bonsai-27b",
+      "name": "Ternary-Bonsai-2-27B",
+      "architecture": "Dense Ternary 1.58-bit (64 Layers)",
+      "parameters_total": "27B",
+      "weights_size_mb": 5540.0,
+      "format": "PTQ1_0 (Group 128)",
+      "weights_path": "Z:\\models\\prism-ml\\Ternary-Bonsai-2-27B-gguf\\Ternary-Bonsai-2-27B-PTQ1_0.gguf",
+      "backends": {
+        "unified-ced": {
+          "enabled": true,
+          "name": "unified-ced (Adder Tree Dual-GPU)",
+          "hardware": "Dual-GPU Pinned Ring (Zero FP multiply)",
+          "kv_cache_strategy": "disk_persisted_residual_recompute",
+          "layers_gpu1": "0-27",
+          "layers_gpu0": "28-63"
+        },
+        "original-dual-gpu": {
+          "enabled": true,
+          "name": "original (llama.cpp Dual-GPU)",
+          "hardware": "Dual-GPU (-ngl 1 -sm layer) com Spill para RAM",
+          "executable": "Z:\\workspaces\\llama-cpp-prism\\build-cu126\\bin\\llama-cli.exe",
+          "kv_cache_strategy": "vram_allocated_host_spill"
+        }
+      }
+    },
+    "gemma-4-E2B-it": {
+      "model_id": "gemma-4-E2B-it",
+      "name": "Gemma-4-E2B-it",
+      "architecture": "Dense Autoregressive Transformer",
+      "parameters_total": "2.3B",
+      "weights_size_mb": 2300.0,
+      "format": "LiteRT FlatBuffer",
+      "weights_path": "C:\\Users\\alefita\\.litert-lm\\cache\\huggingface\\litert-community\\gemma-4-E2B-it-litert-lm\\gemma-4-E2B-it.litertlm",
+      "backends": {
+        "unified-ced": {
+          "enabled": true,
+          "name": "unified-ced (CED Ring Heterogêneo)",
+          "hardware": "Dual-GPU CED Pipeline (Pascal Encoder + Turing Decoder)",
+          "kv_cache_strategy": "disk_persisted_residual_recompute"
+        },
+        "original-d3d12": {
+          "enabled": true,
+          "name": "original (litert-d3d12 Dawn)",
+          "hardware": "RTX 2060 stock Dawn Direct3D 12",
+          "target": "2060",
+          "framework": "Google Dawn Direct3D 12",
+          "kv_cache_strategy": "vram_allocated"
+        }
+      }
+    }
+  },
+  "benchmarks": {
+    "throughput": {
+      "enabled": true,
+      "smoke_prompt_tokens": 128,
+      "smoke_gen_tokens": 16,
+      "smoke_repetitions": 2,
+      "full_prompts": [32, 128, 512, 1024],
+      "full_gens": [16, 64, 128],
+      "full_repetitions": 5
+    },
+    "humaneval": {
+      "enabled": true,
+      "canonical_tasks": 15,
+      "sandbox": "subprocess"
+    },
+    "obmep_math": {
+      "enabled": true,
+      "canonical_problems": 10,
+      "levels": ["Nível 1 (6º/7º ano)", "Nível 2 (8º/9º ano)"]
+    },
+    "perplexity": {
+      "enabled": true,
+      "corpus": "WikiText-2 / C4 Canonical Passage",
+      "loss_function": "cross_entropy"
+    }
+  },
+  "profiling": {
+    "sample_interval_sec": 0.05,
+    "metrics": [
+      "peak_gpu0_vram_mb",
+      "peak_gpu1_vram_mb",
+      "peak_host_ram_mb",
+      "kv_cache_disk_mb",
+      "pcie_h_boundary_us",
+      "nvme_read_rate_mbs"
+    ]
+  }
+}

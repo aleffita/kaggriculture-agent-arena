@@ -58,8 +58,11 @@ Welcome, Agent. This repository, `litertlm-exploration`, is an experimental envi
     3. `gemma-4-E2B-it` (LiteRT denso)
   * Os resultados do nosso motor (`unified-ced`) devem ser comparados com seus runtimes originais:
     - `bonsai-27b`: comparado com o runtime original `llama-cpp-prism` (`Z:\workspaces\llama-cpp-prism`).
-    - `gpt-oss-20b`: comparado com `llama.cpp` stock.
+    - `gpt-oss-20b`: comparado com `llama.cpp` stock (Dual-GPU e CPU).
     - `gemma-4-E2B-it`: comparado com `litert-d3d12` (Google Dawn Direct3D 12 stock).
+  * **Configuração Dinâmica (`benchmarks/config.json`)**: Participantes, backends, alocações de hardware e limites de contexto são parametrizados em JSON dinâmico.
+  * **Registro de Pesquisas (`docs/research/`)**: Antes de planejar novos ciclos de auto-research, inspecionar os documentos com frontmatter YAML (`status`, `tags`, `target_hardware`) em `docs/research/`.
+  * **Visualização Científica Imparcial**: Gráficos Matplotlib em dark mode executivo (`#121212`, cinzas e tons profissionais sóbrios), sem tons berrantes de azul, gerados automaticamente pelo runner e plotando **todos os competidores** lado a lado em todas as dimensões (sem ocultar dados).
 
 ---
 

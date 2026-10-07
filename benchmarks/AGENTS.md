@@ -39,3 +39,14 @@ Este documento orienta agentes autônomos ao implementar, executar ou estender m
 9. **Comandos Atômicos e Zero Polling**:
    - Executar comandos via `run_command` de forma atômica e síncrona.
    - Nunca realizar polling ativo em loops; confiar no wakeup reativo.
+10. **Configuração Dinâmica via JSON (`benchmarks/config.json`)**:
+   - Todos os participantes, modelos, backends, tetos de hardware e parâmetros de execução são orquestrados dinamicamente pelo arquivo `config.json`.
+11. **Visualização Científica sem Omissão (PhD Grade)**:
+   - Os gráficos (Matplotlib 300 DPI) devem ser gerados automaticamente pelo runner e incluir **obrigatoriamente todos os competidores/modelos** lado a lado em todas as métricas.
+   - Proibido usar tons berrantes de azul; adotar paleta dark mode com cinzas, carvão (`#121212`) e acentos profissionais sóbrios.
+12. **Profiling Completo de Silício, KV-Cache e Recomputação**:
+   - Medir e registrar sempre VRAM por GPU, host RAM spill, pegada de KV-cache persistido em disco vs recomputação da residual stream, latência DMA de fronteira e throughput de disco NVMe.
+13. **Evals de Capacidade e Raciocínio por Modelo**:
+   - HumanEval (código) e OBMEP Nível 1 & 2 (matemática em português) devem registrar tokens de contexto, tokens de geração, latência e taxa de acerto por modelo e runtime.
+14. **Consulta Obrigatória ao Registro de Pesquisas (`docs/research/`)**:
+   - Antes de abrir novos ciclos de auto-research, inspecionar o status das pesquisas em `docs/research/` com frontmatter YAML para manter a espiral dialética de desenvolvimento contínuo.

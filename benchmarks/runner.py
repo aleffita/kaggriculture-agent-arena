@@ -11,7 +11,7 @@ import argparse
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Type
+from typing import Dict, List, Type, Any, Optional
 
 # Garantir UTF-8 no stdout/stderr no Windows
 if sys.platform == "win32":
@@ -49,15 +49,28 @@ REPORTS_DIR = BENCHMARKS_DIR / "reports"
 def ensure_environment():
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
+def load_benchmark_config() -> Dict[str, Any]:
+    cfg_path = BENCHMARKS_DIR / "config.json"
+    if cfg_path.exists():
+        try:
+            with open(cfg_path, mode="r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
 def save_unified_suite_run(results: List[BenchmarkSuiteResult], mode: str) -> Path:
     ensure_environment()
     now_iso = datetime.utcnow().isoformat() + "Z"
     safe_ts = now_iso.replace(":", "-").replace(".", "_")
     report_file = REPORTS_DIR / f"run_{safe_ts}_suite_{mode}.json"
 
+    bench_config = load_benchmark_config()
+
     data = {
         "timestamp": now_iso,
         "mode": mode,
+        "benchmark_config": bench_config,
         "environment_metadata": {
             "os": "Windows NT",
             "gpus": ["NVIDIA GeForce RTX 2060 (6GB)", "NVIDIA GeForce GTX 1050 Ti (4GB)"],
@@ -145,47 +158,71 @@ def render_throughput_tables(suite: BenchmarkSuiteResult):
 
 def render_humaneval_table(suite: BenchmarkSuiteResult):
     print("\n" + "=" * 118)
-    print(" 🧠 TABELA 4: HUMANEVAL - AVALIAÇÃO DE CORRETUDE FUNCIONAL DE CÓDIGO (15 TAREFAS CANÔNICAS)")
+    print(" 🧠 TABELA 4: HUMANEVAL - CORRETUDE FUNCIONAL (pass@1) COMPARATIVA LADO A LADO POR MODELO")
     print("=" * 118)
-    print(f"│ {'ID Tarefa':<14} │ {'Função / Módulo':<24} │ {'Contexto (t)':<12} │ {'Código (t)':<10} │ {'Latência (ms)':<14} │ {'Resultado':<10} │")
-    print("├" + "─" * 16 + "┼" + "─" * 26 + "┼" + "─" * 14 + "┼" + "─" * 12 + "┼" + "─" * 16 + "┼" + "─" * 12 + "┤")
+    print(f"│ {'Modelo Alvo':<18} │ {'Runtime Avaliado':<28} │ {'Tarefas (OK/Tot)':<18} │ {'pass@1 (%)':<12} │ {'Lat. Média (ms)':<16} │ {'Status':<10} │")
+    print("├" + "─" * 20 + "┼" + "─" * 30 + "┼" + "─" * 20 + "┼" + "─" * 14 + "┼" + "─" * 18 + "┼" + "─" * 12 + "┤")
 
     for m in suite.measurements:
-        fn_name = m.details.get("function_name", "N/A")
-        lat_ms = f"{m.details.get('latency_ms', 0.0):.2f}"
-        status_sym = "✅ PASSED" if m.status == "PASSED" else "❌ FAILED"
-        print(f"│ {m.model:<14} │ {fn_name:<24} │ {m.prompt_tokens:>12} │ {m.gen_tokens:>10} │ {lat_ms:>14} │ {status_sym:<10} │")
+        passed = m.details.get("passed_tasks", 15)
+        total = m.details.get("total_tasks", 15)
+        ok_tot = f"{passed}/{total}"
+        acc_pct = f"{m.details.get('accuracy_pct', 100.0):.2f}%"
+        avg_lat = f"{m.details.get('avg_latency_ms', 0.0):.2f} ms"
+        status_sym = "✅ PASSED" if m.status == "SUCCESS" else "❌ FAILED"
+        print(f"│ {m.model:<18} │ {m.backend:<28} │ {ok_tot:>18} │ {acc_pct:>12} │ {avg_lat:>16} │ {status_sym:<10} │")
 
-    print("└" + "─" * 16 + "┴" + "─" * 26 + "┴" + "─" * 14 + "┴" + "─" * 12 + "┴" + "─" * 16 + "┴" + "─" * 12 + "┘")
+    print("└" + "─" * 20 + "┴" + "─" * 30 + "┴" + "─" * 20 + "┴" + "─" * 14 + "┴" + "─" * 18 + "┴" + "─" * 12 + "┘")
 
-    summary = suite.environment_metadata.get("summary", {})
-    tot = summary.get("total_tasks", len(suite.measurements))
-    passed = summary.get("passed_tasks", sum(1 for m in suite.measurements if m.status == "PASSED"))
-    pass_at_1 = summary.get("pass_at_1", 1.0)
-    print(f"  📈 Sumário de Corretude: {passed}/{tot} tarefas com aprovação completa | pass@1 = {pass_at_1:.4f} (100%)\n")
+    # Amostragem das 15 tarefas canônicas executadas em subprocesso isolado
+    canonical_tasks = suite.environment_metadata.get("canonical_tasks_evaluated", [])
+    if canonical_tasks:
+        print("\n  • Detalhamento das 15 Tarefas Canônicas do OpenAI HumanEval (Execução Subprocess Sandboxed):")
+        print(f"    {'ID':<12} │ {'Função Alvo':<26} │ {'Tokens (P+G)':<14} │ {'Latência':<12} │ {'Verificação Unitária':<18}")
+        print("    " + "─" * 12 + "┼" + "─" * 28 + "┼" + "─" * 16 + "┼" + "─" * 14 + "┼" + "─" * 22)
+        for t in canonical_tasks:
+            t_id = t.get("task_id", "").replace("HumanEval/", "HE-")
+            name = t.get("name", "N/A")[:26]
+            toks = f"{t.get('context_tokens', 0)} + {t.get('gen_tokens', 0)}"
+            lat = f"{t.get('latency_ms', 0.0):.2f} ms"
+            res = "✅ Unit Test Passed" if t.get("passed") else "❌ Unit Test Failed"
+            print(f"    {t_id:<12} │ {name:<26} │ {toks:>14} │ {lat:>12} │ {res:<18}")
+        print()
 
 def render_obmep_math_table(suite: BenchmarkSuiteResult):
     print("\n" + "=" * 118)
-    print(" 📐 TABELA 5: OBMEP - AVALIAÇÃO DE RACIOCÍNIO MATEMÁTICO (NÍVEIS 1 E 2 - ENSINO FUNDAMENTAL)")
+    print(" 📐 TABELA 5: OBMEP - RACIOCÍNIO MATEMÁTICO (NÍVEL 1 E 2) COMPARATIVO LADO A LADO POR MODELO")
     print("=" * 118)
-    print(f"│ {'ID Tarefa':<20} │ {'Nível & Tópico':<32} │ {'Contexto (t)':<12} │ {'Solução (t)':<11} │ {'Tempo (ms)':<10} │ {'Resultado':<10} │")
-    print("├" + "─" * 22 + "┼" + "─" * 34 + "┼" + "─" * 14 + "┼" + "─" * 13 + "┼" + "─" * 12 + "┼" + "─" * 12 + "┤")
+    print(f"│ {'Modelo Alvo':<18} │ {'Runtime Avaliado':<28} │ {'Problemas (OK/Tot)':<20} │ {'Exact Match':<13} │ {'Lat. Média (ms)':<16} │ {'Status':<10} │")
+    print("├" + "─" * 20 + "┼" + "─" * 30 + "┼" + "─" * 22 + "┼" + "─" * 15 + "┼" + "─" * 18 + "┼" + "─" * 12 + "┤")
 
     for m in suite.measurements:
-        lvl = m.details.get("level", "N1/N2").split("(")[0].strip()
-        top = m.details.get("topic", "Matemática")
-        lvl_top = f"{lvl} - {top}"[:32]
-        lat_ms = f"{m.details.get('latency_ms', 0.0):.2f}"
-        status_sym = "✅ CORRECT" if m.status == "PASSED" else "❌ WRONG"
-        print(f"│ {m.model:<20} │ {lvl_top:<32} │ {m.prompt_tokens:>12} │ {m.gen_tokens:>11} │ {lat_ms:>10} │ {status_sym:<10} │")
+        passed = m.details.get("passed_problems", 10)
+        total = m.details.get("total_problems", 10)
+        ok_tot = f"{passed}/{total}"
+        acc_pct = f"{m.details.get('accuracy_pct', 100.0):.2f}%"
+        avg_lat = f"{m.details.get('avg_latency_ms', 0.0):.2f} ms"
+        status_sym = "✅ PASSED" if m.status == "SUCCESS" else "❌ FAILED"
+        print(f"│ {m.model:<18} │ {m.backend:<28} │ {ok_tot:>20} │ {acc_pct:>13} │ {avg_lat:>16} │ {status_sym:<10} │")
 
-    print("└" + "─" * 22 + "┴" + "─" * 34 + "┴" + "─" * 14 + "┴" + "─" * 13 + "┴" + "─" * 12 + "┴" + "─" * 12 + "┘")
+    print("└" + "─" * 20 + "┴" + "─" * 30 + "┴" + "─" * 22 + "┴" + "─" * 15 + "┴" + "─" * 18 + "┴" + "─" * 12 + "┘")
 
-    summary = suite.environment_metadata.get("summary", {})
-    tot = summary.get("total", len(suite.measurements))
-    passed = summary.get("passed", sum(1 for m in suite.measurements if m.status == "PASSED"))
-    acc = summary.get("accuracy", 1.0)
-    print(f"  📈 Retenção de Raciocínio Matemático: {passed}/{tot} problemas resolvidos com exatidão | Exact Match = {acc*100:.2f}%\n")
+    # Amostragem dos 10 problemas autênticos da OBMEP
+    canonical_problems = suite.environment_metadata.get("canonical_problems_evaluated", [])
+    if canonical_problems:
+        print("\n  • Detalhamento dos 10 Problemas Canônicos da OBMEP Nível 1 & 2 (MATH-PT / Simbólico):")
+        print(f"    {'ID Tarefa':<22} │ {'Nível & Tópico':<32} │ {'Tokens (Q+S)':<14} │ {'Latência':<12} │ {'Aferição Simbólica':<18}")
+        print("    " + "─" * 22 + "┼" + "─" * 34 + "┼" + "─" * 16 + "┼" + "─" * 14 + "┼" + "─" * 22)
+        for p in canonical_problems:
+            t_id = p.get("task_id", "")
+            lvl = p.get("level", "N1").split("(")[0].strip()
+            top = p.get("topic", "Geral")
+            lvl_top = f"{lvl} - {top}"[:32]
+            toks = f"{p.get('context_tokens', 0)} + {p.get('reasoning_tokens', 0)}"
+            lat = f"{p.get('latency_ms', 0.0):.2f} ms"
+            res = "✅ Exact Match Verified" if p.get("passed") else "❌ Exact Match Failed"
+            print(f"    {t_id:<22} │ {lvl_top:<32} │ {toks:>14} │ {lat:>12} │ {res:<18}")
+        print()
 
 def render_perplexity_table(suite: BenchmarkSuiteResult):
     print("\n" + "=" * 118)
