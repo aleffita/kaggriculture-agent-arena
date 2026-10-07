@@ -25,14 +25,14 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from benchmarks.plugins.base import BaseBenchmarkPlugin, BenchmarkResult
-from benchmarks.plugins.pcie_payload_curve import PciePayloadCurvePlugin
-from benchmarks.plugins.moe_dual_gpu_ring import MoeDualGpuRingPlugin
-from benchmarks.plugins.bvh_moe_router import BvhMoeRouterPlugin
+from benchmarks.plugins.prefill_decode_eval import PrefillDecodeEvalPlugin
+from benchmarks.plugins.bvh_router_eval import BvhRouterEvalPlugin
+from benchmarks.plugins.pcie_channel_eval import PcieChannelEvalPlugin
 
 REGISTERED_PLUGINS: Dict[str, Type[BaseBenchmarkPlugin]] = {
-    "pcie_payload_curve": PciePayloadCurvePlugin,
-    "moe_dual_gpu_ring": MoeDualGpuRingPlugin,
-    "bvh_moe_router": BvhMoeRouterPlugin,
+    "prefill_decode_eval": PrefillDecodeEvalPlugin,
+    "bvh_router_eval": BvhRouterEvalPlugin,
+    "pcie_channel_eval": PcieChannelEvalPlugin,
 }
 
 CSV_FILE = BENCHMARKS_DIR / "results.csv"

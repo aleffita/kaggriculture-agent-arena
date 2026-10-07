@@ -24,20 +24,20 @@ Inspirado na metodologia de **Auto-Research** de Andrej Karpathy e nas melhores 
 Utilizando o gerenciador padrão do projeto (`uv`):
 
 ```powershell
-# Executar todos os plugins de benchmark registrados via CLI do projeto
+# Executar todos os avaliadores registrados contra o Unified Runtime
 uv run litert-autoresearch --all
 
-# Listar os plugins disponíveis
+# Listar os avaliadores disponíveis
 uv run litert-autoresearch --list
 
-# Executar apenas o sweep da curva de latência vs payload PCIe
-uv run litert-autoresearch --plugin pcie_payload_curve
+# Executar a avaliação completa de Prefill e Decode nos modelos MoE e Ternário
+uv run litert-autoresearch --plugin prefill_decode_eval
 
-# Executar o benchmark de MoE Esparso Dual-GPU em Ring Streaming
-uv run litert-autoresearch --plugin moe_dual_gpu_ring
+# Executar a avaliação da aceleração de roteamento MoE via poda BVH (RT Cores)
+uv run litert-autoresearch --plugin bvh_router_eval
 
-# Executar a sondagem D3D12 DXR e o benchmark de poda BVH espacial do MoE
-uv run litert-autoresearch --plugin bvh_moe_router
+# Executar a avaliação do canal de transporte DMA Pinned Memory inter-GPU
+uv run litert-autoresearch --plugin pcie_channel_eval
 ```
 
 ---
@@ -47,13 +47,13 @@ uv run litert-autoresearch --plugin bvh_moe_router
 ```text
 benchmarks/
 ├── README.md               # Este documento de especificação
-├── AGENTS.md               # Diretrizes para agentes autônomos
+├── AGENTS.md               # Protocolo operacional e regras de isolamento
 ├── results.csv             # Ledger tabular cumulativo de métricas
 ├── runner.py               # Orquestrador CLI modular
-├── plugins/                # Diretório de plugins de benchmark
+├── plugins/                # Avaliadores externos desacoplados
 │   ├── base.py             # Classe base e dataclass BenchmarkResult
-│   ├── pcie_payload_curve.py
-│   ├── moe_dual_gpu_ring.py
-│   └── bvh_moe_router.py
+│   ├── prefill_decode_eval.py # Avaliador de Prefill e Decode
+│   ├── bvh_router_eval.py     # Avaliador do Roteador Espacial BVH
+│   └── pcie_channel_eval.py   # Avaliador do Canal Pinned DMA
 └── reports/                # Relatórios JSON persistidos por execução
 ```

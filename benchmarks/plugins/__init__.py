@@ -1,12 +1,15 @@
+"""
+Evaluator Plugins for the Unified Heterogeneous CED Runtime.
+"""
 from .base import BaseBenchmarkPlugin, BenchmarkResult
-from .pcie_payload_curve import PciePayloadCurvePlugin
-from .moe_dual_gpu_ring import MoeDualGpuRingPlugin
-from .bvh_moe_router import BvhMoeRouterPlugin
+from .prefill_decode_eval import PrefillDecodeEvalPlugin
+from .bvh_router_eval import BvhRouterEvalPlugin
+from .pcie_channel_eval import PcieChannelEvalPlugin
 
 __all__ = [
     "BaseBenchmarkPlugin",
     "BenchmarkResult",
-    "PciePayloadCurvePlugin",
-    "MoeDualGpuRingPlugin",
-    "BvhMoeRouterPlugin",
+    "PrefillDecodeEvalPlugin",
+    "BvhRouterEvalPlugin",
+    "PcieChannelEvalPlugin",
 ]

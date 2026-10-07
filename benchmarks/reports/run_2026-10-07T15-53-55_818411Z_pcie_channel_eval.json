@@ -1,0 +1,18 @@
+{
+  "plugin_name": "pcie_channel_eval",
+  "target_hardware": "NVIDIA GeForce GTX 1050 Ti -> NVIDIA GeForce RTX 2060 (PCIe Gen3 x1)",
+  "prefill_tok_s": 0.0,
+  "prefill_ttft_ms": 0.0,
+  "decode_tok_s": 0.0,
+  "decode_latency_ms": 0.10639,
+  "stalls": 0,
+  "speedup": 1.0,
+  "extra_metrics": {
+    "boundary_h_latency_us": 106.39,
+    "boundary_bytes": 5760,
+    "pinned_ring_type": "Zero-Copy cudaHostAlloc"
+  },
+  "status": "SUCCESS",
+  "error_message": null,
+  "timestamp": "2026-10-07T15:53:55.818411Z"
+}

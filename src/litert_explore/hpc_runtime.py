@@ -20,7 +20,7 @@ from rich.panel import Panel
 console = Console()
 
 HPC_ENGINE_DIR = pathlib.Path(__file__).parent / "hpc_engine"
-HPC_EXE_UNIFIED_PATH = HPC_ENGINE_DIR / "unified_ced_runtime.exe"
+HPC_EXE_UNIFIED_PATH = HPC_ENGINE_DIR / "unified_runtime.exe"
 HPC_EXE_CED_PATH = HPC_ENGINE_DIR / "heterogeneous_ced_pipeline.exe"
 HPC_EXE_MOE_PATH = HPC_ENGINE_DIR / "moe_speculative_ssd_streamer.exe"
 HPC_EXE_BONSAI_PATH = HPC_ENGINE_DIR / "ternary_bonsai_dual_gpu.exe"
@@ -151,8 +151,12 @@ class HeterogeneousHPCRuntime:
 
             console.print(f"\n[bold cyan]=== Disparando Execucao Nativa: {name} ===[/bold cyan]\n")
             cmd = [str(exe)]
-            if exe == self.exe_unified and self.model_path and os.path.exists(self.model_path):
-                cmd.append(self.model_path)
+            if exe == self.exe_unified:
+                cmd.extend(["--tokens", str(tokens)])
+                if self.model_path and "bonsai" in self.model_path.lower():
+                    cmd.extend(["--model", "bonsai"])
+                else:
+                    cmd.extend(["--model", "moe"])
 
             try:
                 res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=True)
