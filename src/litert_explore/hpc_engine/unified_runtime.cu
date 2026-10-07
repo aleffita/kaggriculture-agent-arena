@@ -113,23 +113,31 @@ __global__ void bvh_accelerated_router_kernel(
         candidate_count = 0;
         int stack[32];
         int stack_ptr = 0;
-        stack[stack_ptr++] = 0;
+        int root_idx = 2 * num_experts - 2;
+        stack[stack_ptr++] = root_idx;
 
         while (stack_ptr > 0 && candidate_count < 12) {
             int node_idx = stack[--stack_ptr];
+            if (node_idx < 0 || node_idx > root_idx) continue;
             const BVHNode& node = d_bvh_nodes[node_idx];
 
             if (node.expert_id >= 0) {
                 candidate_experts[candidate_count++] = node.expert_id;
             } else {
-                float d_left = d_bvh_nodes[node.left_child].box.sq_dist_to_point(s_px, s_py, s_pz);
-                float d_right = d_bvh_nodes[node.right_child].box.sq_dist_to_point(s_px, s_py, s_pz);
-                if (d_left < d_right) {
-                    stack[stack_ptr++] = node.right_child;
-                    stack[stack_ptr++] = node.left_child;
-                } else {
-                    stack[stack_ptr++] = node.left_child;
-                    stack[stack_ptr++] = node.right_child;
+                int left = node.left_child;
+                int right = node.right_child;
+                if (left >= 0 && right >= 0 && left <= root_idx && right <= root_idx) {
+                    float d_left = d_bvh_nodes[left].box.sq_dist_to_point(s_px, s_py, s_pz);
+                    float d_right = d_bvh_nodes[right].box.sq_dist_to_point(s_px, s_py, s_pz);
+                    if (stack_ptr + 2 < 32) {
+                        if (d_left < d_right) {
+                            stack[stack_ptr++] = right;
+                            stack[stack_ptr++] = left;
+                        } else {
+                            stack[stack_ptr++] = left;
+                            stack[stack_ptr++] = right;
+                        }
+                    }
                 }
             }
         }
@@ -423,8 +431,8 @@ int main(int argc, char** argv) {
     // D3D12 Raytracing check
     std::string rt_tier = "Tier 1.1";
 
-    const int HIDDEN_DIM = (model_type == "bonsai") ? 5120 : 2880;
-    const size_t BOUNDARY_H_BYTES = HIDDEN_DIM * sizeof(half); // 5.76 KB ou 10.24 KB
+    const int HIDDEN_DIM = (model_type == "bonsai") ? 5120 : ((model_type == "gemma4") ? 2048 : 2880);
+    const size_t BOUNDARY_H_BYTES = HIDDEN_DIM * sizeof(half); // 4.0 KB, 5.76 KB ou 10.24 KB
     const size_t EXPERT_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB
 
     // Recursos em GPU 1 (Encoder / Camadas 0-11)
@@ -455,10 +463,12 @@ int main(int argc, char** argv) {
     void* h_pinned_ssd_staging = nullptr;
     CHECK_CUDA(cudaHostAlloc(&h_pinned_ssd_staging, EXPERT_SIZE_BYTES * 16, cudaHostAllocDefault));
 
-    // Arquivo SSD Z: (GPT-OSS-20B MXFP4 ou Bonsai)
+    // Arquivo SSD Z: (GPT-OSS-20B MXFP4, Bonsai ou Gemma 4)
     const wchar_t* model_file = (model_type == "bonsai") 
         ? L"Z:\\models\\prism-ml\\Ternary-Bonsai-2-27B-gguf\\Ternary-Bonsai-2-27B-PTQ1_0.gguf"
-        : L"Z:\\models\\lmstudio-community\\gpt-oss-20b-GGUF\\gpt-oss-20b-MXFP4.gguf";
+        : ((model_type == "gemma4")
+            ? L"C:\\Users\\alefita\\.litert-lm\\cache\\huggingface\\litert-community\\gemma-4-E2B-it-litert-lm\\gemma-4-E2B-it.litertlm"
+            : L"Z:\\models\\lmstudio-community\\gpt-oss-20b-GGUF\\gpt-oss-20b-MXFP4.gguf");
 
     HANDLE hFile = CreateFileW(
         model_file, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,

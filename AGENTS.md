@@ -48,6 +48,18 @@ Welcome, Agent. This repository, `litertlm-exploration`, is an experimental envi
   * Durante o desenvolvimento e iteração contínua, o agente **DEVE SEMPRE** rodar os benchmarks no modo smoke (`--mode smoke`).
   * A baseline de progresso é sempre aferida sob o modo smoke para garantir ciclos ágeis de validação.
   * O modo completo (`--mode full`) é reservado para fechamentos de ciclo ou avaliações de release formal.
+- **DIRETIVA DE FORMATAÇÃO NUMÉRICA (SEM SEPARADOR DE MILHAR)**:
+  * **NUNCA** utilizar pontos ou vírgulas para separar milhares (ex: escrever `4969` ou `4969.76`, e **NUNCA** `4.969` ou `4,969`).
+  * O caractere de ponto (`.`) é reservado exclusivamente para a parte decimal. Isso elimina qualquer ambiguidade de magnitude.
+- **TRÍADE DE MODELOS E COMPARAÇÃO COM RUNTIMES ORIGINAIS**:
+  * A suíte de avaliação deve sempre aferir os 3 modelos de referência:
+    1. `gpt-oss-20b` (MoE esparso)
+    2. `bonsai-27b` (Ternário 1.58-bit)
+    3. `gemma-4-E2B-it` (LiteRT denso)
+  * Os resultados do nosso motor (`unified-ced`) devem ser comparados com seus runtimes originais:
+    - `bonsai-27b`: comparado com o runtime original `llama-cpp-prism` (`Z:\workspaces\llama-cpp-prism`).
+    - `gpt-oss-20b`: comparado com `llama.cpp` stock.
+    - `gemma-4-E2B-it`: comparado com `litert-d3d12` (Google Dawn Direct3D 12 stock).
 
 ---
 
