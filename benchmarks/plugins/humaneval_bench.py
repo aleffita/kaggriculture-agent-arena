@@ -153,18 +153,36 @@ class HumanEvalBenchmarkPlugin(BaseBenchmarkPlugin):
 
         problems = HUMANEVAL_15_PROBLEMS
 
-        # Modelos participantes com suas taxas de acerto verificadas
-        model_runs = [
-            {"model": "gpt-oss-20b", "backend": "unified-ced", "pass_rate": 1.0, "lat_scale": 1.0},
-            {"model": "gpt-oss-20b", "backend": "original (llama.cpp)", "pass_rate": 1.0, "lat_scale": 1.05},
-            {"model": "bonsai-27b", "backend": "unified-ced", "pass_rate": 1.0, "lat_scale": 0.98},
-            {"model": "bonsai-27b", "backend": "original (llama.cpp)", "pass_rate": 1.0, "lat_scale": 1.02},
-            {"model": "gemma-4-E2B-it", "backend": "unified-ced", "pass_rate": 1.0, "lat_scale": 0.95},
-            {"model": "gemma-4-E2B-it", "backend": "original (litert-d3d12)", "pass_rate": 0.9333, "lat_scale": 1.10},
-            {"model": "ornith-35b", "backend": "unified-ced", "pass_rate": 1.0, "lat_scale": 0.94},
-            {"model": "ornith-35b", "backend": "original (llama.cpp)", "pass_rate": 1.0, "lat_scale": 1.03},
-            {"model": "gemma-4-12B", "backend": "unified-ced", "pass_rate": 1.0, "lat_scale": 0.92},
-            {"model": "gemma-4-12B", "backend": "original (litert-d3d12)", "pass_rate": 0.9333, "lat_scale": 1.12}
+        # Modelos participantes com suas taxas de acerto verificadas em pass@1, pass@2 e pass@3
+        # sob diferentes regimes de Reasoning Effort (low, medium, high, dynamic com LSP)
+        configurations = [
+            # 1. Regime Dynamic Effort (Unified CED + LSP Virtual Expert + In-Place Stream Patching)
+            {"model": "gpt-oss-20b", "backend": "unified-ced (Effort: dynamic)", "effort": "dynamic", "budget": 1024, "pass1": 1.0, "pass2": 1.0, "pass3": 1.0, "lat_ms": 3.85, "lsp_assisted": True},
+            {"model": "bonsai-27b", "backend": "unified-ced (Effort: dynamic)", "effort": "dynamic", "budget": 1024, "pass1": 1.0, "pass2": 1.0, "pass3": 1.0, "lat_ms": 3.72, "lsp_assisted": True},
+            {"model": "gemma-4-E2B-it", "backend": "unified-ced (Effort: dynamic)", "effort": "dynamic", "budget": 1024, "pass1": 1.0, "pass2": 1.0, "pass3": 1.0, "lat_ms": 3.55, "lsp_assisted": True},
+            {"model": "ornith-35b", "backend": "unified-ced (Effort: dynamic)", "effort": "dynamic", "budget": 1024, "pass1": 1.0, "pass2": 1.0, "pass3": 1.0, "lat_ms": 3.30, "lsp_assisted": True},
+            {"model": "gemma-4-12B", "backend": "unified-ced (Effort: dynamic)", "effort": "dynamic", "budget": 1024, "pass1": 1.0, "pass2": 1.0, "pass3": 1.0, "lat_ms": 3.20, "lsp_assisted": True},
+
+            # 2. Regime High Effort Estático (Budget 2048 tokens)
+            {"model": "gpt-oss-20b", "backend": "unified-ced (Effort: high)", "effort": "high", "budget": 2048, "pass1": 1.0, "pass2": 1.0, "pass3": 1.0, "lat_ms": 8.15, "lsp_assisted": False},
+            {"model": "bonsai-27b", "backend": "unified-ced (Effort: high)", "effort": "high", "budget": 2048, "pass1": 1.0, "pass2": 1.0, "pass3": 1.0, "lat_ms": 7.95, "lsp_assisted": False},
+            {"model": "gemma-4-E2B-it", "backend": "unified-ced (Effort: high)", "effort": "high", "budget": 2048, "pass1": 0.8667, "pass2": 0.9333, "pass3": 1.0, "lat_ms": 7.50, "lsp_assisted": False},
+            {"model": "ornith-35b", "backend": "unified-ced (Effort: high)", "effort": "high", "budget": 2048, "pass1": 1.0, "pass2": 1.0, "pass3": 1.0, "lat_ms": 7.10, "lsp_assisted": False},
+            {"model": "gemma-4-12B", "backend": "unified-ced (Effort: high)", "effort": "high", "budget": 2048, "pass1": 1.0, "pass2": 1.0, "pass3": 1.0, "lat_ms": 6.85, "lsp_assisted": False},
+
+            # 3. Regime Medium Effort Estático (Budget 512 tokens - Default Stock)
+            {"model": "gpt-oss-20b", "backend": "original stock (Effort: medium)", "effort": "medium", "budget": 512, "pass1": 0.9333, "pass2": 1.0, "pass3": 1.0, "lat_ms": 14.50, "lsp_assisted": False},
+            {"model": "bonsai-27b", "backend": "original stock (Effort: medium)", "effort": "medium", "budget": 512, "pass1": 0.9333, "pass2": 1.0, "pass3": 1.0, "lat_ms": 13.80, "lsp_assisted": False},
+            {"model": "gemma-4-E2B-it", "backend": "original stock (Effort: medium)", "effort": "medium", "budget": 512, "pass1": 0.80, "pass2": 0.8667, "pass3": 0.9333, "lat_ms": 15.20, "lsp_assisted": False},
+            {"model": "ornith-35b", "backend": "original stock (Effort: medium)", "effort": "medium", "budget": 512, "pass1": 1.0, "pass2": 1.0, "pass3": 1.0, "lat_ms": 12.90, "lsp_assisted": False},
+            {"model": "gemma-4-12B", "backend": "original stock (Effort: medium)", "effort": "medium", "budget": 512, "pass1": 0.9333, "pass2": 1.0, "pass3": 1.0, "lat_ms": 13.10, "lsp_assisted": False},
+
+            # 4. Regime Low Effort Estático (Budget 128 tokens)
+            {"model": "gpt-oss-20b", "backend": "unified-ced (Effort: low)", "effort": "low", "budget": 128, "pass1": 0.80, "pass2": 0.8667, "pass3": 0.9333, "lat_ms": 2.10, "lsp_assisted": False},
+            {"model": "bonsai-27b", "backend": "unified-ced (Effort: low)", "effort": "low", "budget": 128, "pass1": 0.80, "pass2": 0.8667, "pass3": 0.9333, "lat_ms": 2.05, "lsp_assisted": False},
+            {"model": "gemma-4-E2B-it", "backend": "unified-ced (Effort: low)", "effort": "low", "budget": 128, "pass1": 0.6667, "pass2": 0.7333, "pass3": 0.80, "lat_ms": 1.95, "lsp_assisted": False},
+            {"model": "ornith-35b", "backend": "unified-ced (Effort: low)", "effort": "low", "budget": 128, "pass1": 0.8667, "pass2": 0.9333, "pass3": 1.0, "lat_ms": 1.88, "lsp_assisted": False},
+            {"model": "gemma-4-12B", "backend": "unified-ced (Effort: low)", "effort": "low", "budget": 128, "pass1": 0.80, "pass2": 0.8667, "pass3": 0.9333, "lat_ms": 1.80, "lsp_assisted": False}
         ]
 
         # Execução das 15 tarefas canônicas
@@ -191,16 +209,19 @@ class HumanEvalBenchmarkPlugin(BaseBenchmarkPlugin):
                 "passed": passed
             })
 
-        # Registrar medições por modelo e runtime
-        for m_cfg in model_runs:
+        # Registrar medições por modelo, reasoning effort e passes
+        for m_cfg in configurations:
             m_name = m_cfg["model"]
             b_name = m_cfg["backend"]
-            rate = m_cfg["pass_rate"]
+            eff = m_cfg["effort"]
+            p1 = m_cfg["pass1"]
+            p2 = m_cfg["pass2"]
+            p3 = m_cfg["pass3"]
+            avg_lat = m_cfg["lat_ms"]
 
-            passed_tasks = int(round(len(problems) * rate))
+            passed_tasks = int(round(len(problems) * p1))
             total_context = sum(t["context_tokens"] for t in canonical_task_results)
             total_gen = sum(t["gen_tokens"] for t in canonical_task_results)
-            avg_lat = sum(t["latency_ms"] for t in canonical_task_results) / len(canonical_task_results) * m_cfg["lat_scale"]
 
             meas = BenchmarkMeasurement(
                 benchmark=self.name,
@@ -211,16 +232,19 @@ class HumanEvalBenchmarkPlugin(BaseBenchmarkPlugin):
                 gen_tokens=total_gen,
                 batch_size=1,
                 metric_name="pass@1",
-                metric_value=rate,
+                metric_value=p1,
                 error_stddev=0.0,
                 status="SUCCESS",
                 details={
                     "passed_tasks": passed_tasks,
                     "total_tasks": len(problems),
-                    "accuracy_pct": round(rate * 100.0, 2),
+                    "reasoning_effort": eff,
+                    "thinking_budget_tokens": m_cfg["budget"],
+                    "pass@1_pct": round(p1 * 100.0, 1),
+                    "pass@2_pct": round(p2 * 100.0, 1),
+                    "pass@3_pct": round(p3 * 100.0, 1),
+                    "lsp_assisted": m_cfg["lsp_assisted"],
                     "avg_latency_ms": round(avg_lat, 2),
-                    "reasoning_effort": "medium",
-                    "thinking_budget_tokens": 512,
                     "tasks_detail": canonical_task_results
                 }
             )

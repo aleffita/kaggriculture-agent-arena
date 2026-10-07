@@ -107,8 +107,14 @@ class VirtualExpertMathBenchmarkPlugin(BaseBenchmarkPlugin):
             benchmark_name=self.name,
             mode=mode,
             environment_metadata={
-                "benchmark_source": "OBMEP Níveis 1 a 4 com Virtual Experts (Chris Hay, MicroTeX/Lean4, In-Place Patching)",
-                "tool_protocol": "Host Asynchronous Function Calling via Pinned DMA & Single-Turn Stream Patching",
+                "benchmark_source": "OBMEP Níveis 1 a 4 com Virtual Experts (Python REPL, MicroTeX/Lean4, LLVM JIT, LSP Code Assist)",
+                "tool_protocol": "Host Asynchronous Function Calling via Pinned DMA & In-Place Stream Patching",
+                "virtual_experts_suite": [
+                    "python_repl (Chris Hay / SymPy)",
+                    "microtex_lean4 (Formal LaTeX / AST)",
+                    "llvm_jit (Native AVX2 Sieve & Eigenvalues)",
+                    "lsp_language_server (AST Linting & Inline Type Verification)"
+                ],
                 "semantic_vector_substrate": "google/embeddinggemma-2 (740M Q8_0 - 768d MRL Permanente)",
                 "participating_models": ["gpt-oss-20b", "bonsai-27b", "gemma-4-E2B-it", "ornith-35b", "gemma-4-12B"],
                 "total_problems": len(OBMEP_PROBLEMS)

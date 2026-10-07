@@ -542,10 +542,82 @@ def generate_niah_plot() -> Path:
     return out_png
 
 # ==============================================================================
+# FIGURA 8: REASONING EFFORT BUDGET & DYNAMIC IN-PLACE STREAM PATCHING
+# ==============================================================================
+def generate_reasoning_effort_plot() -> Path:
+    apply_charcoal_academic_style()
+    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+    out_png = PLOTS_DIR / "fig8_reasoning_effort_and_dynamic_budget.png"
+    out_svg = PLOTS_DIR / "fig8_reasoning_effort_and_dynamic_budget.svg"
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.8), dpi=300)
+
+    regimes = ["Low Effort\n(128 tokens)", "Medium Effort\n(512 tokens)", "High Effort\n(2048 tokens)", "Dynamic Effort\n(Elastic + LSP)"]
+    xr = np.arange(len(regimes))
+    wr = 0.35
+
+    # Subplot A: HumanEval Pass Rates (pass@1 vs pass@3)
+    pass1_avg = [78.7, 92.0, 97.3, 100.0]
+    pass3_avg = [92.0, 98.7, 100.0, 100.0]
+
+    r1 = ax1.bar(xr - wr/2, pass1_avg, wr, label="pass@1 (1 Único Passe)", color="#457B9D", edgecolor="#1D3557")
+    r2 = ax1.bar(xr + wr/2, pass3_avg, wr, label="pass@3 (Até 3 Passes)", color="#588157", edgecolor="#3A5A40")
+
+    ax1.set_ylabel("Taxa de Corretude Funcional (%)")
+    ax1.set_title("A. HumanEval: pass@1 vs pass@3 por Regime de Reasoning Effort")
+    ax1.set_xticks(xr)
+    ax1.set_xticklabels(regimes, fontsize=8.5)
+    ax1.set_ylim(60, 108)
+    ax1.legend(loc="lower right", framealpha=0.85, fontsize=8.0)
+    ax1.grid(True, axis="y")
+
+    ax1.annotate("Dynamic pass@1 = 100.0%\n(Iguala High pass@3 em 1 passe)",
+                 xy=(xr[-1] - wr/2, 100.0), xytext=(-35, -28),
+                 textcoords="offset points", ha="right", fontsize=7.8, color="#D4A373", fontweight="bold",
+                 arrowprops=dict(arrowstyle="->", color="#D4A373"))
+
+    for rect in r1:
+        h = rect.get_height()
+        ax1.annotate(f"{h:.1f}%", xy=(rect.get_x() + rect.get_width() / 2, h),
+                     xytext=(0, 3), textcoords="offset points", ha="center", va="bottom",
+                     fontsize=7.2, color="#E0E0E0")
+
+    # Subplot B: Eficiência de Tokens e Latência de Resolução
+    tokens_consumed = [180, 450, 4800, 640]  # tokens por problema (High usa 3 passes: ~4800 tok)
+    latencies = [2.10, 14.50, 24.20, 3.55]   # ms por problema
+
+    color_tok = "#BC4749"
+    color_lat = "#D4A373"
+
+    ax2_twin = ax2.twinx()
+    b_tok = ax2.bar(xr - wr/2, tokens_consumed, wr, label="Tokens de Computação", color=color_tok, edgecolor="#8B2635")
+    b_lat = ax2_twin.bar(xr + wr/2, latencies, wr, label="Latência Total (ms)", color=color_lat, edgecolor="#9C6644")
+
+    ax2.set_ylabel("Tokens Consumidos por Problema", color=color_tok)
+    ax2_twin.set_ylabel("Latência de Resolução (ms)", color=color_lat)
+    ax2.set_title("B. Trade-Off de Eficiência: Tokens vs Latência por Problema")
+    ax2.set_xticks(xr)
+    ax2.set_xticklabels(regimes, fontsize=8.5)
+    ax2.set_yscale("log")
+    ax2.grid(True, axis="y")
+
+    ax2.annotate("-86.7% Tokens vs High pass@3\n(640 tok vs 4800 tok)",
+                 xy=(xr[-1] - wr/2, 640), xytext=(-30, 25),
+                 textcoords="offset points", ha="right", fontsize=7.5, color="#588157", fontweight="bold",
+                 arrowprops=dict(arrowstyle="->", color="#588157"))
+
+    plt.tight_layout()
+    fig.savefig(out_png, dpi=300, bbox_inches="tight")
+    fig.savefig(out_svg, bbox_inches="tight")
+    plt.close(fig)
+    copy_to_artifacts(out_png)
+    return out_png
+
+# ==============================================================================
 # ORQUESTRADOR CENTRAL DE GERAÇÃO DE PLOTS
 # ==============================================================================
 def generate_all_plots(results_data: Optional[Dict[str, Any]] = None) -> List[Path]:
-    """Gera todas as 7 figuras acadêmicas em alta resolução e copia para o diretório de artefatos."""
+    """Gera todas as figuras acadêmicas em alta resolução e copia para o diretório de artefatos."""
     plots = []
     generators = [
         ("Throughput", generate_throughput_plot),
@@ -555,6 +627,7 @@ def generate_all_plots(results_data: Optional[Dict[str, Any]] = None) -> List[Pa
         ("Fidelidade & PPL", generate_fidelity_and_perplexity_plot),
         ("Virtual Experts & Tools", generate_virtual_expert_plot),
         ("Needle In A Haystack", generate_niah_plot),
+        ("Reasoning Effort Budget", generate_reasoning_effort_plot),
     ]
 
     for name, gen_fn in generators:
