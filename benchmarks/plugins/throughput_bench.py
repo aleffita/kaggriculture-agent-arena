@@ -41,7 +41,12 @@ class ThroughputBenchmarkPlugin(BaseBenchmarkPlugin):
         res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
         if res.returncode != 0:
             raise RuntimeError(f"Falha ao executar unified_runtime: {res.stderr or res.stdout}")
-        return json.loads(res.stdout)
+        out_str = res.stdout.strip()
+        try:
+            return json.loads(out_str)
+        except json.JSONDecodeError:
+            sanitized = re.sub(r'\\([^\'"\\/bfnrtu])', r'/\1', out_str)
+            return json.loads(sanitized)
 
     def _get_original_gpt_oss_dual_gpu(self, prompt_len: int, gen_tokens: int) -> Dict[str, float]:
         """Telemetria física verificada via build-cu126 com -sm layer -ts 3,2 -ngl 12."""

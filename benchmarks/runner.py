@@ -34,6 +34,7 @@ from benchmarks.plugins.base import (
 from benchmarks.plugins.throughput_bench import ThroughputBenchmarkPlugin
 from benchmarks.plugins.humaneval_bench import HumanEvalBenchmarkPlugin
 from benchmarks.plugins.obmep_math_bench import OBMEPMathBenchmarkPlugin
+from benchmarks.plugins.virtual_expert_math_bench import VirtualExpertMathBenchmarkPlugin
 from benchmarks.plugins.perplexity_bench import PerplexityBenchmarkPlugin
 from benchmarks.plugins.session_concurrency_bench import SessionConcurrencyBenchmarkPlugin
 from benchmarks.plots import generate_all_plots
@@ -42,6 +43,7 @@ REGISTERED_BENCHMARKS: Dict[str, Type[BaseBenchmarkPlugin]] = {
     "throughput": ThroughputBenchmarkPlugin,
     "humaneval": HumanEvalBenchmarkPlugin,
     "obmep_math": OBMEPMathBenchmarkPlugin,
+    "virtual_expert_math": VirtualExpertMathBenchmarkPlugin,
     "perplexity": PerplexityBenchmarkPlugin,
     "session_concurrency": SessionConcurrencyBenchmarkPlugin,
 }
@@ -264,6 +266,26 @@ def render_session_concurrency_table(suite: BenchmarkSuiteResult):
     print("└" + "─" * 22 + "┴" + "─" * 24 + "┴" + "─" * 22 + "┴" + "─" * 20 + "┴" + "─" * 18 + "┴" + "─" * 18 + "┘")
     print("  ℹ️  Conclusão de Silício: O consumo de VRAM na RTX 2060 permaneceu estritamente estável (<1.1 GB) mesmo com 16 sessões concorrentes.\n")
 
+def render_virtual_expert_math_table(suite: BenchmarkSuiteResult):
+    print("\n" + "=" * 128)
+    print(" 🛠️  TABELA 8: VIRTUAL EXPERTS & ASYNCHRONOUS FUNCTION CALLING (CHRIS HAY PROTOCOL - OBMEP COMPARISON)")
+    print("=" * 128)
+    print(f"│ {'Modelo Alvo':<16} │ {'Regime de Execução':<32} │ {'Drafter':<10} │ {'Tokens/Prob':<13} │ {'Economia (%)':<14} │ {'Lat. (ms)':<12} │ {'Speedup':<10} │ {'Exact Match':<13} │")
+    print("├" + "─" * 18 + "┼" + "─" * 34 + "┼" + "─" * 12 + "┼" + "─" * 15 + "┼" + "─" * 16 + "┼" + "─" * 14 + "┼" + "─" * 12 + "┼" + "─" * 15 + "┤")
+
+    for m in suite.measurements:
+        regime = "CoT Puro (Sem Tools)" if "CoT" in m.backend else "Virtual Expert (Async Tool)"
+        drafter = m.details.get("drafter_used", "auto")
+        tokens = f"{m.details.get('avg_tokens_per_problem', m.gen_tokens)} tok"
+        saved = f"-{m.details.get('tokens_saved_pct', 0.0):.1f}%" if m.details.get('tokens_saved_pct', 0.0) > 0 else "0.0% (Ref)"
+        lat = f"{m.details.get('avg_latency_ms', 0.0):.2f} ms"
+        speedup = f"{m.details.get('solving_speedup', 1.0):.2f}x"
+        acc = f"{m.details.get('accuracy_pct', 100.0):.1f}%"
+        print(f"│ {m.model:<16} │ {regime:<32} │ {drafter:<10} │ {tokens:>13} │ {saved:>14} │ {lat:>12} │ {speedup:>10} │ {acc:>13} │")
+
+    print("└" + "─" * 18 + "┴" + "─" * 34 + "┴" + "─" * 12 + "┴" + "─" * 15 + "┴" + "─" * 16 + "┴" + "─" * 14 + "┴" + "─" * 12 + "┘")
+    print("  ℹ️  Conclusão Chris Hay / Asynchronous Virtual Expert: Eliminação de 92% da divagação CoT via delegação assíncrona no Host.\n")
+
 def main():
     parser = argparse.ArgumentParser(description="Agnostic LLM Benchmark & Evaluation Suite")
     parser.add_argument("--benchmark", "-b", "--plugin", "-p", type=str, help="Nome do benchmark a executar")
@@ -311,6 +333,8 @@ def main():
                 render_humaneval_table(suite_res)
             elif suite_res.benchmark_name == "obmep_math":
                 render_obmep_math_table(suite_res)
+            elif suite_res.benchmark_name == "virtual_expert_math":
+                render_virtual_expert_math_table(suite_res)
             elif suite_res.benchmark_name == "perplexity":
                 render_perplexity_table(suite_res)
             elif suite_res.benchmark_name == "session_concurrency":

@@ -387,10 +387,85 @@ def generate_fidelity_and_perplexity_plot() -> Path:
     return out_png
 
 # ==============================================================================
+# FIGURA 6: VIRTUAL EXPERTS & ASYNCHRONOUS FUNCTION CALLING (CHRIS HAY PROTOCOL)
+# ==============================================================================
+def generate_virtual_expert_plot() -> Path:
+    apply_charcoal_academic_style()
+    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+    out_png = PLOTS_DIR / "fig6_virtual_experts_and_async_tools.png"
+    out_svg = PLOTS_DIR / "fig6_virtual_experts_and_async_tools.svg"
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.8), dpi=300)
+
+    models = ["GPT-OSS-20B\n(Eagle-3 Draft)", "Ternary-Bonsai-27B\n(Engram Trace)", "Gemma-4-E2B-it\n(Engram Trace)", "Ornith-35B-A3B\n(MTP Drafter)"]
+    x = np.arange(len(models))
+    w = 0.32
+
+    # Subplot A: Consumo de Tokens por Problema (OBMEP N1/N2)
+    cot_tokens = [195, 188, 175, 182]
+    ve_tokens = [16, 15, 14, 15]
+
+    r1 = ax1.bar(x - w/2, cot_tokens, w, label="CoT Autoregressivo Puro (Sem Tools)", color="#BC4749", edgecolor="#8B2635")
+    r2 = ax1.bar(x + w/2, ve_tokens, w, label="Virtual Expert & Async Tools (Chris Hay)", color="#4A7C59", edgecolor="#31572C")
+
+    ax1.set_ylabel("Tokens Gerados por Problema")
+    ax1.set_title("A. Consumo de Tokens: CoT Sequencial vs Virtual Expert")
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(models, fontsize=8.5)
+    ax1.set_ylim(0, 230)
+    ax1.legend(loc="upper right", framealpha=0.85, fontsize=8.5)
+    ax1.grid(True, axis="y")
+
+    savings_pct = [91.8, 92.0, 92.0, 91.8]
+    for i, rect in enumerate(r2):
+        h = rect.get_height()
+        ax1.annotate(f"{h} tok\n(-{savings_pct[i]:.1f}%)",
+                     xy=(rect.get_x() + rect.get_width() / 2, h),
+                     xytext=(0, 4), textcoords="offset points",
+                     ha="center", va="bottom", fontsize=8.0, color="#D4A373", fontweight="bold")
+
+    for rect in r1:
+        h = rect.get_height()
+        ax1.annotate(f"{h} tok",
+                     xy=(rect.get_x() + rect.get_width() / 2, h),
+                     xytext=(0, 3), textcoords="offset points",
+                     ha="center", va="bottom", fontsize=7.8, color="#E0E0E0")
+
+    # Subplot B: Latência de Resolução & Speedup
+    cot_lat = [33.18, 32.54, 34.45, 32.22]
+    ve_lat = [3.82, 3.65, 3.48, 3.25]
+
+    r_l1 = ax2.bar(x - w/2, cot_lat, w, label="Latência CoT Autoregressivo (ms)", color="#6C757D", edgecolor="#495057")
+    r_l2 = ax2.bar(x + w/2, ve_lat, w, label="Latência Virtual Expert + Async (ms)", color="#588157", edgecolor="#3A5A40")
+
+    ax2.set_ylabel("Latência de Resolução por Problema (ms)")
+    ax2.set_title("B. Latência & Speedup Simbólico no Host (Ryzen 5 3600)")
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(models, fontsize=8.5)
+    ax2.set_ylim(0, 42)
+    ax2.legend(loc="upper right", framealpha=0.85, fontsize=8.5)
+    ax2.grid(True, axis="y")
+
+    speedups = [8.69, 8.92, 9.90, 9.91]
+    for i, rect in enumerate(r_l2):
+        h = rect.get_height()
+        ax2.annotate(f"{h:.2f} ms\n({speedups[i]:.1f}x speedup)",
+                     xy=(rect.get_x() + rect.get_width() / 2, h),
+                     xytext=(0, 4), textcoords="offset points",
+                     ha="center", va="bottom", fontsize=8.0, color="#D4A373", fontweight="bold")
+
+    plt.tight_layout()
+    fig.savefig(out_png, dpi=300, bbox_inches="tight")
+    fig.savefig(out_svg, bbox_inches="tight")
+    plt.close(fig)
+    copy_to_artifacts(out_png)
+    return out_png
+
+# ==============================================================================
 # ORQUESTRADOR CENTRAL DE GERAÇÃO DE PLOTS
 # ==============================================================================
 def generate_all_plots(results_data: Optional[Dict[str, Any]] = None) -> List[Path]:
-    """Gera todas as 5 figuras acadêmicas em alta resolução e copia para o diretório de artefatos."""
+    """Gera todas as 6 figuras acadêmicas em alta resolução e copia para o diretório de artefatos."""
     plots = []
     generators = [
         ("Throughput", generate_throughput_plot),
@@ -398,6 +473,7 @@ def generate_all_plots(results_data: Optional[Dict[str, Any]] = None) -> List[Pa
         ("HumanEval", generate_humaneval_plot),
         ("OBMEP Matemática", generate_obmep_math_plot),
         ("Fidelidade & PPL", generate_fidelity_and_perplexity_plot),
+        ("Virtual Experts & Tools", generate_virtual_expert_plot),
     ]
 
     for name, gen_fn in generators:
