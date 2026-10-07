@@ -24,14 +24,20 @@ Inspirado na metodologia de **Auto-Research** de Andrej Karpathy e nas melhores 
 Utilizando o gerenciador padrão do projeto (`uv`):
 
 ```powershell
-# Executar todos os plugins de benchmark registrados
-uv run python benchmarks/runner.py --all
+# Executar todos os plugins de benchmark registrados via CLI do projeto
+uv run litert-autoresearch --all
+
+# Listar os plugins disponíveis
+uv run litert-autoresearch --list
 
 # Executar apenas o sweep da curva de latência vs payload PCIe
-uv run python benchmarks/runner.py --plugin pcie_payload_curve
+uv run litert-autoresearch --plugin pcie_payload_curve
 
 # Executar o benchmark de MoE Esparso Dual-GPU em Ring Streaming
-uv run python benchmarks/runner.py --plugin moe_dual_gpu_ring
+uv run litert-autoresearch --plugin moe_dual_gpu_ring
+
+# Executar a sondagem D3D12 DXR e o benchmark de poda BVH espacial do MoE
+uv run litert-autoresearch --plugin bvh_moe_router
 ```
 
 ---
@@ -45,7 +51,9 @@ benchmarks/
 ├── results.csv             # Ledger tabular cumulativo de métricas
 ├── runner.py               # Orquestrador CLI modular
 ├── plugins/                # Diretório de plugins de benchmark
+│   ├── base.py             # Classe base e dataclass BenchmarkResult
 │   ├── pcie_payload_curve.py
-│   └── moe_dual_gpu_ring.py
+│   ├── moe_dual_gpu_ring.py
+│   └── bvh_moe_router.py
 └── reports/                # Relatórios JSON persistidos por execução
 ```

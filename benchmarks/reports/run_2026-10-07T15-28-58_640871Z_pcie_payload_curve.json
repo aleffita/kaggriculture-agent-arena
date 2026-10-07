@@ -1,0 +1,119 @@
+{
+  "plugin_name": "pcie_payload_curve",
+  "target_hardware": "GTX 1050 Ti -> RTX 2060 (PCIe Gen3 x1)",
+  "prefill_tok_s": 0.0,
+  "prefill_ttft_ms": 0.0,
+  "decode_tok_s": 0.0,
+  "decode_latency_ms": 0.05991,
+  "stalls": 0,
+  "speedup": 1.0,
+  "extra_metrics": {
+    "boundary_h_latency_us": 59.91,
+    "pareto_knee_bytes": 32768,
+    "pareto_knee_latency_us": 108.74,
+    "pareto_knee_bandwidth_gbs": 0.56,
+    "sweep_points": [
+      {
+        "bytes": 1024,
+        "formatted_size": "1.00 KB",
+        "avg_latency_us": 50.91,
+        "bandwidth_gbs": 0.04,
+        "marginal_ratio": 1.0
+      },
+      {
+        "bytes": 2048,
+        "formatted_size": "2.00 KB",
+        "avg_latency_us": 46.98,
+        "bandwidth_gbs": 0.08,
+        "marginal_ratio": 0.92
+      },
+      {
+        "bytes": 4096,
+        "formatted_size": "4.00 KB",
+        "avg_latency_us": 69.16,
+        "bandwidth_gbs": 0.11,
+        "marginal_ratio": 1.36
+      },
+      {
+        "bytes": 8192,
+        "formatted_size": "8.00 KB",
+        "avg_latency_us": 57.39,
+        "bandwidth_gbs": 0.27,
+        "marginal_ratio": 1.13
+      },
+      {
+        "bytes": 10486,
+        "formatted_size": "10.24 KB",
+        "avg_latency_us": 59.91,
+        "bandwidth_gbs": 0.33,
+        "marginal_ratio": 1.18
+      },
+      {
+        "bytes": 16384,
+        "formatted_size": "16.00 KB",
+        "avg_latency_us": 89.46,
+        "bandwidth_gbs": 0.34,
+        "marginal_ratio": 1.76
+      },
+      {
+        "bytes": 32768,
+        "formatted_size": "32.00 KB",
+        "avg_latency_us": 108.74,
+        "bandwidth_gbs": 0.56,
+        "marginal_ratio": 2.14
+      },
+      {
+        "bytes": 65536,
+        "formatted_size": "64.00 KB",
+        "avg_latency_us": 156.55,
+        "bandwidth_gbs": 0.78,
+        "marginal_ratio": 3.07
+      },
+      {
+        "bytes": 131072,
+        "formatted_size": "128.00 KB",
+        "avg_latency_us": 242.53,
+        "bandwidth_gbs": 1.01,
+        "marginal_ratio": 4.76
+      },
+      {
+        "bytes": 262144,
+        "formatted_size": "256.00 KB",
+        "avg_latency_us": 435.07,
+        "bandwidth_gbs": 1.12,
+        "marginal_ratio": 8.55
+      },
+      {
+        "bytes": 524288,
+        "formatted_size": "512.00 KB",
+        "avg_latency_us": 833.78,
+        "bandwidth_gbs": 1.17,
+        "marginal_ratio": 16.38
+      },
+      {
+        "bytes": 1048576,
+        "formatted_size": "1.00 MB",
+        "avg_latency_us": 1524.13,
+        "bandwidth_gbs": 1.28,
+        "marginal_ratio": 29.94
+      },
+      {
+        "bytes": 2097152,
+        "formatted_size": "2.00 MB",
+        "avg_latency_us": 2941.28,
+        "bandwidth_gbs": 1.33,
+        "marginal_ratio": 57.77
+      },
+      {
+        "bytes": 4194304,
+        "formatted_size": "4.00 MB",
+        "avg_latency_us": 5738.23,
+        "bandwidth_gbs": 1.36,
+        "marginal_ratio": 112.7
+      }
+    ]
+  },
+  "status": "SUCCESS",
+  "error_message": null,
+  "timestamp": "2026-10-07T15:28:58.640871Z"
+}

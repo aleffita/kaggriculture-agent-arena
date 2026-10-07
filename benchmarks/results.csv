@@ -1,0 +1,7 @@
+timestamp,plugin,hardware,prefill_tok_s,prefill_ttft_ms,decode_tok_s,decode_latency_ms,stalls,speedup,status
+2026-10-07T15:28:58.640871Z,pcie_payload_curve,GTX 1050 Ti -> RTX 2060 (PCIe Gen3 x1),0.0,0.0,0.0,0.06,0,1.0,SUCCESS
+2026-10-07T15:29:53.706098Z,moe_dual_gpu_ring,GTX 1050 Ti (4GB) + RTX 2060 (6GB) + NVMe SSD Z:,438212.09,0.29,3944.0,7.61,0,0.85,SUCCESS
+2026-10-07T15:33:21.998726Z,bvh_moe_router,NVIDIA GeForce RTX 2060 (Turing SM 7.5 / D3D12 DXR Tier 1.1),566150.0,0.23,4423.05,0.23,0,1.08,SUCCESS
+2026-10-07T15:33:37.057342Z,pcie_payload_curve,GTX 1050 Ti -> RTX 2060 (PCIe Gen3 x1),0.0,0.0,0.0,0.06,0,1.0,SUCCESS
+2026-10-07T15:33:37.399556Z,moe_dual_gpu_ring,GTX 1050 Ti (4GB) + RTX 2060 (6GB) + NVMe SSD Z:,437876.25,0.29,5767.34,5.2,0,1.03,SUCCESS
+2026-10-07T15:33:38.337612Z,bvh_moe_router,NVIDIA GeForce RTX 2060 (Turing SM 7.5 / D3D12 DXR Tier 1.1),551220.0,0.23,4306.41,0.23,0,1.08,SUCCESS

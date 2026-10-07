@@ -28,6 +28,7 @@ litert-explore = "litert_explore.cli:main"
 litert-bench = "litert_explore.cli:bench_cli"
 litert-gpu = "litert_explore.cli:gpu_cli"
 litert-hpc = "litert_explore.cli:hpc_cli"
+litert-autoresearch = "benchmarks.runner:main"
 kaggriculture-dashboard = "kaggriculture.dashboard.app:main"
 
 
@@ -37,4 +38,4 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/litert_explore", "kaggriculture"]
+packages = ["src/litert_explore", "kaggriculture", "benchmarks"]
