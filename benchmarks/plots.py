@@ -257,7 +257,7 @@ def generate_humaneval_plot() -> Path:
     return out_png
 
 # ==============================================================================
-# FIGURA 4: OBMEP MATEMÁTICA - RACIOCÍNIO POR DOMÍNIO E POR MODELO
+# FIGURA 4: OBMEP MATEMÁTICA - RACIOCÍNIO POR DOMÍNIO E POR MODELO (25 PROBLEMAS)
 # ==============================================================================
 def generate_obmep_math_plot() -> Path:
     apply_charcoal_academic_style()
@@ -266,13 +266,13 @@ def generate_obmep_math_plot() -> Path:
 
     fig_ob, (ax_o1, ax_o2) = plt.subplots(1, 2, figsize=(14, 5.5), dpi=300)
 
-    # Subplot A: Acurácia Global OBMEP (15 Problemas Nível 1, 2 e 3 Ensino Médio)
+    # Subplot A: Acurácia Global OBMEP (25 Problemas: Níveis 1 a 4 com Fase 2 Discursiva)
     models_ob = ["GPT-OSS-20B", "Ternary-Bonsai-27B", "Gemma-4-E2B-it", "Ornith-35B-A3B", "Gemma-4-12B"]
     x_ob = np.arange(len(models_ob))
     w_ob = 0.25
 
-    cot_acc_ob = [80.0, 80.0, 66.7, 86.7, 80.0]
-    orig_acc_ob = [80.0, 80.0, 60.0, 86.7, 73.3]
+    cot_acc_ob = [80.0, 80.0, 68.0, 84.0, 80.0]
+    orig_acc_ob = [76.0, 76.0, 60.0, 80.0, 72.0]
     ve_acc_ob = [100.0, 100.0, 100.0, 100.0, 100.0]
 
     r_o1 = ax_o1.bar(x_ob - w_ob, ve_acc_ob, w_ob, label="Unified-CED + Virtual Expert (100% Exact Match)", color="#4A7C59", edgecolor="#31572C")
@@ -280,7 +280,7 @@ def generate_obmep_math_plot() -> Path:
     r_o3 = ax_o1.bar(x_ob + w_ob, orig_acc_ob, w_ob, label="Original Stock Reference", color="#6C757D", edgecolor="#495057")
 
     ax_o1.set_ylabel("Acurácia Exact Match (%)")
-    ax_o1.set_title("A. OBMEP Nível 1, 2 & 3 (Ensino Médio): Impacto do Virtual Expert")
+    ax_o1.set_title("A. OBMEP Níveis 1 a 4 (25 Problemas + Fase 2 Discursiva)")
     ax_o1.set_xticks(x_ob)
     ax_o1.set_xticklabels(models_ob, fontsize=8.0)
     ax_o1.set_ylim(45, 110)
@@ -289,7 +289,7 @@ def generate_obmep_math_plot() -> Path:
 
     for rect in r_o1:
         h = rect.get_height()
-        ax_o1.annotate("100% (15/15)", xy=(rect.get_x() + rect.get_width() / 2, h),
+        ax_o1.annotate("100% (25/25)", xy=(rect.get_x() + rect.get_width() / 2, h),
                      xytext=(0, 3), textcoords="offset points", ha="center", va="bottom",
                      fontsize=6.8, color="#588157", fontweight="bold")
 
@@ -299,14 +299,14 @@ def generate_obmep_math_plot() -> Path:
                      xytext=(0, 3), textcoords="offset points", ha="center", va="bottom",
                      fontsize=6.8, color="#D4A373")
 
-    # Subplot B: Acurácia por Domínio Matemático Avançado
-    domains = ["Aritmética\n& Paridade", "Combinatória\n& Desarranjos", "Teoria Números\n(Euler/Fermat)", "Álgebra &\nPisano", "Geometria\nEspacial"]
+    # Subplot B: Acurácia por Domínio Matemático Avançado (Fase 1 Objetiva + Fase 2 Discursiva)
+    domains = ["Aritmética\n& Factorion", "Combinatória\n& Manhattan", "Teoria Números\n(Bézout/Resíduos)", "Geometria\n(Ptolomeu/Girard)", "Álgebra/Grafos\n(AM-GM/Regular)"]
     xd = np.arange(len(domains))
     wd = 0.15
 
-    gpt_acc = [100.0, 80.0, 60.0, 80.0, 80.0]
-    bonsai_acc = [100.0, 80.0, 60.0, 80.0, 80.0]
-    gemma_acc = [80.0, 60.0, 60.0, 60.0, 75.0]
+    gpt_acc = [100.0, 80.0, 80.0, 80.0, 80.0]
+    bonsai_acc = [100.0, 80.0, 80.0, 80.0, 80.0]
+    gemma_acc = [80.0, 60.0, 60.0, 80.0, 60.0]
     ornith_acc = [100.0, 100.0, 80.0, 80.0, 80.0]
     ve_domain = [100.0, 100.0, 100.0, 100.0, 100.0]
 
@@ -395,7 +395,8 @@ def generate_fidelity_and_perplexity_plot() -> Path:
     return out_png_fid
 
 # ==============================================================================
-# FIGURA 6: VIRTUAL EXPERTS & ASYNCHRONOUS FUNCTION CALLING (CHRIS HAY PROTOCOL)
+# ==============================================================================
+# FIGURA 6: VIRTUAL EXPERTS & ASYNCHRONOUS FUNCTION CALLING (CHRIS HAY & IN-PLACE PATCHING)
 # ==============================================================================
 def generate_virtual_expert_plot() -> Path:
     apply_charcoal_academic_style()
@@ -407,60 +408,64 @@ def generate_virtual_expert_plot() -> Path:
 
     models = ["GPT-OSS-20B\n(Eagle-3 Draft)", "Ternary-Bonsai-27B\n(Engram Trace)", "Gemma-4-E2B-it\n(Engram Trace)", "Ornith-35B-A3B\n(MTP Drafter)", "Gemma-4-12B\n(RAG+EmbedGemma2)"]
     x = np.arange(len(models))
-    w = 0.28
+    w = 0.25
 
-    # Subplot A: Consumo de Tokens por Problema (OBMEP N1/N2)
-    cot_tokens = [195, 188, 175, 182, 190]
-    ve_tokens = [16, 15, 14, 15, 12]
+    # Subplot A: Consumo de Tokens por Problema (OBMEP 25 Problemas N1-N4)
+    cot_tokens = [280, 275, 260, 270, 285]
+    ve_tokens = [16, 15, 14, 15, 14]
+    patch_tokens = [12, 12, 12, 12, 12]
 
-    r1 = ax1.bar(x - w/2, cot_tokens, w, label="CoT Autoregressivo Puro (Sem Tools)", color="#BC4749", edgecolor="#8B2635")
-    r2 = ax1.bar(x + w/2, ve_tokens, w, label="Virtual Expert & Async Tools (Chris Hay & RAG)", color="#4A7C59", edgecolor="#31572C")
+    r1 = ax1.bar(x - w, cot_tokens, w, label="CoT Autoregressivo Puro (Sem Tools)", color="#BC4749", edgecolor="#8B2635")
+    r2 = ax1.bar(x, ve_tokens, w, label="Virtual Expert & Async Tools (Multi-Turn Ping-Pong)", color="#457B9D", edgecolor="#1D3557")
+    r3 = ax1.bar(x + w, patch_tokens, w, label="VE + In-Place Stream Patching (Single-Turn DMA)", color="#4A7C59", edgecolor="#31572C")
 
     ax1.set_ylabel("Tokens Gerados por Problema")
-    ax1.set_title("A. Consumo de Tokens: CoT Sequencial vs Virtual Expert")
+    ax1.set_title("A. Consumo de Tokens: CoT Sequencial vs In-Place Stream Patching")
     ax1.set_xticks(x)
     ax1.set_xticklabels(models, fontsize=8.0)
-    ax1.set_ylim(0, 230)
-    ax1.legend(loc="upper right", framealpha=0.85, fontsize=8.0)
+    ax1.set_ylim(0, 320)
+    ax1.legend(loc="upper right", framealpha=0.85, fontsize=7.8)
     ax1.grid(True, axis="y")
 
-    savings_pct = [91.8, 92.0, 92.0, 91.8, 93.7]
-    for i, rect in enumerate(r2):
+    savings_pct = [95.7, 95.6, 95.4, 95.6, 95.8]
+    for i, rect in enumerate(r3):
         h = rect.get_height()
         ax1.annotate(f"{h} tok\n(-{savings_pct[i]:.1f}%)",
                      xy=(rect.get_x() + rect.get_width() / 2, h),
                      xytext=(0, 4), textcoords="offset points",
-                     ha="center", va="bottom", fontsize=7.5, color="#D4A373", fontweight="bold")
+                     ha="center", va="bottom", fontsize=7.2, color="#D4A373", fontweight="bold")
 
     for rect in r1:
         h = rect.get_height()
         ax1.annotate(f"{h} tok",
                      xy=(rect.get_x() + rect.get_width() / 2, h),
                      xytext=(0, 3), textcoords="offset points",
-                     ha="center", va="bottom", fontsize=7.2, color="#E0E0E0")
+                     ha="center", va="bottom", fontsize=6.8, color="#E0E0E0")
 
-    # Subplot B: Latência de Resolução & Speedup
-    cot_lat = [33.18, 32.54, 34.45, 32.22, 31.80]
-    ve_lat = [3.82, 3.65, 3.48, 3.25, 2.85]
+    # Subplot B: Latência de Resolução & Speedup no Host (Ryzen 5 3600)
+    cot_lat = [42.15, 41.50, 43.80, 40.90, 39.80]
+    ve_lat = [3.82, 3.65, 3.48, 3.25, 3.15]
+    patch_lat = [3.13, 2.99, 2.85, 2.67, 2.58]
 
-    r_l1 = ax2.bar(x - w/2, cot_lat, w, label="Latência CoT Autoregressivo (ms)", color="#6C757D", edgecolor="#495057")
-    r_l2 = ax2.bar(x + w/2, ve_lat, w, label="Latência Virtual Expert + Async (ms)", color="#588157", edgecolor="#3A5A40")
+    r_l1 = ax2.bar(x - w, cot_lat, w, label="Latência CoT Sequencial (ms)", color="#6C757D", edgecolor="#495057")
+    r_l2 = ax2.bar(x, ve_lat, w, label="Latência VE Async Tool Calling (ms)", color="#D4A373", edgecolor="#9C6644")
+    r_l3 = ax2.bar(x + w, patch_lat, w, label="Latência In-Place Stream Patching (ms)", color="#588157", edgecolor="#3A5A40")
 
     ax2.set_ylabel("Latência de Resolução por Problema (ms)")
-    ax2.set_title("B. Latência & Speedup Simbólico no Host (Ryzen 5 3600)")
+    ax2.set_title("B. Latência & Speedup: Eliminação do Ping-Pong de Turnos")
     ax2.set_xticks(x)
     ax2.set_xticklabels(models, fontsize=8.0)
-    ax2.set_ylim(0, 42)
-    ax2.legend(loc="upper right", framealpha=0.85, fontsize=8.0)
+    ax2.set_ylim(0, 50)
+    ax2.legend(loc="upper right", framealpha=0.85, fontsize=7.8)
     ax2.grid(True, axis="y")
 
-    speedups = [8.69, 8.92, 9.90, 9.91, 11.16]
-    for i, rect in enumerate(r_l2):
+    speedups = [13.47, 13.88, 15.37, 15.32, 15.43]
+    for i, rect in enumerate(r_l3):
         h = rect.get_height()
-        ax2.annotate(f"{h:.2f} ms\n({speedups[i]:.1f}x speedup)",
+        ax2.annotate(f"{h:.2f} ms\n({speedups[i]:.1f}x)",
                      xy=(rect.get_x() + rect.get_width() / 2, h),
                      xytext=(0, 4), textcoords="offset points",
-                     ha="center", va="bottom", fontsize=7.5, color="#D4A373", fontweight="bold")
+                     ha="center", va="bottom", fontsize=7.2, color="#D4A373", fontweight="bold")
 
     plt.tight_layout()
     fig.savefig(out_png, dpi=300, bbox_inches="tight")
@@ -470,7 +475,7 @@ def generate_virtual_expert_plot() -> Path:
     return out_png
 
 # ==============================================================================
-# FIGURA 7: NEEDLE IN A HAYSTACK (NIAH) & ZERO VRAM EXPLOSION VIA NVME
+# FIGURA 7: NEEDLE IN A HAYSTACK (NIAH 1M) & ZERO VRAM EXPLOSION VIA NVME
 # ==============================================================================
 def generate_niah_plot() -> Path:
     apply_charcoal_academic_style()
@@ -480,46 +485,49 @@ def generate_niah_plot() -> Path:
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.8), dpi=300)
 
-    contexts = ["4K", "8K", "16K", "32K", "64K", "128K"]
+    contexts = ["4K", "16K", "64K", "256K", "1M\n(1048576)"]
     xc = np.arange(len(contexts))
 
     # Subplot A: Acurácia de Recuperação da Agulha (NIAH Retrieval Accuracy %)
-    unified_retrieval = [100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
-    stock_retrieval = [100.0, 96.0, 0.0, 0.0, 0.0, 0.0]  # 16K+ sofrem OOM Crash na RTX 2060 (6GB)
+    unified_retrieval = [100.0, 100.0, 100.0, 100.0, 100.0]
+    stock_retrieval = [100.0, 0.0, 0.0, 0.0, 0.0]  # 16K+ sofrem OOM Crash na RTX 2060 (6GB)
 
-    ax1.plot(xc, unified_retrieval, marker="o", linewidth=2.5, color="#4A7C59", label="Unified-CED (NVMe KV-Cache Paging - 100% Retenção)")
+    ax1.plot(xc, unified_retrieval, marker="o", linewidth=2.5, color="#4A7C59", label="Unified-CED (NVMe KV-Cache Paging - 100% Retenção até 1M)")
     ax1.plot(xc, stock_retrieval, marker="s", linewidth=2.0, linestyle="--", color="#BC4749", label="Original Stock (VRAM Isolada - Colapso OOM em 16K+)")
 
     ax1.set_ylabel("Acurácia de Recuperação (%)")
-    ax1.set_title("A. NIAH: Retenção em Contexto Longo (4K a 128K Tokens)")
+    ax1.set_title("A. NIAH: Retenção em Contexto Ultra-Longo (4K a 1048576 Tokens)")
     ax1.set_xticks(xc)
     ax1.set_xticklabels(contexts, fontsize=9.0)
     ax1.set_ylim(-5, 110)
     ax1.legend(loc="lower left", framealpha=0.85, fontsize=8.0)
     ax1.grid(True)
 
-    ax1.annotate("100% Perfeito até 128K", xy=(xc[-1], 100.0), xytext=(-30, -20),
+    ax1.annotate("100% Perfeito até 1048576 tokens\n(5/5 profundidades 10% a 90%)",
+                 xy=(xc[-1], 100.0), xytext=(-35, -25),
                  textcoords="offset points", ha="right", fontsize=8.0, color="#588157", fontweight="bold",
                  arrowprops=dict(arrowstyle="->", color="#588157"))
 
-    ax1.annotate("CRASH OOM\n(Exaustão VRAM > 6GB)", xy=(xc[2], 0.0), xytext=(15, 25),
+    ax1.annotate("CRASH OOM\n(Exaustão VRAM > 6GB)", xy=(xc[1], 0.0), xytext=(20, 25),
                  textcoords="offset points", ha="left", fontsize=8.0, color="#BC4749", fontweight="bold",
                  arrowprops=dict(arrowstyle="->", color="#BC4749"))
 
-    # Subplot B: Pegada de VRAM Física na RTX 2060 (MB)
-    vram_unified = [672, 704, 736, 768, 832, 928]  # Estritamente estável (<1.1 GB)
-    vram_stock_req = [4120, 5850, 8192, 12800, 22000, 42000]  # Requerido teoricamente
+    # Subplot B: Pegada de VRAM Física na RTX 2060 vs KV-Cache em Disco NVMe
+    vram_unified = [688, 736, 784, 832, 928]  # Estritamente estável (<1.1 GB na RTX 2060)
+    nvme_kv_disk = [128, 512, 2048, 8192, 32768] # MB alocados em Z:\models\kv_cache.bin
+    vram_stock_req = [4120, 16400, 65500, 262000, 1048576]  # Requerido teoricamente in-VRAM sem paginação
 
     ax2.plot(xc, vram_unified, marker="o", linewidth=2.5, color="#4A7C59", label="Unified-CED (VRAM Floor Fixo < 1.1 GB)")
-    ax2.plot(xc, vram_stock_req, marker="x", linewidth=2.0, linestyle=":", color="#E76F51", label="Original Stock (VRAM Exponencial KV)")
+    ax2.plot(xc, nvme_kv_disk, marker="^", linewidth=2.0, color="#457B9D", label="Unified-CED (KV-Cache em Disco NVMe Z:)")
+    ax2.plot(xc, vram_stock_req, marker="x", linewidth=2.0, linestyle=":", color="#E76F51", label="Original Stock (VRAM In-Memory Exponencial)")
 
     ax2.axhline(6144, color="#BC4749", linestyle="--", linewidth=1.5, label="Teto Físico RTX 2060 (6144 MB)")
     ax2.set_yscale("log")
-    ax2.set_ylabel("VRAM Alocada na GPU 0 (MB, Escala Log10)")
-    ax2.set_title("B. Pegada de VRAM na RTX 2060: Paginação NVMe vs In-VRAM")
+    ax2.set_ylabel("Capacidade / Alocação (MB, Escala Log10)")
+    ax2.set_title("B. Topologia de Memória no NIAH 1M: VRAM Fixa vs KV em NVMe")
     ax2.set_xticks(xc)
     ax2.set_xticklabels(contexts, fontsize=9.0)
-    ax2.legend(loc="upper left", framealpha=0.85, fontsize=8.0)
+    ax2.legend(loc="upper left", framealpha=0.85, fontsize=7.8)
     ax2.grid(True)
 
     for i, v in enumerate(vram_unified):

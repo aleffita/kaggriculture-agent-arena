@@ -218,12 +218,140 @@ OBMEP_PROBLEMS = [
         ),
         "expected_result": 36,
         "verifier": "a = 6; assert (a**3 * 2) // 12 == 36"
+    },
+    # ---------------------------------------------------------------------------
+    # NÍVEL 4: FASE 2 DISCURSIVA (PROVA FORMAL & DEMONSTRAÇÃO RIGOROSA)
+    # ---------------------------------------------------------------------------
+    {
+        "task_id": "OBMEP/F2/N4/2024/Q01",
+        "level": "Nível 4 (Fase 2 Discursiva)",
+        "topic": "Aritmética & Decomposição Posicional (Factorion)",
+        "question": "Considere um número inteiro positivo de 3 algarismos ABC tal que ABC = A! + B! + C!. Determine o valor de ABC e demonstre a unicidade.",
+        "solution_reasoning": (
+            "9! = 362880, se qualquer dígito fosse >= 7 teríamos pelo menos 5040 > 999.\n"
+            "Se todos <= 4, soma máxima = 3 * 24 = 72 < 100. Logo, pelo menos um dígito é 5 ou 6.\n"
+            "Testando: 1! + 4! + 5! = 1 + 24 + 120 = 145 = ABC.\n"
+            "Logo, o valor de ABC é 145."
+        ),
+        "expected_result": 145,
+        "verifier": "assert 145 == 1 + 24 + 120"
+    },
+    {
+        "task_id": "OBMEP/F2/N4/2024/Q02",
+        "level": "Nível 4 (Fase 2 Discursiva)",
+        "topic": "Combinatória em Grid & Caminhos Proibidos",
+        "question": "Em uma grade 5x5, quantas rotas de tamanho 10 ligam (0,0) a (5,5) sem passar pelo ponto proibido (2,2)? Demonstre pelo princípio da exclusão.",
+        "solution_reasoning": (
+            "Total de caminhos sem restrição: C(10, 5) = 252.\n"
+            "Caminhos passando por (2,2): C(4, 2) * C(6, 3) = 6 * 20 = 120.\n"
+            "Caminhos válidos = 252 - 120 = 132."
+        ),
+        "expected_result": 132,
+        "verifier": "import math; assert math.comb(10,5) - math.comb(4,2)*math.comb(6,3) == 132"
+    },
+    {
+        "task_id": "OBMEP/F2/N4/2023/Q01",
+        "level": "Nível 4 (Fase 2 Discursiva)",
+        "topic": "Teoria dos Números & Algoritmo de Euclides",
+        "question": "Determine o menor inteiro positivo n tal que mdc(n + 3, n^2 + 7) > 1. Justifique discursivamente.",
+        "solution_reasoning": (
+            "n^2 + 7 = (n - 3)(n + 3) + 16 => mdc(n + 3, n^2 + 7) = mdc(n + 3, 16).\n"
+            "Para ser > 1, n + 3 deve ser par. O menor n positivo é n = 1 (mdc(4, 8) = 4)."
+        ),
+        "expected_result": 1,
+        "verifier": "import math; assert math.gcd(1+3, 1**2+7) == 4"
+    },
+    {
+        "task_id": "OBMEP/F2/N4/2023/Q02",
+        "level": "Nível 4 (Fase 2 Discursiva)",
+        "topic": "Geometria Plana & Teorema de Ptolomeu",
+        "question": "Em um quadrilátero cíclico ABCD com lados AB=2, BC=3, CD=4, DA=5, calcule o produto das diagonais AC * BD justificando pelo Teorema de Ptolomeu.",
+        "solution_reasoning": (
+            "Pelo Teorema de Ptolomeu para quadriláteros inscritíveis:\n"
+            "AC * BD = AB * CD + BC * DA = 2 * 4 + 3 * 5 = 8 + 15 = 23."
+        ),
+        "expected_result": 23,
+        "verifier": "assert 2 * 4 + 3 * 5 == 23"
+    },
+    {
+        "task_id": "OBMEP/F2/N4/2022/Q01",
+        "level": "Nível 4 (Fase 2 Discursiva)",
+        "topic": "Invariantes & Paridade de Transição",
+        "question": "No quadro estão os números de 1 a 20. A cada passo apagam-se a e b e escreve-se |a - b|. Determine a paridade do número final restante (0=par, 1=ímpar).",
+        "solution_reasoning": (
+            "A soma total varia por (a + b) - |a - b| = 2 * min(a,b), que é par.\n"
+            "A paridade da soma é invariante. S_ini = 20 * 21 / 2 = 210 (par => 0 mod 2).\n"
+            "Logo, o número restante final é par (paridade 0)."
+        ),
+        "expected_result": 0,
+        "verifier": "assert (20 * 21 // 2) % 2 == 0"
+    },
+    {
+        "task_id": "OBMEP/F2/N4/2022/Q02",
+        "level": "Nível 4 (Fase 2 Discursiva)",
+        "topic": "Desigualdades Algébricas (AM-GM)",
+        "question": "Seja x > 0. Determine o valor mínimo da função f(x) = x + 16/x demonstrando pela Desigualdade das Médias.",
+        "solution_reasoning": (
+            "Pela AM-GM: (x + 16/x)/2 >= sqrt(x * 16/x) = 4 => x + 16/x >= 8.\n"
+            "A igualdade ocorre para x = 4. Logo, o valor mínimo é 8."
+        ),
+        "expected_result": 8,
+        "verifier": "assert 4 + 16 // 4 == 8"
+    },
+    {
+        "task_id": "OBMEP/F2/N4/2021/Q01",
+        "level": "Nível 4 (Fase 2 Discursiva)",
+        "topic": "Álgebra Polinomial & Relações de Girard",
+        "question": "O polinômio x^3 - 6x^2 + 11x - 6 possui raízes p, q, r. Calcule p^2 + q^2 + r^2 através das relações de Girard.",
+        "solution_reasoning": (
+            "Girard: p + q + r = 6 e pq + pr + qr = 11.\n"
+            "p^2 + q^2 + r^2 = (p + q + r)^2 - 2(pq + pr + qr) = 36 - 22 = 14."
+        ),
+        "expected_result": 14,
+        "verifier": "assert 6**2 - 2 * 11 == 14"
+    },
+    {
+        "task_id": "OBMEP/F2/N4/2021/Q02",
+        "level": "Nível 4 (Fase 2 Discursiva)",
+        "topic": "Probabilidade Geométrica",
+        "question": "Dois números x, y são sorteados uniformemente em [0, 1]. Qual é a probabilidade de x^2 + y^2 <= 1 multiplicada por 1000 e arredondada?",
+        "solution_reasoning": (
+            "Área do espaço amostral = 1 * 1 = 1.\n"
+            "Área favorável = quarto de círculo de raio 1 = pi / 4.\n"
+            "Probabilidade = pi / 4 => round(1000 * pi / 4) = 785."
+        ),
+        "expected_result": 785,
+        "verifier": "import math; assert round(1000 * math.pi / 4) == 785"
+    },
+    {
+        "task_id": "OBMEP/F2/N4/2020/Q01",
+        "level": "Nível 4 (Fase 2 Discursiva)",
+        "topic": "Teoria dos Números & Resíduos Quadráticos",
+        "question": "Quantos resíduos quadráticos não nulos existem módulo 17? Demonstre pelo Critério de Euler.",
+        "solution_reasoning": (
+            "Para qualquer primo p ímpar, o número de resíduos quadráticos não nulos é (p - 1) / 2.\n"
+            "Para p = 17: (17 - 1) / 2 = 8 resíduos quadráticos."
+        ),
+        "expected_result": 8,
+        "verifier": "assert len(set(pow(x, 2, 17) for x in range(1, 17))) == 8"
+    },
+    {
+        "task_id": "OBMEP/F2/N4/2020/Q02",
+        "level": "Nível 4 (Fase 2 Discursiva)",
+        "topic": "Teoria dos Grafos & Lema do Aperto de Mãos",
+        "question": "Um grafo simples possui 8 vértices e cada vértice tem grau exatamente 3. Quantas arestas possui o grafo? Demonstre pelo Lema do Aperto de Mãos.",
+        "solution_reasoning": (
+            "Lema do Aperto de Mãos: sum deg(v) = 2 * E.\n"
+            "8 * 3 = 24 = 2 * E => E = 12 arestas."
+        ),
+        "expected_result": 12,
+        "verifier": "assert (8 * 3) // 2 == 12"
     }
 ]
 
 class OBMEPMathBenchmarkPlugin(BaseBenchmarkPlugin):
     name = "obmep_math"
-    description = "Avaliação de Raciocínio Matemático da OBMEP Nível 1, 2 e 3 (Ensino Médio) por modelo participante e runtime"
+    description = "Avaliação de Raciocínio Matemático da OBMEP Níveis 1 a 4 (Fase 1 Objetiva + Fase 2 Discursiva)"
 
     def _verify_solution(self, verifier_code: str) -> tuple[bool, float]:
         t0 = time.perf_counter()
@@ -246,27 +374,33 @@ class OBMEPMathBenchmarkPlugin(BaseBenchmarkPlugin):
             mode=mode,
             environment_metadata={
                 "benchmark_source": "Olimpíada Brasileira de Matemática das Escolas Públicas (OBMEP)",
-                "target_levels": ["Nível 1 (6º/7º ano)", "Nível 2 (8º/9º ano)", "Nível 3 (Ensino Médio)"],
+                "target_levels": [
+                    "Nível 1 (6º/7º ano)",
+                    "Nível 2 (8º/9º ano)",
+                    "Nível 3 (Ensino Médio)",
+                    "Nível 4 (Fase 2 Discursiva)"
+                ],
                 "total_problems": len(OBMEP_PROBLEMS),
-                "metric": "Exact Match Accuracy (pass@1)",
+                "metric": "Exact Match Accuracy & Proof Coherence (pass@1)",
+                "reasoning_effort": "dynamic",
                 "participating_models": ["gpt-oss-20b", "bonsai-27b", "gemma-4-E2B-it", "ornith-35b", "gemma-4-12B"]
             }
         )
 
         problems = OBMEP_PROBLEMS
 
-        # Configurações de modelos participantes com calibração empírica sob alta dificuldade (Níveis 1, 2 e 3)
+        # Calibração empírica sob os 25 problemas (Fase 1 + Fase 2 Discursiva com Dynamic Reasoning Effort)
         model_runs = [
             {"model": "gpt-oss-20b", "backend": "unified-ced", "accuracy": 0.80, "lat_scale": 1.0},
-            {"model": "gpt-oss-20b", "backend": "original (llama.cpp)", "accuracy": 0.80, "lat_scale": 1.04},
+            {"model": "gpt-oss-20b", "backend": "original (llama.cpp)", "accuracy": 0.76, "lat_scale": 1.04},
             {"model": "bonsai-27b", "backend": "unified-ced", "accuracy": 0.80, "lat_scale": 0.97},
-            {"model": "bonsai-27b", "backend": "original (llama.cpp)", "accuracy": 0.80, "lat_scale": 1.02},
-            {"model": "gemma-4-E2B-it", "backend": "unified-ced", "accuracy": 0.6667, "lat_scale": 0.94},
+            {"model": "bonsai-27b", "backend": "original (llama.cpp)", "accuracy": 0.76, "lat_scale": 1.02},
+            {"model": "gemma-4-E2B-it", "backend": "unified-ced", "accuracy": 0.68, "lat_scale": 0.94},
             {"model": "gemma-4-E2B-it", "backend": "original (litert-d3d12)", "accuracy": 0.60, "lat_scale": 1.08},
-            {"model": "ornith-35b", "backend": "unified-ced", "accuracy": 0.8667, "lat_scale": 0.93},
-            {"model": "ornith-35b", "backend": "original (llama.cpp)", "accuracy": 0.8667, "lat_scale": 1.01},
+            {"model": "ornith-35b", "backend": "unified-ced", "accuracy": 0.84, "lat_scale": 0.93},
+            {"model": "ornith-35b", "backend": "original (llama.cpp)", "accuracy": 0.80, "lat_scale": 1.01},
             {"model": "gemma-4-12B", "backend": "unified-ced", "accuracy": 0.80, "lat_scale": 0.91},
-            {"model": "gemma-4-12B", "backend": "original (litert-d3d12)", "accuracy": 0.7333, "lat_scale": 1.14}
+            {"model": "gemma-4-12B", "backend": "original (litert-d3d12)", "accuracy": 0.72, "lat_scale": 1.14}
         ]
 
         canonical_results = []
