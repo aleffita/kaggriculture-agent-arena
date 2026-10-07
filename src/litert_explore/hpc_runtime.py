@@ -20,6 +20,7 @@ from rich.panel import Panel
 console = Console()
 
 HPC_ENGINE_DIR = pathlib.Path(__file__).parent / "hpc_engine"
+HPC_EXE_UNIFIED_PATH = HPC_ENGINE_DIR / "unified_ced_runtime.exe"
 HPC_EXE_CED_PATH = HPC_ENGINE_DIR / "heterogeneous_ced_pipeline.exe"
 HPC_EXE_MOE_PATH = HPC_ENGINE_DIR / "moe_speculative_ssd_streamer.exe"
 HPC_EXE_BONSAI_PATH = HPC_ENGINE_DIR / "ternary_bonsai_dual_gpu.exe"
@@ -32,6 +33,7 @@ class HeterogeneousHPCRuntime:
             str(pathlib.Path.home() / ".litert-lm" / "cache" / "huggingface" / 
                 "litert-community" / "gemma-4-E2B-it-litert-lm" / "gemma-4-E2B-it.litertlm")
         )
+        self.exe_unified = HPC_EXE_UNIFIED_PATH
         self.exe_ced = HPC_EXE_CED_PATH
         self.exe_moe = HPC_EXE_MOE_PATH
         self.exe_bonsai = HPC_EXE_BONSAI_PATH
@@ -128,9 +130,11 @@ class HeterogeneousHPCRuntime:
             title="[bold yellow]Contexto da Engine HPC[/bold yellow]"
         ))
 
-    def run_pipeline(self, mode: str = "ced-ring", tokens: int = 50) -> bool:
+    def run_pipeline(self, mode: str = "unified", tokens: int = 50) -> bool:
         """Executes native C++/CUDA heterogeneous HPC binaries based on selected mode."""
         targets = []
+        if mode in ("unified", "auto"):
+            targets.append(("Substrato Unificado CED (Engram + Prefill/Decode + Residual Stream)", self.exe_unified))
         if mode in ("ced-ring", "all"):
             targets.append(("Pipeline CED Ring (gemma-4-E2B-it)", self.exe_ced))
         if mode in ("moe-stream", "all"):
@@ -146,8 +150,12 @@ class HeterogeneousHPCRuntime:
                 continue
 
             console.print(f"\n[bold cyan]=== Disparando Execucao Nativa: {name} ===[/bold cyan]\n")
+            cmd = [str(exe)]
+            if exe == self.exe_unified and self.model_path and os.path.exists(self.model_path):
+                cmd.append(self.model_path)
+
             try:
-                res = subprocess.run([str(exe)], capture_output=True, text=True, check=True)
+                res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=True)
                 console.print(res.stdout)
             except subprocess.CalledProcessError as e:
                 console.print(f"[bold red]Erro na execucao de {name}:[/bold red]\n{e.stderr or e.stdout}")
@@ -158,7 +166,7 @@ class HeterogeneousHPCRuntime:
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Heterogeneous HPC Engine CLI")
-    parser.add_argument("--mode", choices=["ced-ring", "moe-stream", "ternary-dense", "all"], default="all",
+    parser.add_argument("--mode", choices=["unified", "ced-ring", "moe-stream", "ternary-dense", "all"], default="unified",
                         help="Execution mode for the heterogeneous HPC engine")
     parser.add_argument("--tokens", type=int, default=50, help="Tokens to evaluate")
     parser.add_argument("--model", type=str, default=None, help="Model path")

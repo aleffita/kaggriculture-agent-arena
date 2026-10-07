@@ -71,7 +71,7 @@ def chat_cli(target: str = "1050ti", model: str | None = None):
 def hpc_cli(mode: str | None = None, tokens: int = 50, model: str | None = None):
     """Runs the Heterogeneous Causal Encoder-Decoder HPC Pipeline."""
     parser = argparse.ArgumentParser(prog="litert-hpc", description="Heterogeneous HPC Engine CLI")
-    parser.add_argument("--mode", choices=["ced-ring", "moe-stream", "ternary-dense", "all"], default="all",
+    parser.add_argument("--mode", choices=["unified", "ced-ring", "moe-stream", "ternary-dense", "all"], default="unified",
                         help="Execution mode for the heterogeneous engine")
     parser.add_argument("--tokens", type=int, default=50, help="Number of tokens to generate in pipeline benchmark")
     parser.add_argument("--model", type=str, default=None, help="Path to model file")
@@ -109,7 +109,7 @@ def main():
 
     # hpc-pipeline
     hpc_parser = subparsers.add_parser("hpc-pipeline", help="Run the continuous heterogeneous Causal Encoder-Decoder HPC pipeline")
-    hpc_parser.add_argument("--mode", choices=["ced-ring", "moe-stream", "ternary-dense", "all"], default="all",
+    hpc_parser.add_argument("--mode", choices=["unified", "ced-ring", "moe-stream", "ternary-dense", "all"], default="unified",
                             help="Execution mode for the heterogeneous engine")
     hpc_parser.add_argument("--tokens", type=int, default=50, help="Number of tokens to generate in pipeline benchmark")
     hpc_parser.add_argument("--model", type=str, default=None, help="Path to .litertlm model file")
