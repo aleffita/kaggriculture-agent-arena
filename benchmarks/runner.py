@@ -274,7 +274,12 @@ def render_virtual_expert_math_table(suite: BenchmarkSuiteResult):
     print("├" + "─" * 18 + "┼" + "─" * 34 + "┼" + "─" * 12 + "┼" + "─" * 15 + "┼" + "─" * 16 + "┼" + "─" * 14 + "┼" + "─" * 12 + "┼" + "─" * 15 + "┤")
 
     for m in suite.measurements:
-        regime = "CoT Puro (Sem Tools)" if "CoT" in m.backend else "Virtual Expert (Async Tool)"
+        if "CoT" in m.backend:
+            regime = "CoT Puro (Sem Tools)"
+        elif "Embedding" in m.backend:
+            regime = "Virtual Expert RAG (EmbedGemma2)"
+        else:
+            regime = "Virtual Expert (Async Tool)"
         drafter = m.details.get("drafter_used", "auto")
         tokens = f"{m.details.get('avg_tokens_per_problem', m.gen_tokens)} tok"
         saved = f"-{m.details.get('tokens_saved_pct', 0.0):.1f}%" if m.details.get('tokens_saved_pct', 0.0) > 0 else "0.0% (Ref)"

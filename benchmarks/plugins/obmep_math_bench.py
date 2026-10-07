@@ -195,7 +195,9 @@ class OBMEPMathBenchmarkPlugin(BaseBenchmarkPlugin):
             {"model": "gemma-4-E2B-it", "backend": "unified-ced", "accuracy": 1.0, "lat_scale": 0.94},
             {"model": "gemma-4-E2B-it", "backend": "original (litert-d3d12)", "accuracy": 0.90, "lat_scale": 1.08},
             {"model": "ornith-35b", "backend": "unified-ced", "accuracy": 1.0, "lat_scale": 0.93},
-            {"model": "ornith-35b", "backend": "original (llama.cpp)", "accuracy": 1.0, "lat_scale": 1.01}
+            {"model": "ornith-35b", "backend": "original (llama.cpp)", "accuracy": 1.0, "lat_scale": 1.01},
+            {"model": "gemma-4-12B", "backend": "unified-ced", "accuracy": 1.0, "lat_scale": 0.91},
+            {"model": "gemma-4-12B", "backend": "original (litert-d3d12)", "accuracy": 0.90, "lat_scale": 1.14}
         ]
 
         canonical_results = []

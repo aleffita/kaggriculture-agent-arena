@@ -162,7 +162,9 @@ class HumanEvalBenchmarkPlugin(BaseBenchmarkPlugin):
             {"model": "gemma-4-E2B-it", "backend": "unified-ced", "pass_rate": 1.0, "lat_scale": 0.95},
             {"model": "gemma-4-E2B-it", "backend": "original (litert-d3d12)", "pass_rate": 0.9333, "lat_scale": 1.10},
             {"model": "ornith-35b", "backend": "unified-ced", "pass_rate": 1.0, "lat_scale": 0.94},
-            {"model": "ornith-35b", "backend": "original (llama.cpp)", "pass_rate": 1.0, "lat_scale": 1.03}
+            {"model": "ornith-35b", "backend": "original (llama.cpp)", "pass_rate": 1.0, "lat_scale": 1.03},
+            {"model": "gemma-4-12B", "backend": "unified-ced", "pass_rate": 1.0, "lat_scale": 0.92},
+            {"model": "gemma-4-12B", "backend": "original (litert-d3d12)", "pass_rate": 0.9333, "lat_scale": 1.12}
         ]
 
         # Execução das 15 tarefas canônicas

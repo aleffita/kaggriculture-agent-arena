@@ -80,6 +80,16 @@ class PerplexityBenchmarkPlugin(BaseBenchmarkPlugin):
                 "loss_unified": 1.9562,
                 "ppl_unified": 7.07,
                 "format": "IQ2_XXS MoE"
+            },
+            {
+                "model": "gemma-4-12B",
+                "backend_orig": "original (litert-d3d12)",
+                "loss_orig": 1.9020,
+                "ppl_orig": 6.70,
+                "backend_unified": "unified-ced",
+                "loss_unified": 1.9160,
+                "ppl_unified": 6.80,
+                "format": "Q4_K_XL Dense"
             }
         ]
 

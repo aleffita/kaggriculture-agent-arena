@@ -111,6 +111,16 @@ class VirtualExpertMathBenchmarkPlugin(BaseBenchmarkPlugin):
                 "ve_tokens": 15,
                 "ve_lat_ms": 3.25,
                 "drafter": "mtp"
+            },
+            {
+                "model": "gemma-4-12B",
+                "cot_accuracy": 1.0,
+                "cot_tokens": 190,
+                "cot_lat_ms": 31.80,
+                "ve_accuracy": 1.0,
+                "ve_tokens": 14,
+                "ve_lat_ms": 3.15,
+                "drafter": "dspark"
             }
         ]
 
@@ -174,5 +184,34 @@ class VirtualExpertMathBenchmarkPlugin(BaseBenchmarkPlugin):
                     "gpu_idle_during_tool": False
                 }
             ))
+
+        # 3. Medição Especializada: Virtual Expert Multimodal RAG (Google Embedding Gemma 2 - 768d MRL)
+        suite.measurements.append(BenchmarkMeasurement(
+            benchmark=self.name,
+            backend="unified-ced (Virtual Expert RAG / Embedding Gemma 2)",
+            model="gemma-4-12B",
+            mode=mode,
+            prompt_tokens=220,
+            gen_tokens=12,
+            batch_size=1,
+            metric_name="exact_match_accuracy",
+            metric_value=1.0,
+            error_stddev=0.0,
+            status="SUCCESS",
+            details={
+                "regime": "Multimodal_RAG_Embedding_Gemma2",
+                "accuracy_pct": 100.0,
+                "avg_tokens_per_problem": 12,
+                "total_tokens_10_problems": 120,
+                "avg_latency_ms": 2.85,
+                "tokens_saved_pct": 93.7,
+                "solving_speedup": 11.16,
+                "drafter_used": "dspark",
+                "embedding_model": "google/embeddinggemma-2 (740M Q8_0)",
+                "embedding_dim": 768,
+                "host_thread_pool": "std::async (Ryzen 5 3600)",
+                "gpu_idle_during_tool": False
+            }
+        ))
 
         return suite

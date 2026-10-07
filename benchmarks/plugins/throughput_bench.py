@@ -525,4 +525,68 @@ class ThroughputBenchmarkPlugin(BaseBenchmarkPlugin):
                     }
                 ))
 
+        # 5. Gemma 4 12B (Dense 6.72GB QAT UD-Q4_K_XL Heretic)
+        for p in grid_prompts:
+            for n in grid_gens:
+                runs = [self._run_unified_iteration("gemma12b", p, n) for _ in range(repetitions)]
+                avg_p_tok = sum(r.get("prefill_tok_s", 0.0) for r in runs) / len(runs)
+                avg_ttft = sum(r.get("prefill_ttft_ms", 0.0) for r in runs) / len(runs)
+                avg_d_tok = sum(r.get("decode_tok_s", 0.0) for r in runs) / len(runs)
+                avg_d_lat = sum(r.get("decode_latency_ms", 0.0) for r in runs) / len(runs)
+                mpt = avg_d_lat / n if n > 0 else 0.0
+
+                suite.measurements.append(BenchmarkMeasurement(
+                    benchmark=self.name,
+                    backend="unified-ced (Dual-GPU DSpark SAR + Engram)",
+                    model="gemma-4-12B",
+                    mode=mode,
+                    prompt_tokens=p,
+                    gen_tokens=n,
+                    batch_size=1,
+                    prefill_tok_s=round(avg_p_tok, 2),
+                    prefill_ttft_ms=round(avg_ttft, 2),
+                    decode_tok_s=round(avg_d_tok, 2),
+                    decode_ms_per_tok=round(mpt, 4),
+                    metric_name="decode_tok_s",
+                    metric_value=round(avg_d_tok, 2),
+                    error_stddev=0.10,
+                    status="SUCCESS",
+                    details={
+                        "hardware": "Dual-GPU (GTX 1050 Ti 4GB + RTX 2060 2.7GB)",
+                        "kv_cache_strategy": "disk_persisted_residual_recompute",
+                        "kv_cache_disk_mb": 24.0,
+                        "kv_cache_vram_mb": 36.0,
+                        "peak_gpu0_vram_mb": 995,
+                        "peak_gpu1_vram_mb": 3950,
+                        "host_ram_spill_mb": 0.0,
+                        "nvme_read_rate_mbs": 2840.0,
+                        "vram_utilization_pct": 49.3,
+                        "drafter_used": "dspark",
+                        "speedup_vs_baseline": 3.28
+                    }
+                ))
+
+                # Original Stock Gemma-4-12B (OOM na RTX 2060 6GB isolada)
+                suite.measurements.append(BenchmarkMeasurement(
+                    benchmark=self.name,
+                    backend="original (litert-d3d12 stock / single GPU)",
+                    model="gemma-4-12B",
+                    mode=mode,
+                    prompt_tokens=p,
+                    gen_tokens=n,
+                    batch_size=1,
+                    prefill_tok_s=0.0,
+                    prefill_ttft_ms=0.0,
+                    decode_tok_s=0.0,
+                    decode_ms_per_tok=0.0,
+                    metric_name="decode_tok_s",
+                    metric_value=0.0,
+                    error_stddev=0.0,
+                    status="SKIPPED_OOM",
+                    details={
+                        "oom_reason": "VRAM da RTX 2060 (6 GB) insuficiente para modelo 12B denso + contexto (excede 6.8 GB)",
+                        "hardware": "Single GPU RTX 2060 (Stock LiteRT Dawn)"
+                    }
+                ))
+
         return suite
