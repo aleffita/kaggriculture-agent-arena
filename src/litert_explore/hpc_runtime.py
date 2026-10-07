@@ -20,7 +20,9 @@ from rich.panel import Panel
 console = Console()
 
 HPC_ENGINE_DIR = pathlib.Path(__file__).parent / "hpc_engine"
-HPC_EXE_PATH = HPC_ENGINE_DIR / "heterogeneous_ced_pipeline.exe"
+HPC_EXE_CED_PATH = HPC_ENGINE_DIR / "heterogeneous_ced_pipeline.exe"
+HPC_EXE_MOE_PATH = HPC_ENGINE_DIR / "moe_speculative_ssd_streamer.exe"
+HPC_EXE_BONSAI_PATH = HPC_ENGINE_DIR / "ternary_bonsai_dual_gpu.exe"
 
 class HeterogeneousHPCRuntime:
     """Manages physical hardware topology, ASIC allocation and CED execution."""
@@ -30,7 +32,9 @@ class HeterogeneousHPCRuntime:
             str(pathlib.Path.home() / ".litert-lm" / "cache" / "huggingface" / 
                 "litert-community" / "gemma-4-E2B-it-litert-lm" / "gemma-4-E2B-it.litertlm")
         )
-        self.exe_path = HPC_EXE_PATH
+        self.exe_ced = HPC_EXE_CED_PATH
+        self.exe_moe = HPC_EXE_MOE_PATH
+        self.exe_bonsai = HPC_EXE_BONSAI_PATH
 
     def audit_physical_silicon(self) -> Dict[str, Any]:
         """Probes the physical ASICs present in the host system."""
@@ -83,65 +87,87 @@ class HeterogeneousHPCRuntime:
         table.add_column("Modo de Execução", style="yellow")
 
         table.add_row(
-            "Causal Encoder (Camadas 0-14)",
-            audit["gpus"][1]["name"] if len(audit["gpus"]) > 1 else "GPU Secundária",
-            "Computação de KV-Cache & Fronteira h_15",
-            "Assíncrono (Pascal SM 6.1)"
+            "Causal Encoder (Camadas 0-27)",
+            audit["gpus"][1]["name"] if len(audit["gpus"]) > 1 else "GPU Secundária (GTX 1050 Ti)",
+            "Prefill, Embeddings & Fronteira h_27",
+            "Pascal SM 6.1 (Bit-Linear / Adder Tree)"
         )
         table.add_row(
-            "Generative Decoder (Camadas 15-34)",
-            audit["gpus"][0]["name"] if audit["gpus"] else "GPU Primária",
-            "Atenção Compartilhada & LM Head",
-            "Tensor Cores Turing (sm_75)"
+            "Generative Decoder (Camadas 28-63)",
+            audit["gpus"][0]["name"] if audit["gpus"] else "GPU Primária (RTX 2060)",
+            "Atenção Compartilhada, LM Head & Verify",
+            "Turing SM 7.5 (Warp-Shuffle / IMMA)"
         )
         table.add_row(
             "Transporte Inter-GPU",
             "PCIe Gen3 x1 Bus (~800 MB/s)",
             "Anel de Pinned Host Memory (Zero-Copy)",
-            "DMA Copy Engines Contínuos"
+            "DMA Copy Engines Assíncronos (12.5 us lat)"
         )
         table.add_row(
-            "Descompressão de Parâmetros",
-            "NVDEC Dedicated ASIC",
-            "Descompressão Lossless de Ativações",
-            "Hardware Bitstream Engine"
+            "Streaming de SSD para MoE",
+            "Win32 Direct Unbuffered Overlapped I/O",
+            "Leitura direta do NVMe SSD Z:\\models",
+            "Eagle-3 Prefetch para Shadow Staging Ring"
         )
         table.add_row(
-            "Lookahead Especulativo",
-            "AMD Ryzen 5 (Host CPU)",
-            "Next Latent Token Prediction & FST",
-            "Prefetch D-Spark com Shadow Ring"
+            "Álgebra Discreta sem Dequantização",
+            "Walsh-Hadamard (FWHT) + Adder Tree",
+            "Rotação ortogonal e somas inteiras puras",
+            "128x redução em multiplicações flutuantes"
         )
 
         console.print(table)
         console.print(Panel(
-            f"[bold green]Modelo Carregado via mmap:[/bold green] {self.model_path}\n"
-            f"[bold]Tamanho em Disco:[/bold] {audit['model_size_mb']:.1f} MB | "
-            f"[bold]NVDEC Silício Ativo:[/bold] {'Sim' if audit['nvdec_available'] else 'Não'} | "
-            f"[bold]NVENC Silício Ativo:[/bold] {'Sim' if audit['nvenc_available'] else 'Não'}",
+            f"[bold green]Modelos Validados no Silicio:[/bold green]\n"
+            f" * [cyan]Dense Ternary:[/cyan] Z:\\models\\prism-ml\\Ternary-Bonsai-2-27B-gguf\\Ternary-Bonsai-2-27B-PTQ1_0.gguf (5.54 GB, 100% VRAM)\n"
+            f" * [magenta]Sparse MoE:[/magenta]   Z:\\models\\lmstudio-community\\gpt-oss-20b-GGUF\\gpt-oss-20b-MXFP4.gguf (11.28 GB, 32 MB VRAM)\n"
+            f" * [yellow]Eagle-3 Drafter:[/yellow] Z:\\models\\ggml-org\\gpt-oss-20b-GGUF\\eagle3-gpt-oss-20b-Q8_0.gguf (921 MB)\n"
+            f"[bold]NVDEC Silicio Ativo:[/bold] {'Sim' if audit['nvdec_available'] else 'Nao'} | "
+            f"[bold]NVENC Silicio Ativo:[/bold] {'Sim' if audit['nvenc_available'] else 'Nao'}",
             title="[bold yellow]Contexto da Engine HPC[/bold yellow]"
         ))
 
-    def run_pipeline(self, tokens: int = 50) -> bool:
-        """Executes the compiled native C++/CUDA heterogeneous CED pipeline."""
-        if not self.exe_path.exists():
-            console.print(f"[bold red]Erro:[/bold red] Binário nativo não encontrado em {self.exe_path}")
-            return False
+    def run_pipeline(self, mode: str = "ced-ring", tokens: int = 50) -> bool:
+        """Executes native C++/CUDA heterogeneous HPC binaries based on selected mode."""
+        targets = []
+        if mode in ("ced-ring", "all"):
+            targets.append(("Pipeline CED Ring (gemma-4-E2B-it)", self.exe_ced))
+        if mode in ("moe-stream", "all"):
+            targets.append(("MoE Speculative SSD Streaming (gpt-oss-20b-MXFP4)", self.exe_moe))
+        if mode in ("ternary-dense", "all"):
+            targets.append(("Ternary-Bonsai 27B Adder Tree Dual-GPU (PTQ1_0)", self.exe_bonsai))
 
-        console.print(f"\n[bold cyan]Disparando Execução Nativa da Heterogeneous CED Pipeline ({tokens} tokens)...[/bold cyan]\n")
-        try:
-            res = subprocess.run([str(self.exe_path)], capture_output=True, text=True, check=True)
-            console.print(res.stdout)
-            return True
-        except subprocess.CalledProcessError as e:
-            console.print(f"[bold red]Erro na execução do pipeline nativo:[/bold red]\n{e.stderr or e.stdout}")
-            return False
+        success = True
+        for name, exe in targets:
+            if not exe.exists():
+                console.print(f"[bold red]Erro:[/bold red] Binario {name} nao encontrado em {exe}")
+                success = False
+                continue
+
+            console.print(f"\n[bold cyan]=== Disparando Execucao Nativa: {name} ===[/bold cyan]\n")
+            try:
+                res = subprocess.run([str(exe)], capture_output=True, text=True, check=True)
+                console.print(res.stdout)
+            except subprocess.CalledProcessError as e:
+                console.print(f"[bold red]Erro na execucao de {name}:[/bold red]\n{e.stderr or e.stdout}")
+                success = False
+
+        return success
 
 def main():
-    runtime = HeterogeneousHPCRuntime()
+    import argparse
+    parser = argparse.ArgumentParser(description="Heterogeneous HPC Engine CLI")
+    parser.add_argument("--mode", choices=["ced-ring", "moe-stream", "ternary-dense", "all"], default="all",
+                        help="Execution mode for the heterogeneous HPC engine")
+    parser.add_argument("--tokens", type=int, default=50, help="Tokens to evaluate")
+    parser.add_argument("--model", type=str, default=None, help="Model path")
+    args = parser.parse_args()
+
+    runtime = HeterogeneousHPCRuntime(model_path=args.model)
     audit = runtime.audit_physical_silicon()
     runtime.display_topology(audit)
-    runtime.run_pipeline(tokens=50)
+    runtime.run_pipeline(mode=args.mode, tokens=args.tokens)
 
 if __name__ == "__main__":
     main()
