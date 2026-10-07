@@ -1,9 +1,9 @@
 """
 Agnostic Benchmark & Evaluation Runner.
-Executes standardized performance benchmarks (llama-bench style) and capability evals (HumanEval, Perplexity).
+Executes standardized performance benchmarks (llama-bench style) and capability evals (HumanEval, OBMEP Math, Perplexity).
 Defaults to --mode smoke for fast iterative development.
 Saves a single unified JSON report per execution suite (run_<timestamp>_suite_<mode>.json).
-Features multi-table side-by-side presentation with ASCII bar plots and strict decimal formatting (NO thousand separators).
+Features multi-table side-by-side presentation, hardware profiling layer, and automated PhD-grade Matplotlib plot generation.
 """
 import sys
 import os
@@ -33,11 +33,14 @@ from benchmarks.plugins.base import (
 )
 from benchmarks.plugins.throughput_bench import ThroughputBenchmarkPlugin
 from benchmarks.plugins.humaneval_bench import HumanEvalBenchmarkPlugin
+from benchmarks.plugins.obmep_math_bench import OBMEPMathBenchmarkPlugin
 from benchmarks.plugins.perplexity_bench import PerplexityBenchmarkPlugin
+from benchmarks.plots import generate_all_plots
 
 REGISTERED_BENCHMARKS: Dict[str, Type[BaseBenchmarkPlugin]] = {
     "throughput": ThroughputBenchmarkPlugin,
     "humaneval": HumanEvalBenchmarkPlugin,
+    "obmep_math": OBMEPMathBenchmarkPlugin,
     "perplexity": PerplexityBenchmarkPlugin,
 }
 
@@ -86,7 +89,7 @@ def print_ascii_bar(label: str, value: float, max_value: float, suffix: str = ""
     ratio = (value / max_value) if max_value > 0 else 0.0
     bar_len = int(ratio * width)
     bar_str = "█" * bar_len
-    print(f"    {label:<26} [{bar_str:<{width}}] {value:>10.2f} {suffix}")
+    print(f"    {label:<30} [{bar_str:<{width}}] {value:>10.2f} {suffix}")
 
 def render_throughput_tables(suite: BenchmarkSuiteResult):
     print("\n" + "=" * 118)
@@ -109,7 +112,6 @@ def render_throughput_tables(suite: BenchmarkSuiteResult):
         print(f"│ {'Configuração / Runtime':<35} │ {'Prefill (t/s)':<14} │ {'TTFT (ms)':<10} │ {'Decode (t/s)':<13} │ {'ms/tok':<9} │ {'Speedup Decode':<15} │")
         print("├" + "─" * 37 + "┼" + "─" * 16 + "┼" + "─" * 12 + "┼" + "─" * 15 + "┼" + "─" * 11 + "┼" + "─" * 17 + "┤")
 
-        # Obter decode do baseline do primeiro measurement original
         orig_measurements = [m for m in m_measurements if "original" in m.backend.lower()]
         base_decode = orig_measurements[0].decode_tok_s if orig_measurements and orig_measurements[0].decode_tok_s > 0 else 1.0
 
@@ -123,7 +125,7 @@ def render_throughput_tables(suite: BenchmarkSuiteResult):
             print(f"│ {m.backend:<35} │ {p_tok:>14} │ {ttft:>10} │ {d_tok:>13} │ {mpt:>9} │ {sp_str:>15} │")
         print("└" + "─" * 37 + "┴" + "─" * 16 + "┴" + "─" * 12 + "┴" + "─" * 15 + "┴" + "─" * 11 + "┴" + "─" * 17 + "┘")
 
-    # Gráfico de barras ASCII para visualização imediata
+    # Gráfico de barras ASCII
     print("\n" + "─" * 118)
     print(" 📊 VISUALIZAÇÃO GRÁFICA COMPARATIVA: DECODE THROUGHPUT (TOKENS/S)")
     print("─" * 118)
@@ -145,16 +147,16 @@ def render_humaneval_table(suite: BenchmarkSuiteResult):
     print("\n" + "=" * 118)
     print(" 🧠 TABELA 4: HUMANEVAL - AVALIAÇÃO DE CORRETUDE FUNCIONAL DE CÓDIGO (15 TAREFAS CANÔNICAS)")
     print("=" * 118)
-    print(f"│ {'ID Tarefa':<14} │ {'Função / Módulo':<28} │ {'Latência (ms)':<14} │ {'Assertions Verificadas':<26} │ {'Resultado':<10} │")
-    print("├" + "─" * 16 + "┼" + "─" * 30 + "┼" + "─" * 16 + "┼" + "─" * 28 + "┼" + "─" * 12 + "┤")
+    print(f"│ {'ID Tarefa':<14} │ {'Função / Módulo':<24} │ {'Contexto (t)':<12} │ {'Código (t)':<10} │ {'Latência (ms)':<14} │ {'Resultado':<10} │")
+    print("├" + "─" * 16 + "┼" + "─" * 26 + "┼" + "─" * 14 + "┼" + "─" * 12 + "┼" + "─" * 16 + "┼" + "─" * 12 + "┤")
 
     for m in suite.measurements:
         fn_name = m.details.get("function_name", "N/A")
         lat_ms = f"{m.details.get('latency_ms', 0.0):.2f}"
         status_sym = "✅ PASSED" if m.status == "PASSED" else "❌ FAILED"
-        print(f"│ {m.model:<14} │ {fn_name:<28} │ {lat_ms:>14} │ {'Suite Assertions 100%':<26} │ {status_sym:<10} │")
+        print(f"│ {m.model:<14} │ {fn_name:<24} │ {m.prompt_tokens:>12} │ {m.gen_tokens:>10} │ {lat_ms:>14} │ {status_sym:<10} │")
 
-    print("└" + "─" * 16 + "┴" + "─" * 30 + "┴" + "─" * 16 + "┴" + "─" * 28 + "┴" + "─" * 12 + "┘")
+    print("└" + "─" * 16 + "┴" + "─" * 26 + "┴" + "─" * 14 + "┴" + "─" * 12 + "┴" + "─" * 16 + "┴" + "─" * 12 + "┘")
 
     summary = suite.environment_metadata.get("summary", {})
     tot = summary.get("total_tasks", len(suite.measurements))
@@ -162,9 +164,32 @@ def render_humaneval_table(suite: BenchmarkSuiteResult):
     pass_at_1 = summary.get("pass_at_1", 1.0)
     print(f"  📈 Sumário de Corretude: {passed}/{tot} tarefas com aprovação completa | pass@1 = {pass_at_1:.4f} (100%)\n")
 
+def render_obmep_math_table(suite: BenchmarkSuiteResult):
+    print("\n" + "=" * 118)
+    print(" 📐 TABELA 5: OBMEP - AVALIAÇÃO DE RACIOCÍNIO MATEMÁTICO (NÍVEIS 1 E 2 - ENSINO FUNDAMENTAL)")
+    print("=" * 118)
+    print(f"│ {'ID Tarefa':<20} │ {'Nível & Tópico':<32} │ {'Contexto (t)':<12} │ {'Solução (t)':<11} │ {'Tempo (ms)':<10} │ {'Resultado':<10} │")
+    print("├" + "─" * 22 + "┼" + "─" * 34 + "┼" + "─" * 14 + "┼" + "─" * 13 + "┼" + "─" * 12 + "┼" + "─" * 12 + "┤")
+
+    for m in suite.measurements:
+        lvl = m.details.get("level", "N1/N2").split("(")[0].strip()
+        top = m.details.get("topic", "Matemática")
+        lvl_top = f"{lvl} - {top}"[:32]
+        lat_ms = f"{m.details.get('latency_ms', 0.0):.2f}"
+        status_sym = "✅ CORRECT" if m.status == "PASSED" else "❌ WRONG"
+        print(f"│ {m.model:<20} │ {lvl_top:<32} │ {m.prompt_tokens:>12} │ {m.gen_tokens:>11} │ {lat_ms:>10} │ {status_sym:<10} │")
+
+    print("└" + "─" * 22 + "┴" + "─" * 34 + "┴" + "─" * 14 + "┴" + "─" * 13 + "┴" + "─" * 12 + "┴" + "─" * 12 + "┘")
+
+    summary = suite.environment_metadata.get("summary", {})
+    tot = summary.get("total", len(suite.measurements))
+    passed = summary.get("passed", sum(1 for m in suite.measurements if m.status == "PASSED"))
+    acc = summary.get("accuracy", 1.0)
+    print(f"  📈 Retenção de Raciocínio Matemático: {passed}/{tot} problemas resolvidos com exatidão | Exact Match = {acc*100:.2f}%\n")
+
 def render_perplexity_table(suite: BenchmarkSuiteResult):
     print("\n" + "=" * 118)
-    print(" 🎯 TABELA 5: PERPLEXIDADE & FIDELIDADE MATEMÁTICA LADO A LADO")
+    print(" 🎯 TABELA 6: PERPLEXIDADE & FIDELIDADE MATEMÁTICA LADO A LADO")
     print("=" * 118)
     print(f"│ {'Modelo Alvo':<18} │ {'Runtime Avaliado':<28} │ {'Formato / Quant':<16} │ {'Cross-Entropy':<14} │ {'Perplexidade (PPL)':<20} │ {'Retenção (%)':<13} │")
     print("├" + "─" * 20 + "┼" + "─" * 30 + "┼" + "─" * 18 + "┼" + "─" * 16 + "┼" + "─" * 22 + "┼" + "─" * 15 + "┤")
@@ -224,6 +249,8 @@ def main():
                 render_throughput_tables(suite_res)
             elif suite_res.benchmark_name == "humaneval":
                 render_humaneval_table(suite_res)
+            elif suite_res.benchmark_name == "obmep_math":
+                render_obmep_math_table(suite_res)
             elif suite_res.benchmark_name == "perplexity":
                 render_perplexity_table(suite_res)
 
@@ -237,7 +264,15 @@ def main():
     if executed_suites:
         report_file = save_unified_suite_run(executed_suites, mode=args.mode)
         print(f"📁 [Relatório JSON Unificado Salvo]: {report_file.name}")
-        print(f"   Caminho: {report_file}\n")
+        print(f"   Caminho: {report_file}")
+
+        # Geração automática dos gráficos acadêmicos em Matplotlib
+        plot_files = generate_all_plots({"suites": executed_suites})
+        if plot_files:
+            print("\n📈 [Figuras Científicas em Alta Resolução (300 DPI) Geradas com Sucesso]:")
+            for pf in plot_files:
+                print(f"   • {pf.name} -> {pf}")
+        print()
 
     if any_failed:
         sys.exit(1)
