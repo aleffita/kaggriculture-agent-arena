@@ -180,12 +180,34 @@ Implementação em Python (`probe_p5_speculative_expert_prefetch.py`) modelando 
 
 ---
 
-## 9. Síntese do Pipeline Transdutor Progressivo Heterogêneo
+## 9. Probe P6: Streaming Direto de SSD NVMe via Win32 Unbuffered I/O e GPU DMA Overlap
+
+Implementação em C++/CUDA (`probe_p6_ssd_direct_streaming.cpp`) lendo o modelo real **`Ternary-Bonsai-2-27B-PTQ1_0.gguf` (5,54 GB)** localizado no disco `Z:\models` com bypass total do cache do sistema operacional (`FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED`):
+- **Pergunta que decide**: É viável alimentar os blocos de pesos diretamente do SSD para o anel de memória *pinned* e em seguida para a VRAM da GPU sem gerar cópias duplas de CPU nem intermediários de SO?
+
+### Resultados Empíricos Medidos (RTX 2060 Turing + Drive Z:)
+
+```text
+=========================================================
+ [RESULTADOS DA PROBE P6 (STREAMING DIRETO)]
+=========================================================
+  Alvo Testado no Disco Z:        Ternary-Bonsai-2-27B-PTQ1_0.gguf (5,54 GB)
+  Volume Transferido no Teste:   512 MB (em blocos alinhados de 64 MB)
+  Tempo Total de Streaming:      2.099,74 ms
+  Largura de Banda Efetiva:      0,24 GB/s (contínuo com DMA de GPU)
+  Vazão em Parâmetros 1.58b:     1,09 Bilhões de pesos / seg
+  Bypass de Cache do Windows:    100% ATIVO (Zero-Copy Host Staging)
+=========================================================
+```
+
+---
+
+## 10. Síntese do Pipeline Transdutor Progressivo Heterogêneo
 
 O experimento 002 consolida o modelo de execução em pipeline contínuo HPC:
 1. **Camada 0 (FST / CPU Host)**: Proposta preliminar instantânea a 350 ns / token para sequências redundantes ($\mathcal{O}(1)$ na memória do host).
-2. **Camada 1 (NLTP / D-Spark Drafter)**: Projeção de trajetórias no espaço latente contínuo, estimando probabilidades de roteamento de MoE com $H \ge 2$ passos à frente.
-3. **Camada 2 (Motor de Transporte Assíncrono / ASICs)**: DMA Copy Engines e descompressão por hardware (NVDEC) transferem os especialistas candidatos para o Shadow Staging Ring antes de a execução exata alcançá-los.
+2. **Camada 1 (NLTP / D-Spark / Eagle-3 Drafter)**: Projeção de trajetórias no espaço latente contínuo, estimando probabilidades de roteamento de MoE com $H \ge 2$ passos à frente.
+3. **Camada 2 (Motor de Transporte Assíncrono / ASICs)**: DMA Copy Engines, streaming direto de SSD NVMe unbuffered e descompressão por hardware (NVDEC) transferem os especialistas candidatos para o Shadow Staging Ring antes de a execução exata alcançá-los.
 4. **Camada 3 (Verify Engine / Tensor Cores)**: Verificação em lote com $k^* \ge 64$ candidatos processados em 4,4 $\mu s$, eliminando a penalidade de inferência multi-ramo.
 5. **Camada 4 (Ball-Tree Head Pruning)**: Poda de **84,22%** das projeções de vocabulário no LM Head por delimitação de Cauchy-Schwarz ($L_2$), reduzindo FLOPs em 6,34× com garantia matemática exata.
 
