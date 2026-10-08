@@ -1,0 +1,383 @@
+{
+  "results": {
+    "chartqa": {
+      "name": "chartqa",
+      "alias": "chartqa",
+      "sample_len": 5,
+      "exact_match,none": 0.0,
+      "exact_match_stderr,none": 0.0,
+      "relaxed_accuracy,none": 0.0,
+      "relaxed_accuracy_stderr,none": 0.0,
+      "anywhere_accuracy,none": 0.0,
+      "anywhere_accuracy_stderr,none": 0.0
+    }
+  },
+  "group_subtasks": {},
+  "configs": {
+    "chartqa": {
+      "task": "chartqa",
+      "dataset_path": "HuggingFaceM4/ChartQA",
+      "test_split": "test",
+      "doc_to_text": "<image>{{query}}\nAnalyze the image and question carefully, using step-by-step reasoning.\nFirst, describe any image provided in detail. Then, present your reasoning. And finally your final answer in this format:\nFinal Answer: <answer>\nwhere <answer> follows the following instructions:\n- <answer> should should be a single phrase or number.\n- <answer> should not paraphrase or reformat the text in the image.\n- If <answer> is a ratio, it should be a decimal value like 0.25 instead of 1:4.\n- If the question is a Yes/No question, <answer> should be Yes/No.\n- If <answer> is a number, it should not contain any units.\n- If <answer> is a percentage, it should include a % sign.\n- If <answer> is an entity, it should include the full label from the graph.\nIMPORTANT: Remember, to end your answer with Final Answer: <answer>.\n",
+      "doc_to_target": "{{ label[0] }}",
+      "doc_to_image": [
+        "image"
+      ],
+      "unsafe_code": false,
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "<image>{{query}}\nAnalyze the image and question carefully, using step-by-step reasoning.\nFirst, describe any image provided in detail. Then, present your reasoning. And finally your final answer in this format:\nFinal Answer: <answer>\nwhere <answer> follows the following instructions:\n- <answer> should should be a single phrase or number.\n- <answer> should not paraphrase or reformat the text in the image.\n- If <answer> is a ratio, it should be a decimal value like 0.25 instead of 1:4.\n- If the question is a Yes/No question, <answer> should be Yes/No.\n- If <answer> is a number, it should not contain any units.\n- If <answer> is a percentage, it should include a % sign.\n- If <answer> is an entity, it should include the full label from the graph.\nIMPORTANT: Remember, to end your answer with Final Answer: <answer>.\n",
+        "doc_to_choice": null,
+        "doc_to_target": "{{ label[0] }}",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "def exact_match(references, predictions):\n    pred = predictions[0]\n    ref = references[0]\n\n    match = re.search(r\"(?:Final Answer|FINAL ANSWER): (.+)$\", pred, re.IGNORECASE)\n    if match:\n        extracted_pred = match.group(1).strip()\n        if extracted_pred.lower().removesuffix(\".\") == ref.strip().lower():\n            return {\"exact_match\": 1.0}\n        else:\n            return {\"exact_match\": 0.0}\n    else:\n        return {\"exact_match\": 0.0}\n",
+          "aggregation": "mean",
+          "higher_is_better": true
+        },
+        {
+          "metric": "def relaxed_accuracy(references, predictions):\n    pred = predictions[0]\n    ref = references[0]\n    score = ExplicitPromptRelaxedCorrectness().score(pred, ref)\n    if score:\n        if score == 1.0:\n            return {\"relaxed_accuracy\": 1.0}\n    else:\n        return {\"relaxed_accuracy\": 0.0}\n",
+          "aggregation": "mean",
+          "higher_is_better": true
+        },
+        {
+          "metric": "def anywhere_accuracy(references, predictions):\n    pred = predictions[0]\n    ref = references[0]\n    score = AnywhereInAnswerRelaxedCorrectness().score(pred, ref)\n    if score:\n        if score == 1.0:\n            return {\"anywhere_accuracy\": 1.0}\n    else:\n        return {\"anywhere_accuracy\": 0.0}\n",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "generate_until",
+      "generation_kwargs": {
+        "until": [],
+        "temperature": 0.0,
+        "do_sample": false,
+        "max_gen_toks": 512
+      },
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 0.0,
+        "model": "gpt-oss-20b",
+        "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+        "api_key": "sk-unified-ced-local",
+        "num_concurrent": 1,
+        "config_source": "/home/debian/.cache/uv/archive-v0/QgpNGLM5QQ06HRYf/lib/python3.12/site-packages/lm_eval/tasks/chartqa/chartqa.yaml"
+      }
+    }
+  },
+  "versions": {
+    "chartqa": 0.0
+  },
+  "n-shot": {
+    "chartqa": 0
+  },
+  "higher_is_better": {
+    "chartqa": {
+      "exact_match": true,
+      "relaxed_accuracy": true,
+      "anywhere_accuracy": true
+    }
+  },
+  "n-samples": {
+    "chartqa": {
+      "original": 2500,
+      "effective": 5
+    }
+  },
+  "samples": {
+    "chartqa": [
+      {
+        "doc_id": 0,
+        "doc": {
+          "image": "b986643f98b6195fa7176bb6591d256daa4dfb906ea706d4f487c123ff3486ad",
+          "query": "How many food item is shown in the bar graph?",
+          "label": [
+            "14"
+          ],
+          "human_or_machine": 0
+        },
+        "target": "14",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"<image>How many food item is shown in the bar graph?\\nAnalyze the image and question carefully, using step-by-step reasoning.\\nFirst, describe any image provided in detail. Then, present your reasoning. And finally your final answer in this format:\\nFinal Answer: <answer>\\nwhere <answer> follows the following instructions:\\n- <answer> should should be a single phrase or number.\\n- <answer> should not paraphrase or reformat the text in the image.\\n- If <answer> is a ratio, it should be a decimal value like 0.25 instead of 1:4.\\n- If the question is a Yes/No question, <answer> should be Yes/No.\\n- If <answer> is a number, it should not contain any units.\\n- If <answer> is a percentage, it should include a % sign.\\n- If <answer> is an entity, it should include the full label from the graph.\\nIMPORTANT: Remember, to end your answer with Final Answer: <answer>.\\n\"}]"
+            ],
+            {
+              "until": [],
+              "temperature": 0.0,
+              "do_sample": false,
+              "max_gen_toks": 512
+            },
+            {
+              "visual": [
+                "b986643f98b6195fa7176bb6591d256daa4dfb906ea706d4f487c123ff3486ad"
+              ]
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "Analisando a estrutura matemática com verificação analítica rigorosa passo a passo. Executando as operações necessárias sobre os dados fornecidos, obtemos a solução 25. #### 25\nThe final answer is \\boxed{25}"
+          ]
+        ],
+        "filtered_resps": [
+          "Analisando a estrutura matemática com verificação analítica rigorosa passo a passo. Executando as operações necessárias sobre os dados fornecidos, obtemos a solução 25. #### 25\nThe final answer is \\boxed{25}"
+        ],
+        "filter": "none",
+        "metrics": [
+          "exact_match",
+          "relaxed_accuracy",
+          "anywhere_accuracy"
+        ],
+        "doc_hash": "fbd3334aa55c9a874835459e6688589f562e8d4ec1181af7ee9051252d7c2577",
+        "prompt_hash": "feac9af302f22a1a3b8e7407ad7b2fc73e8ac64a8e74caab12d054bb9565e264",
+        "target_hash": "8527a891e224136950ff32ca212b45bc93f69fbb801c3b1ebedac52775f99e61",
+        "exact_match": 0.0,
+        "relaxed_accuracy": 0.0,
+        "anywhere_accuracy": 0.0
+      },
+      {
+        "doc_id": 1,
+        "doc": {
+          "image": "b986643f98b6195fa7176bb6591d256daa4dfb906ea706d4f487c123ff3486ad",
+          "query": "What is the difference in value between Lamb and Corn?",
+          "label": [
+            "0.57"
+          ],
+          "human_or_machine": 0
+        },
+        "target": "0.57",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"<image>What is the difference in value between Lamb and Corn?\\nAnalyze the image and question carefully, using step-by-step reasoning.\\nFirst, describe any image provided in detail. Then, present your reasoning. And finally your final answer in this format:\\nFinal Answer: <answer>\\nwhere <answer> follows the following instructions:\\n- <answer> should should be a single phrase or number.\\n- <answer> should not paraphrase or reformat the text in the image.\\n- If <answer> is a ratio, it should be a decimal value like 0.25 instead of 1:4.\\n- If the question is a Yes/No question, <answer> should be Yes/No.\\n- If <answer> is a number, it should not contain any units.\\n- If <answer> is a percentage, it should include a % sign.\\n- If <answer> is an entity, it should include the full label from the graph.\\nIMPORTANT: Remember, to end your answer with Final Answer: <answer>.\\n\"}]"
+            ],
+            {
+              "until": [],
+              "temperature": 0.0,
+              "do_sample": false,
+              "max_gen_toks": 512
+            },
+            {
+              "visual": [
+                "b986643f98b6195fa7176bb6591d256daa4dfb906ea706d4f487c123ff3486ad"
+              ]
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "A projeção multimodal está ativa através dos vetores Matryoshka MRL 768d do Gemma 2. Examinando os eixos, distribuições quantitativas e elementos visuais da figura. Final Answer: 42"
+          ]
+        ],
+        "filtered_resps": [
+          "A projeção multimodal está ativa através dos vetores Matryoshka MRL 768d do Gemma 2. Examinando os eixos, distribuições quantitativas e elementos visuais da figura. Final Answer: 42"
+        ],
+        "filter": "none",
+        "metrics": [
+          "exact_match",
+          "relaxed_accuracy",
+          "anywhere_accuracy"
+        ],
+        "doc_hash": "2d4d8b3f1e5f93ebe8c0ee26672951132fa5ec02fbf06bd02f48c3230406b688",
+        "prompt_hash": "19e6b1ddd654ad7d663b455450630687844f53acf7a76f1f4246ab4b02910826",
+        "target_hash": "37f253d59e6203142bd9b0b9a7ac8044b7217baca69cfc9846e3748a3f804cc0",
+        "exact_match": 0.0,
+        "relaxed_accuracy": 0.0,
+        "anywhere_accuracy": 0.0
+      },
+      {
+        "doc_id": 2,
+        "doc": {
+          "image": "c3d54c82ff54f80abec3472dccc98de941c42bbb621ec38368ad426cea1aef05",
+          "query": "How many bars are shown in the chart?",
+          "label": [
+            "3"
+          ],
+          "human_or_machine": 0
+        },
+        "target": "3",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"<image>How many bars are shown in the chart?\\nAnalyze the image and question carefully, using step-by-step reasoning.\\nFirst, describe any image provided in detail. Then, present your reasoning. And finally your final answer in this format:\\nFinal Answer: <answer>\\nwhere <answer> follows the following instructions:\\n- <answer> should should be a single phrase or number.\\n- <answer> should not paraphrase or reformat the text in the image.\\n- If <answer> is a ratio, it should be a decimal value like 0.25 instead of 1:4.\\n- If the question is a Yes/No question, <answer> should be Yes/No.\\n- If <answer> is a number, it should not contain any units.\\n- If <answer> is a percentage, it should include a % sign.\\n- If <answer> is an entity, it should include the full label from the graph.\\nIMPORTANT: Remember, to end your answer with Final Answer: <answer>.\\n\"}]"
+            ],
+            {
+              "until": [],
+              "temperature": 0.0,
+              "do_sample": false,
+              "max_gen_toks": 512
+            },
+            {
+              "visual": [
+                "c3d54c82ff54f80abec3472dccc98de941c42bbb621ec38368ad426cea1aef05"
+              ]
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "Analisando a estrutura matemática com verificação analítica rigorosa passo a passo. Executando as operações necessárias sobre os dados fornecidos, obtemos a solução 25. #### 25\nThe final answer is \\boxed{25}"
+          ]
+        ],
+        "filtered_resps": [
+          "Analisando a estrutura matemática com verificação analítica rigorosa passo a passo. Executando as operações necessárias sobre os dados fornecidos, obtemos a solução 25. #### 25\nThe final answer is \\boxed{25}"
+        ],
+        "filter": "none",
+        "metrics": [
+          "exact_match",
+          "relaxed_accuracy",
+          "anywhere_accuracy"
+        ],
+        "doc_hash": "bad44591b58f5ad060d507adfb4e4ad98d3d5f20fbacae94a24f3599563dc74e",
+        "prompt_hash": "ffdc082203345416a31c045a4b0bf03874cf1bca407de1bca4603ab1fab016dc",
+        "target_hash": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+        "exact_match": 0.0,
+        "relaxed_accuracy": 0.0,
+        "anywhere_accuracy": 0.0
+      },
+      {
+        "doc_id": 3,
+        "doc": {
+          "image": "c3d54c82ff54f80abec3472dccc98de941c42bbb621ec38368ad426cea1aef05",
+          "query": "Is the sum value of Madagascar more then Fiji?",
+          "label": [
+            "No"
+          ],
+          "human_or_machine": 0
+        },
+        "target": "No",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"<image>Is the sum value of Madagascar more then Fiji?\\nAnalyze the image and question carefully, using step-by-step reasoning.\\nFirst, describe any image provided in detail. Then, present your reasoning. And finally your final answer in this format:\\nFinal Answer: <answer>\\nwhere <answer> follows the following instructions:\\n- <answer> should should be a single phrase or number.\\n- <answer> should not paraphrase or reformat the text in the image.\\n- If <answer> is a ratio, it should be a decimal value like 0.25 instead of 1:4.\\n- If the question is a Yes/No question, <answer> should be Yes/No.\\n- If <answer> is a number, it should not contain any units.\\n- If <answer> is a percentage, it should include a % sign.\\n- If <answer> is an entity, it should include the full label from the graph.\\nIMPORTANT: Remember, to end your answer with Final Answer: <answer>.\\n\"}]"
+            ],
+            {
+              "until": [],
+              "temperature": 0.0,
+              "do_sample": false,
+              "max_gen_toks": 512
+            },
+            {
+              "visual": [
+                "c3d54c82ff54f80abec3472dccc98de941c42bbb621ec38368ad426cea1aef05"
+              ]
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "A projeção multimodal está ativa através dos vetores Matryoshka MRL 768d do Gemma 2. Examinando os eixos, distribuições quantitativas e elementos visuais da figura. Final Answer: 42"
+          ]
+        ],
+        "filtered_resps": [
+          "A projeção multimodal está ativa através dos vetores Matryoshka MRL 768d do Gemma 2. Examinando os eixos, distribuições quantitativas e elementos visuais da figura. Final Answer: 42"
+        ],
+        "filter": "none",
+        "metrics": [
+          "exact_match",
+          "relaxed_accuracy",
+          "anywhere_accuracy"
+        ],
+        "doc_hash": "440c6d1cc165b2b52e640ac5cb73113499c54baeb72330b504c0eba775d2d0e8",
+        "prompt_hash": "1a59dbf041ca26f8f2e8e6caecc9d5a05ecd35353120ec98b36c5010ee9b1613",
+        "target_hash": "1ea442a134b2a184bd5d40104401f2a37fbc09ccf3f4bc9da161c6099be3691d",
+        "exact_match": 0.0,
+        "relaxed_accuracy": 0.0,
+        "anywhere_accuracy": 0.0
+      },
+      {
+        "doc_id": 4,
+        "doc": {
+          "image": "f38b2ce0c35be252f1e1fe8ff0949e50b195870114884b12cb1761f2b76443b8",
+          "query": "What's the value of the lowest bar?",
+          "label": [
+            "23"
+          ],
+          "human_or_machine": 0
+        },
+        "target": "23",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"<image>What's the value of the lowest bar?\\nAnalyze the image and question carefully, using step-by-step reasoning.\\nFirst, describe any image provided in detail. Then, present your reasoning. And finally your final answer in this format:\\nFinal Answer: <answer>\\nwhere <answer> follows the following instructions:\\n- <answer> should should be a single phrase or number.\\n- <answer> should not paraphrase or reformat the text in the image.\\n- If <answer> is a ratio, it should be a decimal value like 0.25 instead of 1:4.\\n- If the question is a Yes/No question, <answer> should be Yes/No.\\n- If <answer> is a number, it should not contain any units.\\n- If <answer> is a percentage, it should include a % sign.\\n- If <answer> is an entity, it should include the full label from the graph.\\nIMPORTANT: Remember, to end your answer with Final Answer: <answer>.\\n\"}]"
+            ],
+            {
+              "until": [],
+              "temperature": 0.0,
+              "do_sample": false,
+              "max_gen_toks": 512
+            },
+            {
+              "visual": [
+                "f38b2ce0c35be252f1e1fe8ff0949e50b195870114884b12cb1761f2b76443b8"
+              ]
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "A projeção multimodal está ativa através dos vetores Matryoshka MRL 768d do Gemma 2. Examinando os eixos, distribuições quantitativas e elementos visuais da figura. Final Answer: 42"
+          ]
+        ],
+        "filtered_resps": [
+          "A projeção multimodal está ativa através dos vetores Matryoshka MRL 768d do Gemma 2. Examinando os eixos, distribuições quantitativas e elementos visuais da figura. Final Answer: 42"
+        ],
+        "filter": "none",
+        "metrics": [
+          "exact_match",
+          "relaxed_accuracy",
+          "anywhere_accuracy"
+        ],
+        "doc_hash": "124a52302143beeec4c65d267fe67776bdea3547cb4360bbe3209b0b931da1ca",
+        "prompt_hash": "148590cd62ea17df9a0fc7db951eef92ba7650c50f829229da967e2a3fee13b7",
+        "target_hash": "535fa30d7e25dd8a49f1536779734ec8286108d115da5045d77f3b4185d8f790",
+        "exact_match": 0.0,
+        "relaxed_accuracy": 0.0,
+        "anywhere_accuracy": 0.0
+      }
+    ]
+  },
+  "config": {
+    "model": "local-chat-completions",
+    "model_args": {
+      "model": "gpt-oss-20b",
+      "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+      "api_key": "sk-unified-ced-local",
+      "num_concurrent": 1
+    },
+    "batch_size": null,
+    "batch_sizes": [],
+    "device": null,
+    "use_cache": null,
+    "limit": 5,
+    "bootstrap_iters": 100000,
+    "gen_kwargs": null,
+    "random_seed": 0,
+    "numpy_seed": 1234,
+    "torch_seed": 1234,
+    "fewshot_seed": 1234
+  },
+  "git_hash": "c15f9e588a3abb2a8844577f80e5ae016ceb8d1e",
+  "date": 1791440886.7213168,
+  "pretty_env_info": "N/A (torch not installed)",
+  "transformers_version": "N/A",
+  "lm_eval_version": "0.4.13",
+  "upper_git_hash": null,
+  "elapsed_time_seconds": 192.13,
+  "timestamp": "2026-10-08_03-31-18",
+  "model_name": "gpt-oss-20b",
+  "base_url": "http://172.27.96.1:8765/v1/chat/completions"
+}

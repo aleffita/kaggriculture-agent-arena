@@ -1,0 +1,343 @@
+{
+  "results": {
+    "mbpp": {
+      "name": "mbpp",
+      "alias": "mbpp",
+      "sample_len": 5,
+      "pass_at_1,none": 0.0,
+      "pass_at_1_stderr,none": 0.0
+    }
+  },
+  "group_subtasks": {},
+  "configs": {
+    "mbpp": {
+      "task": "mbpp",
+      "dataset_path": "google-research-datasets/mbpp",
+      "dataset_name": "full",
+      "test_split": "test",
+      "doc_to_text": "You are an expert Python programmer, and here is your task: {{text}} Your code should pass these tests:\n\n{{test_list[0]}}\n{{test_list[1]}}\n{{test_list[2]}}\n[BEGIN]\n",
+      "doc_to_target": "{% if is_fewshot is defined %}{{code}}\n[DONE]{% else %}{{test_list[0]}}\n{{test_list[1]}}\n{{test_list[2]}}{% endif %}",
+      "unsafe_code": true,
+      "description": "",
+      "target_delimiter": "",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "first_n",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": "<function list_fewshot_samples at 0x721bdc766520>",
+        "doc_to_text": "You are an expert Python programmer, and here is your task: {{text}} Your code should pass these tests:\n\n{{test_list[0]}}\n{{test_list[1]}}\n{{test_list[2]}}\n[BEGIN]\n",
+        "doc_to_choice": null,
+        "doc_to_target": "{% if is_fewshot is defined %}{{code}}\n[DONE]{% else %}{{test_list[0]}}\n{{test_list[1]}}\n{{test_list[2]}}{% endif %}",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": ""
+      },
+      "num_fewshot": 3,
+      "metric_list": [
+        {
+          "metric": "def pass_at_1(\n    references: Union[str, list[str]], predictions: Union[str, list[list[str]]]\n) -> float:\n    if isinstance(references, str):\n        references = [references]\n    if isinstance(predictions[0], str):\n        predictions = [[p] for p in predictions]\n    return pass_at_k.compute(\n        references=references,\n        predictions=predictions,\n        k=[1],\n    )[0][\"pass@1\"]\n",
+          "aggregation": "mean",
+          "higher_is_better": true
+        }
+      ],
+      "output_type": "generate_until",
+      "generation_kwargs": {
+        "until": [
+          "[DONE]"
+        ],
+        "do_sample": false
+      },
+      "repeats": 1,
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "model": "gpt-oss-20b",
+        "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+        "api_key": "sk-unified-ced-local",
+        "num_concurrent": 1,
+        "config_source": "/home/debian/.cache/uv/archive-v0/QgpNGLM5QQ06HRYf/lib/python3.12/site-packages/lm_eval/tasks/mbpp/mbpp.yaml"
+      }
+    }
+  },
+  "versions": {
+    "mbpp": 1.0
+  },
+  "n-shot": {
+    "mbpp": 3
+  },
+  "higher_is_better": {
+    "mbpp": {
+      "pass_at_1": true
+    }
+  },
+  "n-samples": {
+    "mbpp": {
+      "original": 500,
+      "effective": 5
+    }
+  },
+  "samples": {
+    "mbpp": [
+      {
+        "doc_id": 0,
+        "doc": {
+          "task_id": 11,
+          "text": "Write a python function to remove first and last occurrence of a given character from the string.",
+          "code": "def remove_Occ(s,ch): \r\n    for i in range(len(s)): \r\n        if (s[i] == ch): \r\n            s = s[0 : i] + s[i + 1:] \r\n            break\r\n    for i in range(len(s) - 1,-1,-1):  \r\n        if (s[i] == ch): \r\n            s = s[0 : i] + s[i + 1:] \r\n            break\r\n    return s ",
+          "test_list": [
+            "assert remove_Occ(\"hello\",\"l\") == \"heo\"",
+            "assert remove_Occ(\"abcda\",\"a\") == \"bcd\"",
+            "assert remove_Occ(\"PHP\",\"P\") == \"H\""
+          ],
+          "test_setup_code": "",
+          "challenge_test_list": [
+            "assert remove_Occ(\"hellolloll\",\"l\") == \"helollol\"",
+            "assert remove_Occ(\"\",\"l\") == \"\""
+          ]
+        },
+        "target": "assert remove_Occ(\"hello\",\"l\") == \"heo\"\nassert remove_Occ(\"abcda\",\"a\") == \"bcd\"\nassert remove_Occ(\"PHP\",\"P\") == \"H\"",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to find the similar elements from the given two tuple lists. Your code should pass these tests:\\n\\nassert similar_elements((3, 4, 5, 6),(5, 7, 4, 10)) == (4, 5)\\nassert similar_elements((1, 2, 3, 4),(5, 4, 3, 7)) == (3, 4)\\nassert similar_elements((11, 12, 14, 13),(17, 15, 14, 13)) == (13, 14)\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"def similar_elements(test_tup1, test_tup2):\\r\\n  res = tuple(set(test_tup1) & set(test_tup2))\\r\\n  return (res) \\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a python function to identify non-prime numbers. Your code should pass these tests:\\n\\nassert is_not_prime(2) == False\\nassert is_not_prime(10) == True\\nassert is_not_prime(35) == True\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"import math\\r\\ndef is_not_prime(n):\\r\\n    result = False\\r\\n    for i in range(2,int(math.sqrt(n)) + 1):\\r\\n        if n % i == 0:\\r\\n            result = True\\r\\n    return result\\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to find the largest integers from a given list of numbers using heap queue algorithm. Your code should pass these tests:\\n\\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],3)==[85, 75, 65] \\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],2)==[85, 75] \\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],5)==[85, 75, 65, 58, 35]\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"import heapq as hq\\r\\ndef heap_queue_largest(nums,n):\\r\\n  largest_nums = hq.nlargest(n, nums)\\r\\n  return largest_nums\\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a python function to remove first and last occurrence of a given character from the string. Your code should pass these tests:\\n\\nassert remove_Occ(\\\"hello\\\",\\\"l\\\") == \\\"heo\\\"\\nassert remove_Occ(\\\"abcda\\\",\\\"a\\\") == \\\"bcd\\\"\\nassert remove_Occ(\\\"PHP\\\",\\\"P\\\") == \\\"H\\\"\\n[BEGIN]\\n\"}]"
+            ],
+            {
+              "until": [
+                "[DONE]"
+              ],
+              "do_sample": false
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "```python\ndef to(*args, **kwargs):\n    \"\"\"Implementation for to aligned with specification.\"\"\"\n    if args:\n        return args[0]\n    return True\n```"
+          ]
+        ],
+        "filtered_resps": [
+          "```python\ndef to(*args, **kwargs):\n    \"\"\"Implementation for to aligned with specification.\"\"\"\n    if args:\n        return args[0]\n    return True\n```"
+        ],
+        "filter": "none",
+        "metrics": [
+          "pass_at_1"
+        ],
+        "doc_hash": "241377ab30a4187e0b176e21123ebaff8e55951301b10b2e26bc3730c83cd1c2",
+        "prompt_hash": "fe284116ed31f79e6ab98ad85899f865871169b5c0ff4477c3cf4469f429688d",
+        "target_hash": "f52e618c332c72ceb95f39ea720c88645f0d30bba2afbe66fca5ee67502ba631",
+        "pass_at_1": 0.0
+      },
+      {
+        "doc_id": 1,
+        "doc": {
+          "task_id": 12,
+          "text": "Write a function to sort a given matrix in ascending order according to the sum of its rows.",
+          "code": "def sort_matrix(M):\r\n    result = sorted(M, key=sum)\r\n    return result",
+          "test_list": [
+            "assert sort_matrix([[1, 2, 3], [2, 4, 5], [1, 1, 1]])==[[1, 1, 1], [1, 2, 3], [2, 4, 5]]",
+            "assert sort_matrix([[1, 2, 3], [-2, 4, -5], [1, -1, 1]])==[[-2, 4, -5], [1, -1, 1], [1, 2, 3]]",
+            "assert sort_matrix([[5,8,9],[6,4,3],[2,1,4]])==[[2, 1, 4], [6, 4, 3], [5, 8, 9]]"
+          ],
+          "test_setup_code": "",
+          "challenge_test_list": []
+        },
+        "target": "assert sort_matrix([[1, 2, 3], [2, 4, 5], [1, 1, 1]])==[[1, 1, 1], [1, 2, 3], [2, 4, 5]]\nassert sort_matrix([[1, 2, 3], [-2, 4, -5], [1, -1, 1]])==[[-2, 4, -5], [1, -1, 1], [1, 2, 3]]\nassert sort_matrix([[5,8,9],[6,4,3],[2,1,4]])==[[2, 1, 4], [6, 4, 3], [5, 8, 9]]",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to find the similar elements from the given two tuple lists. Your code should pass these tests:\\n\\nassert similar_elements((3, 4, 5, 6),(5, 7, 4, 10)) == (4, 5)\\nassert similar_elements((1, 2, 3, 4),(5, 4, 3, 7)) == (3, 4)\\nassert similar_elements((11, 12, 14, 13),(17, 15, 14, 13)) == (13, 14)\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"def similar_elements(test_tup1, test_tup2):\\r\\n  res = tuple(set(test_tup1) & set(test_tup2))\\r\\n  return (res) \\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a python function to identify non-prime numbers. Your code should pass these tests:\\n\\nassert is_not_prime(2) == False\\nassert is_not_prime(10) == True\\nassert is_not_prime(35) == True\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"import math\\r\\ndef is_not_prime(n):\\r\\n    result = False\\r\\n    for i in range(2,int(math.sqrt(n)) + 1):\\r\\n        if n % i == 0:\\r\\n            result = True\\r\\n    return result\\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to find the largest integers from a given list of numbers using heap queue algorithm. Your code should pass these tests:\\n\\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],3)==[85, 75, 65] \\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],2)==[85, 75] \\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],5)==[85, 75, 65, 58, 35]\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"import heapq as hq\\r\\ndef heap_queue_largest(nums,n):\\r\\n  largest_nums = hq.nlargest(n, nums)\\r\\n  return largest_nums\\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to sort a given matrix in ascending order according to the sum of its rows. Your code should pass these tests:\\n\\nassert sort_matrix([[1, 2, 3], [2, 4, 5], [1, 1, 1]])==[[1, 1, 1], [1, 2, 3], [2, 4, 5]]\\nassert sort_matrix([[1, 2, 3], [-2, 4, -5], [1, -1, 1]])==[[-2, 4, -5], [1, -1, 1], [1, 2, 3]]\\nassert sort_matrix([[5,8,9],[6,4,3],[2,1,4]])==[[2, 1, 4], [6, 4, 3], [5, 8, 9]]\\n[BEGIN]\\n\"}]"
+            ],
+            {
+              "until": [
+                "[DONE]"
+              ],
+              "do_sample": false
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "```python\ndef to(*args, **kwargs):\n    \"\"\"Implementation for to aligned with specification.\"\"\"\n    if args:\n        return args[0]\n    return True\n```"
+          ]
+        ],
+        "filtered_resps": [
+          "```python\ndef to(*args, **kwargs):\n    \"\"\"Implementation for to aligned with specification.\"\"\"\n    if args:\n        return args[0]\n    return True\n```"
+        ],
+        "filter": "none",
+        "metrics": [
+          "pass_at_1"
+        ],
+        "doc_hash": "74c605232c79f47cc7ad06bd9b74d36ccf441be832dad8d06834cc5fa602047d",
+        "prompt_hash": "d5e179495c090db4c9b5bb530a7515245a0988127ff047f234213c6d4af2b1cb",
+        "target_hash": "ad34ed8c69ad3de29433edbec5f7946d95cfe2cfab613278825aac85bd9a268a",
+        "pass_at_1": 0.0
+      },
+      {
+        "doc_id": 2,
+        "doc": {
+          "task_id": 13,
+          "text": "Write a function to count the most common words in a dictionary.",
+          "code": "from collections import Counter\r\ndef count_common(words):\r\n  word_counts = Counter(words)\r\n  top_four = word_counts.most_common(4)\r\n  return (top_four)\r\n",
+          "test_list": [
+            "assert count_common(['red','green','black','pink','black','white','black','eyes','white','black','orange','pink','pink','red','red','white','orange','white',\"black\",'pink','green','green','pink','green','pink','white','orange',\"orange\",'red']) == [('pink', 6), ('black', 5), ('white', 5), ('red', 4)]",
+            "assert count_common(['one', 'two', 'three', 'four', 'five', 'one', 'two', 'one', 'three', 'one']) == [('one', 4), ('two', 2), ('three', 2), ('four', 1)]",
+            "assert count_common(['Facebook', 'Apple', 'Amazon', 'Netflix', 'Google', 'Apple', 'Netflix', 'Amazon']) == [('Apple', 2), ('Amazon', 2), ('Netflix', 2), ('Facebook', 1)]"
+          ],
+          "test_setup_code": "",
+          "challenge_test_list": []
+        },
+        "target": "assert count_common(['red','green','black','pink','black','white','black','eyes','white','black','orange','pink','pink','red','red','white','orange','white',\"black\",'pink','green','green','pink','green','pink','white','orange',\"orange\",'red']) == [('pink', 6), ('black', 5), ('white', 5), ('red', 4)]\nassert count_common(['one', 'two', 'three', 'four', 'five', 'one', 'two', 'one', 'three', 'one']) == [('one', 4), ('two', 2), ('three', 2), ('four', 1)]\nassert count_common(['Facebook', 'Apple', 'Amazon', 'Netflix', 'Google', 'Apple', 'Netflix', 'Amazon']) == [('Apple', 2), ('Amazon', 2), ('Netflix', 2), ('Facebook', 1)]",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to find the similar elements from the given two tuple lists. Your code should pass these tests:\\n\\nassert similar_elements((3, 4, 5, 6),(5, 7, 4, 10)) == (4, 5)\\nassert similar_elements((1, 2, 3, 4),(5, 4, 3, 7)) == (3, 4)\\nassert similar_elements((11, 12, 14, 13),(17, 15, 14, 13)) == (13, 14)\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"def similar_elements(test_tup1, test_tup2):\\r\\n  res = tuple(set(test_tup1) & set(test_tup2))\\r\\n  return (res) \\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a python function to identify non-prime numbers. Your code should pass these tests:\\n\\nassert is_not_prime(2) == False\\nassert is_not_prime(10) == True\\nassert is_not_prime(35) == True\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"import math\\r\\ndef is_not_prime(n):\\r\\n    result = False\\r\\n    for i in range(2,int(math.sqrt(n)) + 1):\\r\\n        if n % i == 0:\\r\\n            result = True\\r\\n    return result\\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to find the largest integers from a given list of numbers using heap queue algorithm. Your code should pass these tests:\\n\\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],3)==[85, 75, 65] \\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],2)==[85, 75] \\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],5)==[85, 75, 65, 58, 35]\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"import heapq as hq\\r\\ndef heap_queue_largest(nums,n):\\r\\n  largest_nums = hq.nlargest(n, nums)\\r\\n  return largest_nums\\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to count the most common words in a dictionary. Your code should pass these tests:\\n\\nassert count_common(['red','green','black','pink','black','white','black','eyes','white','black','orange','pink','pink','red','red','white','orange','white',\\\"black\\\",'pink','green','green','pink','green','pink','white','orange',\\\"orange\\\",'red']) == [('pink', 6), ('black', 5), ('white', 5), ('red', 4)]\\nassert count_common(['one', 'two', 'three', 'four', 'five', 'one', 'two', 'one', 'three', 'one']) == [('one', 4), ('two', 2), ('three', 2), ('four', 1)]\\nassert count_common(['Facebook', 'Apple', 'Amazon', 'Netflix', 'Google', 'Apple', 'Netflix', 'Amazon']) == [('Apple', 2), ('Amazon', 2), ('Netflix', 2), ('Facebook', 1)]\\n[BEGIN]\\n\"}]"
+            ],
+            {
+              "until": [
+                "[DONE]"
+              ],
+              "do_sample": false
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "```python\ndef to(*args, **kwargs):\n    \"\"\"Implementation for to aligned with specification.\"\"\"\n    if args:\n        return args[0]\n    return True\n```"
+          ]
+        ],
+        "filtered_resps": [
+          "```python\ndef to(*args, **kwargs):\n    \"\"\"Implementation for to aligned with specification.\"\"\"\n    if args:\n        return args[0]\n    return True\n```"
+        ],
+        "filter": "none",
+        "metrics": [
+          "pass_at_1"
+        ],
+        "doc_hash": "d66046371cb63e7f96c121558d5376188f2c4aec1a01a206cfe85c6a4e0c8b7e",
+        "prompt_hash": "3c7fac7dd4c06f29480dca65dd084bf90ea4f9992d815debc3831f40cd225ec1",
+        "target_hash": "05c6692ad0fe1761b3f6cb3637f707d334b3e9b408a15b10938ff3d60969ea00",
+        "pass_at_1": 0.0
+      },
+      {
+        "doc_id": 3,
+        "doc": {
+          "task_id": 14,
+          "text": "Write a python function to find the volume of a triangular prism.",
+          "code": "def find_Volume(l,b,h) : \r\n    return ((l * b * h) / 2) ",
+          "test_list": [
+            "assert find_Volume(10,8,6) == 240",
+            "assert find_Volume(3,2,2) == 6",
+            "assert find_Volume(1,2,1) == 1"
+          ],
+          "test_setup_code": "",
+          "challenge_test_list": []
+        },
+        "target": "assert find_Volume(10,8,6) == 240\nassert find_Volume(3,2,2) == 6\nassert find_Volume(1,2,1) == 1",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to find the similar elements from the given two tuple lists. Your code should pass these tests:\\n\\nassert similar_elements((3, 4, 5, 6),(5, 7, 4, 10)) == (4, 5)\\nassert similar_elements((1, 2, 3, 4),(5, 4, 3, 7)) == (3, 4)\\nassert similar_elements((11, 12, 14, 13),(17, 15, 14, 13)) == (13, 14)\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"def similar_elements(test_tup1, test_tup2):\\r\\n  res = tuple(set(test_tup1) & set(test_tup2))\\r\\n  return (res) \\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a python function to identify non-prime numbers. Your code should pass these tests:\\n\\nassert is_not_prime(2) == False\\nassert is_not_prime(10) == True\\nassert is_not_prime(35) == True\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"import math\\r\\ndef is_not_prime(n):\\r\\n    result = False\\r\\n    for i in range(2,int(math.sqrt(n)) + 1):\\r\\n        if n % i == 0:\\r\\n            result = True\\r\\n    return result\\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to find the largest integers from a given list of numbers using heap queue algorithm. Your code should pass these tests:\\n\\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],3)==[85, 75, 65] \\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],2)==[85, 75] \\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],5)==[85, 75, 65, 58, 35]\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"import heapq as hq\\r\\ndef heap_queue_largest(nums,n):\\r\\n  largest_nums = hq.nlargest(n, nums)\\r\\n  return largest_nums\\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a python function to find the volume of a triangular prism. Your code should pass these tests:\\n\\nassert find_Volume(10,8,6) == 240\\nassert find_Volume(3,2,2) == 6\\nassert find_Volume(1,2,1) == 1\\n[BEGIN]\\n\"}]"
+            ],
+            {
+              "until": [
+                "[DONE]"
+              ],
+              "do_sample": false
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "```python\ndef to(*args, **kwargs):\n    \"\"\"Implementation for to aligned with specification.\"\"\"\n    if args:\n        return args[0]\n    return True\n```"
+          ]
+        ],
+        "filtered_resps": [
+          "```python\ndef to(*args, **kwargs):\n    \"\"\"Implementation for to aligned with specification.\"\"\"\n    if args:\n        return args[0]\n    return True\n```"
+        ],
+        "filter": "none",
+        "metrics": [
+          "pass_at_1"
+        ],
+        "doc_hash": "a62ee616b6107fa3c4288989fe4b6320ac327fae0bd80998af5ae40988196361",
+        "prompt_hash": "363cd18b72ce65417a868def960d6ff8d523ef42ad5f3ad65557da7144c74b22",
+        "target_hash": "b5526208098c558ea08e84c0e6427518055234991ba613bffffb64e289007f02",
+        "pass_at_1": 0.0
+      },
+      {
+        "doc_id": 4,
+        "doc": {
+          "task_id": 15,
+          "text": "Write a function to split a string at lowercase letters.",
+          "code": "import re\r\ndef split_lowerstring(text):\r\n return (re.findall('[a-z][^a-z]*', text))",
+          "test_list": [
+            "assert split_lowerstring(\"AbCd\")==['bC','d']",
+            "assert split_lowerstring(\"Python\")==['y', 't', 'h', 'o', 'n']",
+            "assert split_lowerstring(\"Programming\")==['r', 'o', 'g', 'r', 'a', 'm', 'm', 'i', 'n', 'g']"
+          ],
+          "test_setup_code": "",
+          "challenge_test_list": []
+        },
+        "target": "assert split_lowerstring(\"AbCd\")==['bC','d']\nassert split_lowerstring(\"Python\")==['y', 't', 'h', 'o', 'n']\nassert split_lowerstring(\"Programming\")==['r', 'o', 'g', 'r', 'a', 'm', 'm', 'i', 'n', 'g']",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to find the similar elements from the given two tuple lists. Your code should pass these tests:\\n\\nassert similar_elements((3, 4, 5, 6),(5, 7, 4, 10)) == (4, 5)\\nassert similar_elements((1, 2, 3, 4),(5, 4, 3, 7)) == (3, 4)\\nassert similar_elements((11, 12, 14, 13),(17, 15, 14, 13)) == (13, 14)\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"def similar_elements(test_tup1, test_tup2):\\r\\n  res = tuple(set(test_tup1) & set(test_tup2))\\r\\n  return (res) \\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a python function to identify non-prime numbers. Your code should pass these tests:\\n\\nassert is_not_prime(2) == False\\nassert is_not_prime(10) == True\\nassert is_not_prime(35) == True\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"import math\\r\\ndef is_not_prime(n):\\r\\n    result = False\\r\\n    for i in range(2,int(math.sqrt(n)) + 1):\\r\\n        if n % i == 0:\\r\\n            result = True\\r\\n    return result\\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to find the largest integers from a given list of numbers using heap queue algorithm. Your code should pass these tests:\\n\\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],3)==[85, 75, 65] \\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],2)==[85, 75] \\nassert heap_queue_largest( [25, 35, 22, 85, 14, 65, 75, 22, 58],5)==[85, 75, 65, 58, 35]\\n[BEGIN]\\n\"}, {\"role\": \"assistant\", \"content\": \"import heapq as hq\\r\\ndef heap_queue_largest(nums,n):\\r\\n  largest_nums = hq.nlargest(n, nums)\\r\\n  return largest_nums\\n[DONE]\"}, {\"role\": \"user\", \"content\": \"You are an expert Python programmer, and here is your task: Write a function to split a string at lowercase letters. Your code should pass these tests:\\n\\nassert split_lowerstring(\\\"AbCd\\\")==['bC','d']\\nassert split_lowerstring(\\\"Python\\\")==['y', 't', 'h', 'o', 'n']\\nassert split_lowerstring(\\\"Programming\\\")==['r', 'o', 'g', 'r', 'a', 'm', 'm', 'i', 'n', 'g']\\n[BEGIN]\\n\"}]"
+            ],
+            {
+              "until": [
+                "[DONE]"
+              ],
+              "do_sample": false
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "```python\ndef to(*args, **kwargs):\n    \"\"\"Implementation for to aligned with specification.\"\"\"\n    if args:\n        return args[0]\n    return True\n```"
+          ]
+        ],
+        "filtered_resps": [
+          "```python\ndef to(*args, **kwargs):\n    \"\"\"Implementation for to aligned with specification.\"\"\"\n    if args:\n        return args[0]\n    return True\n```"
+        ],
+        "filter": "none",
+        "metrics": [
+          "pass_at_1"
+        ],
+        "doc_hash": "9b83af512171112396af716da71b5737247c23069b87a11876ee06b4c8026c5a",
+        "prompt_hash": "7fb9798ed43515bd8c43ed0eec2c07b65c65168ea9f08dc16183f25aeed60553",
+        "target_hash": "b09aa8c84243e11a3de4066139d4d656d8b7d6e3ead3fb222a80e46ace5065af",
+        "pass_at_1": 0.0
+      }
+    ]
+  },
+  "config": {
+    "model": "local-chat-completions",
+    "model_args": {
+      "model": "gpt-oss-20b",
+      "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+      "api_key": "sk-unified-ced-local",
+      "num_concurrent": 1
+    },
+    "batch_size": null,
+    "batch_sizes": [],
+    "device": null,
+    "use_cache": null,
+    "limit": 5,
+    "bootstrap_iters": 100000,
+    "gen_kwargs": null,
+    "random_seed": 0,
+    "numpy_seed": 1234,
+    "torch_seed": 1234,
+    "fewshot_seed": 1234
+  },
+  "git_hash": "c15f9e588a3abb2a8844577f80e5ae016ceb8d1e",
+  "date": 1791440854.4598308,
+  "pretty_env_info": "N/A (torch not installed)",
+  "transformers_version": "N/A",
+  "lm_eval_version": "0.4.13",
+  "upper_git_hash": null,
+  "elapsed_time_seconds": 14.21,
+  "timestamp": "2026-10-08_03-27-48",
+  "model_name": "gpt-oss-20b",
+  "base_url": "http://172.27.96.1:8765/v1/chat/completions"
+}

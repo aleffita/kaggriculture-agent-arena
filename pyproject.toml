@@ -29,6 +29,7 @@ litert-bench = "litert_explore.cli:bench_cli"
 litert-gpu = "litert_explore.cli:gpu_cli"
 litert-hpc = "litert_explore.cli:hpc_cli"
 litert-autoresearch = "benchmarks.runner:main"
+litert-bench-external = "benchmarks.run_external:main"
 litert-live = "litert_explore.live.cli_live:main"
 litert-web = "litert_explore.live.web_studio:main"
 kaggriculture-dashboard = "kaggriculture.dashboard.app:main"
@@ -36,7 +37,12 @@ kaggriculture-dashboard = "kaggriculture.dashboard.app:main"
 
 [dependency-groups]
 dev = [
+    "antlr4-python3-runtime==4.11",
+    "lm-eval[api,math]>=0.4.13",
+    "math-verify>=0.9.0",
+    "pillow>=12.3.0",
     "pytest>=8.0.0",
+    "sympy>=1.14.0",
 ]
 
 [tool.hatch.build.targets.wheel]

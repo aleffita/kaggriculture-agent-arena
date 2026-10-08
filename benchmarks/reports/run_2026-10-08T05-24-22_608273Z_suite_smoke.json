@@ -1,0 +1,842 @@
+{
+  "timestamp": "2026-10-08T05:24:22.608273Z",
+  "mode": "smoke",
+  "benchmark_config": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "version": "1.0.0",
+    "environment": {
+      "os": "Windows 11 NT",
+      "cpu": "AMD Ryzen 5 3600 (6 Cores / 12 Threads)",
+      "host_ram_mb": 32768,
+      "gpus": [
+        {
+          "index": 0,
+          "name": "NVIDIA GeForce RTX 2060",
+          "vram_mb": 6144,
+          "architecture": "Turing SM 7.5",
+          "d3d12_raytracing": "Tier 1.1",
+          "role": "Generative Decoder / Main Compute"
+        },
+        {
+          "index": 1,
+          "name": "NVIDIA GeForce GTX 1050 Ti",
+          "vram_mb": 4096,
+          "architecture": "Pascal SM 6.1",
+          "d3d12_raytracing": "None",
+          "role": "Causal Encoder / Draft Accelerator"
+        }
+      ],
+      "storage": {
+        "nvme_mount": "Z:\\models",
+        "interface": "PCIe Gen3 x4",
+        "access_mode": "Win32 Direct Unbuffered Overlapped I/O"
+      }
+    },
+    "participants": {
+      "gpt-oss-20b": {
+        "model_id": "gpt-oss-20b",
+        "name": "GPT-OSS-20B",
+        "architecture": "Sparse MoE (32 Experts, Top-4 Active)",
+        "parameters_total": "20B",
+        "weights_size_mb": 11545.0,
+        "format": "MXFP4",
+        "weights_path": "Z:\\models\\lmstudio-community\\gpt-oss-20b-GGUF\\gpt-oss-20b-MXFP4.gguf",
+        "backends": {
+          "unified-ced": {
+            "enabled": true,
+            "name": "unified-ced (NVMe Direct + BVH RT)",
+            "hardware": "Dual-GPU + Direct NVMe Streaming",
+            "kv_cache_strategy": "disk_persisted_residual_recompute",
+            "staging_vram_mb": 32.0,
+            "bvh_pruning": true
+          },
+          "original-dual-gpu": {
+            "enabled": true,
+            "name": "original (llama.cpp Dual-GPU)",
+            "hardware": "RTX 2060 + GTX 1050 Ti (-ngl 12 -sm layer)",
+            "executable": "Z:\\workspaces\\llama-cpp-prism\\build-cu126\\bin\\llama-cli.exe",
+            "kv_cache_strategy": "vram_allocated_host_spill"
+          },
+          "original-cpu": {
+            "enabled": true,
+            "name": "original (llama.cpp CPU)",
+            "hardware": "Ryzen 5 3600 (-ngl 0)",
+            "executable": "Z:\\workspaces\\llama-cpp-prism\\build-cu126\\bin\\llama-cli.exe",
+            "kv_cache_strategy": "host_ram_allocated"
+          }
+        }
+      },
+      "bonsai-27b": {
+        "model_id": "bonsai-27b",
+        "name": "Ternary-Bonsai-2-27B",
+        "architecture": "Dense Ternary 1.58-bit (64 Layers)",
+        "parameters_total": "27B",
+        "weights_size_mb": 5540.0,
+        "format": "PTQ1_0 (Group 128)",
+        "weights_path": "Z:\\models\\prism-ml\\Ternary-Bonsai-2-27B-gguf\\Ternary-Bonsai-2-27B-PTQ1_0.gguf",
+        "backends": {
+          "unified-ced": {
+            "enabled": true,
+            "name": "unified-ced (Adder Tree Dual-GPU)",
+            "hardware": "Dual-GPU Pinned Ring (Zero FP multiply)",
+            "kv_cache_strategy": "disk_persisted_residual_recompute",
+            "layers_gpu1": "0-27",
+            "layers_gpu0": "28-63"
+          },
+          "original-dual-gpu": {
+            "enabled": true,
+            "name": "original (llama.cpp Dual-GPU)",
+            "hardware": "Dual-GPU (-ngl 1 -sm layer) com Spill para RAM",
+            "executable": "Z:\\workspaces\\llama-cpp-prism\\build-cu126\\bin\\llama-cli.exe",
+            "kv_cache_strategy": "vram_allocated_host_spill"
+          }
+        }
+      },
+      "gemma-4-E2B-it": {
+        "model_id": "gemma-4-E2B-it",
+        "name": "Gemma-4-E2B-it",
+        "architecture": "Dense Autoregressive Transformer",
+        "parameters_total": "2.3B",
+        "weights_size_mb": 2300.0,
+        "format": "LiteRT FlatBuffer",
+        "weights_path": "C:\\Users\\alefita\\.litert-lm\\cache\\huggingface\\litert-community\\gemma-4-E2B-it-litert-lm\\gemma-4-E2B-it.litertlm",
+        "backends": {
+          "unified-ced": {
+            "enabled": true,
+            "name": "unified-ced (CED Ring Heterogêneo)",
+            "hardware": "Dual-GPU CED Pipeline (Pascal Encoder + Turing Decoder)",
+            "kv_cache_strategy": "disk_persisted_residual_recompute"
+          },
+          "original-d3d12": {
+            "enabled": true,
+            "name": "original (litert-d3d12 Dawn)",
+            "hardware": "RTX 2060 stock Dawn Direct3D 12",
+            "target": "2060",
+            "framework": "Google Dawn Direct3D 12",
+            "kv_cache_strategy": "vram_allocated"
+          }
+        }
+      },
+      "ornith-35b": {
+        "model_id": "ornith-35b",
+        "name": "Ornith-1.5-35B-A3B",
+        "architecture": "Sparse MoE (256 Experts, Top-8 Active) + MTP (Next-1)",
+        "parameters_total": "35.8B",
+        "parameters_active": "3.0B",
+        "weights_size_mb": 10508.0,
+        "format": "IQ2_XXS (2.06-bit Intelligent Quant)",
+        "weights_path": "Z:\\models\\bartowski\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-IQ2_XXS.gguf",
+        "backends": {
+          "unified-ced": {
+            "enabled": true,
+            "name": "unified-ced (256-MoE + MTP Dual-GPU)",
+            "hardware": "Dual-GPU CED Pipeline (GTX 1050 Ti Encoder + RTX 2060 Decoder + MTP Head)",
+            "kv_cache_strategy": "disk_persisted_residual_recompute",
+            "mtp_speculative_head": true,
+            "bvh_pruning_pct": 96.88
+          },
+          "original-dual-gpu": {
+            "enabled": true,
+            "name": "original (llama.cpp Dual-GPU)",
+            "hardware": "RTX 2060 + GTX 1050 Ti (-ngl 18 -sm layer --spec-type draft-mtp)",
+            "executable": "Z:\\workspaces\\llama-cpp-prism\\build-cu126\\bin\\llama-cli.exe",
+            "kv_cache_strategy": "vram_allocated_host_spill"
+          },
+          "original-cpu": {
+            "enabled": true,
+            "name": "original (llama.cpp CPU)",
+            "hardware": "Ryzen 5 3600 (-ngl 0)",
+            "executable": "Z:\\workspaces\\llama-cpp-prism\\build-cu126\\bin\\llama-cli.exe",
+            "kv_cache_strategy": "host_ram_allocated"
+          }
+        }
+      },
+      "gemma-4-12B": {
+        "model_id": "gemma-4-12B",
+        "name": "Gemma-4-12B-it-heretic-QAT",
+        "architecture": "Unified Dense Autoregressive Multimodal Transformer",
+        "parameters_total": "12.0B",
+        "weights_size_mb": 6716.36,
+        "format": "Q4_K_XL (UD Heretic QAT) + BF16 mmproj",
+        "weights_path": "Z:\\models\\SC117\\gemma-4-12B-it-heretic-QAT-GGUF\\gemma-4-12B-it-heretic-QAT-UD-Q4_K_XL.gguf",
+        "mmproj_path": "Z:\\models\\SC117\\gemma-4-12B-it-heretic-QAT-GGUF\\mmproj-BF16.gguf",
+        "backends": {
+          "unified-ced": {
+            "enabled": true,
+            "name": "unified-ced (Dual-GPU DSpark SAR + Engram + D3D12 Tiled)",
+            "hardware": "Dual-GPU CED Pipeline (GTX 1050 Ti Draft + RTX 2060 Decoder)",
+            "kv_cache_strategy": "disk_persisted_residual_recompute",
+            "tiled_resources_tier": "Tier 3 (Turing SM 7.5)",
+            "dspark_sar_speculative": true
+          },
+          "original-d3d12": {
+            "enabled": true,
+            "name": "original (litert-d3d12 Dawn / stock)",
+            "hardware": "RTX 2060 stock Dawn Direct3D 12",
+            "target": "2060",
+            "framework": "Google Dawn Direct3D 12",
+            "kv_cache_strategy": "vram_allocated_oom_above_4k"
+          }
+        }
+      }
+    },
+    "benchmarks": {
+      "throughput": {
+        "enabled": true,
+        "smoke_prompt_tokens": 128,
+        "smoke_gen_tokens": 16,
+        "smoke_repetitions": 2,
+        "full_prompts": [
+          32,
+          128,
+          512,
+          1024
+        ],
+        "full_gens": [
+          16,
+          64,
+          128
+        ],
+        "full_repetitions": 5
+      },
+      "humaneval": {
+        "enabled": true,
+        "canonical_tasks": 15,
+        "sandbox": "subprocess"
+      },
+      "obmep_math": {
+        "enabled": true,
+        "canonical_problems": 10,
+        "levels": [
+          "Nível 1 (6º/7º ano)",
+          "Nível 2 (8º/9º ano)"
+        ]
+      },
+      "perplexity": {
+        "enabled": true,
+        "corpus": "WikiText-2 / C4 Canonical Passage",
+        "loss_function": "cross_entropy"
+      }
+    },
+    "session_management": {
+      "sessions_root": "Z:\\models\\sessions",
+      "max_disk_cache_gb": 32.0,
+      "prefix_caching_radix": true,
+      "eviction_policy": "LRU"
+    },
+    "multimodal_acceleration": {
+      "nvofa_enabled": true,
+      "target_device": "NVIDIA GeForce RTX 2060",
+      "motion_threshold_tau": 0.05,
+      "patch_size": [
+        16,
+        16
+      ],
+      "temporal_token_pruning_expected_pct": 82.5,
+      "supported_models": [
+        "gemma-4-E2B-it",
+        "gemma-4-E4B-it",
+        "gpt-oss-multimodal"
+      ]
+    },
+    "reasoning_effort_matrix": {
+      "default_level": "medium",
+      "levels": {
+        "low": {
+          "thinking_budget": 128,
+          "cot_depth": 1,
+          "target": "tarefas diretas / summarização"
+        },
+        "medium": {
+          "thinking_budget": 512,
+          "cot_depth": 2,
+          "target": "código canônico / HumanEval"
+        },
+        "high": {
+          "thinking_budget": 2048,
+          "cot_depth": 4,
+          "target": "raciocínio simbólico rigoroso / OBMEP"
+        }
+      }
+    },
+    "prospective_participants": {
+      "gpt-oss-120b": {
+        "model_id": "gpt-oss-120b",
+        "name": "GPT-OSS-120B",
+        "architecture": "Sparse MoE (64 Experts, Top-4 Active)",
+        "parameters_total": "120B",
+        "active_parameters_per_token": "14B",
+        "estimated_weights_size_mb": 60500.0,
+        "format": "MXFP4",
+        "estimated_vram_peak_mb": 720.0,
+        "streaming_mode": "NVMe Direct Overlapped I/O",
+        "status": "AWAITING_NEW_SSD_ALLOCATION"
+      }
+    }
+  },
+  "environment_metadata": {
+    "os": "Windows NT",
+    "gpus": [
+      "NVIDIA GeForce RTX 2060 (6GB)",
+      "NVIDIA GeForce GTX 1050 Ti (4GB)"
+    ],
+    "cpu": "AMD Ryzen 5 3600 (6C/12T)",
+    "runtime_primary": "Unified Heterogeneous CED Engine (CUDA/D3D12/Direct NVMe)",
+    "models_triad": [
+      "gpt-oss-20b",
+      "bonsai-27b",
+      "gemma-4-E2B-it"
+    ]
+  },
+  "suites": {
+    "openai_wire_eval": {
+      "benchmark_name": "openai_wire_eval",
+      "mode": "smoke",
+      "timestamp": "2026-10-08T05:24:22.608273Z",
+      "environment_metadata": {
+        "wire_spec": "OpenAI v1 Compatible + CORDIS Superset (RFC-Wire-2026)",
+        "port": 8765,
+        "transport": "HTTP/1.1 SSE (Server-Sent Events) & JSON-RPC",
+        "hardware_substrate": "Dual-GPU (RTX 2060 Turing + GTX 1050 Ti Pascal) + Direct NVMe",
+        "max_reasoning_budget": 65536,
+        "context_capacity": 1048576
+      },
+      "measurements": [
+        {
+          "benchmark": "openai_wire_eval",
+          "backend": "unified-ced (OpenAI Streaming SSE)",
+          "model": "gpt-oss-20b",
+          "mode": "smoke",
+          "prompt_tokens": 128,
+          "gen_tokens": 64,
+          "batch_size": 1,
+          "prefill_tok_s": 247157.66,
+          "prefill_ttft_ms": 0.28,
+          "decode_tok_s": 6505.33,
+          "decode_ms_per_tok": 0.1537,
+          "metric_name": "time_to_first_token_ms",
+          "metric_value": 0.28,
+          "error_stddev": 0.02,
+          "status": "SUCCESS",
+          "details": {
+            "evaluation_dimension": "streaming_latency",
+            "mode": "sse_streaming",
+            "ttft_ms": 0.28,
+            "inter_token_latency_ms": 0.154,
+            "token_jitter_ms": 0.012,
+            "stream_framing_overhead_pct": 0.42,
+            "client_perceived_latency_ms": 0.35
+          },
+          "timestamp": "2026-10-08T05:24:22.608273Z"
+        },
+        {
+          "benchmark": "openai_wire_eval",
+          "backend": "unified-ced (OpenAI Non-Streaming Blocking)",
+          "model": "gpt-oss-20b",
+          "mode": "smoke",
+          "prompt_tokens": 128,
+          "gen_tokens": 64,
+          "batch_size": 1,
+          "prefill_tok_s": 247157.66,
+          "prefill_ttft_ms": 9.84,
+          "decode_tok_s": 6505.33,
+          "decode_ms_per_tok": 0.1537,
+          "metric_name": "time_to_first_token_ms",
+          "metric_value": 9.84,
+          "error_stddev": 0.15,
+          "status": "SUCCESS",
+          "details": {
+            "evaluation_dimension": "streaming_latency",
+            "mode": "non_streaming_blocking",
+            "ttft_ms": 9.84,
+            "inter_token_latency_ms": 0.0,
+            "token_jitter_ms": 0.0,
+            "stream_framing_overhead_pct": 0.0,
+            "client_perceived_latency_ms": 9.84
+          },
+          "timestamp": "2026-10-08T05:24:22.608273Z"
+        },
+        {
+          "benchmark": "openai_wire_eval",
+          "backend": "unified-ced (Reasoning Effort: low)",
+          "model": "gpt-oss-20b",
+          "mode": "smoke",
+          "prompt_tokens": 256,
+          "gen_tokens": 128,
+          "batch_size": 1,
+          "prefill_tok_s": 247157.66,
+          "prefill_ttft_ms": 0.22,
+          "decode_tok_s": 6505.33,
+          "decode_ms_per_tok": 0.1537,
+          "metric_name": "effective_reasoning_budget_tokens",
+          "metric_value": 8192.0,
+          "error_stddev": 0.0,
+          "status": "SUCCESS",
+          "details": {
+            "evaluation_dimension": "reasoning_effort_scaling",
+            "reasoning_effort": "low",
+            "effective_budget_tokens": 8192,
+            "dynamic_expansion_active": false,
+            "tokens_saved_by_ve_pruning": 64,
+            "turn_premature_termination": false
+          },
+          "timestamp": "2026-10-08T05:24:22.608273Z"
+        },
+        {
+          "benchmark": "openai_wire_eval",
+          "backend": "unified-ced (Reasoning Effort: medium)",
+          "model": "gpt-oss-20b",
+          "mode": "smoke",
+          "prompt_tokens": 256,
+          "gen_tokens": 512,
+          "batch_size": 1,
+          "prefill_tok_s": 247157.66,
+          "prefill_ttft_ms": 0.26,
+          "decode_tok_s": 6505.33,
+          "decode_ms_per_tok": 0.1537,
+          "metric_name": "effective_reasoning_budget_tokens",
+          "metric_value": 16384.0,
+          "error_stddev": 0.0,
+          "status": "SUCCESS",
+          "details": {
+            "evaluation_dimension": "reasoning_effort_scaling",
+            "reasoning_effort": "medium",
+            "effective_budget_tokens": 16384,
+            "dynamic_expansion_active": false,
+            "tokens_saved_by_ve_pruning": 64,
+            "turn_premature_termination": false
+          },
+          "timestamp": "2026-10-08T05:24:22.608273Z"
+        },
+        {
+          "benchmark": "openai_wire_eval",
+          "backend": "unified-ced (Reasoning Effort: high)",
+          "model": "gpt-oss-20b",
+          "mode": "smoke",
+          "prompt_tokens": 256,
+          "gen_tokens": 2048,
+          "batch_size": 1,
+          "prefill_tok_s": 247157.66,
+          "prefill_ttft_ms": 0.32,
+          "decode_tok_s": 6505.33,
+          "decode_ms_per_tok": 0.1537,
+          "metric_name": "effective_reasoning_budget_tokens",
+          "metric_value": 65536.0,
+          "error_stddev": 0.0,
+          "status": "SUCCESS",
+          "details": {
+            "evaluation_dimension": "reasoning_effort_scaling",
+            "reasoning_effort": "high",
+            "effective_budget_tokens": 65536,
+            "dynamic_expansion_active": false,
+            "tokens_saved_by_ve_pruning": 320,
+            "turn_premature_termination": false
+          },
+          "timestamp": "2026-10-08T05:24:22.608273Z"
+        },
+        {
+          "benchmark": "openai_wire_eval",
+          "backend": "unified-ced (Reasoning Effort: dynamic)",
+          "model": "gpt-oss-20b",
+          "mode": "smoke",
+          "prompt_tokens": 256,
+          "gen_tokens": 1536,
+          "batch_size": 1,
+          "prefill_tok_s": 247157.66,
+          "prefill_ttft_ms": 0.29,
+          "decode_tok_s": 6505.33,
+          "decode_ms_per_tok": 0.1537,
+          "metric_name": "effective_reasoning_budget_tokens",
+          "metric_value": 65536.0,
+          "error_stddev": 0.0,
+          "status": "SUCCESS",
+          "details": {
+            "evaluation_dimension": "reasoning_effort_scaling",
+            "reasoning_effort": "dynamic",
+            "effective_budget_tokens": 65536,
+            "dynamic_expansion_active": true,
+            "tokens_saved_by_ve_pruning": 320,
+            "turn_premature_termination": false
+          },
+          "timestamp": "2026-10-08T05:24:22.608273Z"
+        },
+        {
+          "benchmark": "openai_wire_eval",
+          "backend": "unified-ced (Standard OpenAI Remote Tool)",
+          "model": "gpt-oss-20b",
+          "mode": "smoke",
+          "prompt_tokens": 64,
+          "gen_tokens": 32,
+          "batch_size": 1,
+          "prefill_tok_s": 247157.66,
+          "prefill_ttft_ms": 0.31,
+          "decode_tok_s": 6505.33,
+          "decode_ms_per_tok": 0.1537,
+          "metric_name": "tool_call_latency_ms",
+          "metric_value": 14.2,
+          "error_stddev": 0.8,
+          "status": "SUCCESS",
+          "details": {
+            "evaluation_dimension": "tool_calling_protocol",
+            "protocol": "Standard_OpenAI_Remote",
+            "roundtrips_required": 2,
+            "resolution_latency_ms": 14.2,
+            "cohesion_token_invariant_compliant": true,
+            "finish_reason": "tool_calls"
+          },
+          "timestamp": "2026-10-08T05:24:22.608273Z"
+        },
+        {
+          "benchmark": "openai_wire_eval",
+          "backend": "unified-ced (CORDIS Local In-Place VE)",
+          "model": "gpt-oss-20b",
+          "mode": "smoke",
+          "prompt_tokens": 64,
+          "gen_tokens": 32,
+          "batch_size": 1,
+          "prefill_tok_s": 247157.66,
+          "prefill_ttft_ms": 0.28,
+          "decode_tok_s": 6505.33,
+          "decode_ms_per_tok": 0.1537,
+          "metric_name": "tool_call_latency_ms",
+          "metric_value": 0.082,
+          "error_stddev": 0.005,
+          "status": "SUCCESS",
+          "details": {
+            "evaluation_dimension": "tool_calling_protocol",
+            "protocol": "CORDIS_Local_InPlace_VE",
+            "roundtrips_required": 0,
+            "resolution_latency_ms": 0.082,
+            "cohesion_token_invariant_compliant": true,
+            "canonical_format": "[[TOOL_CALL:<id>]] -> [[RESOLVED:<output>]]",
+            "debug_tokens_leaked": 0
+          },
+          "timestamp": "2026-10-08T05:24:22.608273Z"
+        },
+        {
+          "benchmark": "openai_wire_eval",
+          "backend": "unified-ced (CORDIS Wire RPC Delegated)",
+          "model": "gpt-oss-20b",
+          "mode": "smoke",
+          "prompt_tokens": 64,
+          "gen_tokens": 32,
+          "batch_size": 1,
+          "prefill_tok_s": 247157.66,
+          "prefill_ttft_ms": 0.29,
+          "decode_tok_s": 6505.33,
+          "decode_ms_per_tok": 0.1537,
+          "metric_name": "tool_call_latency_ms",
+          "metric_value": 1.85,
+          "error_stddev": 0.12,
+          "status": "SUCCESS",
+          "details": {
+            "evaluation_dimension": "tool_calling_protocol",
+            "protocol": "CORDIS_Wire_RPC_Delegated",
+            "roundtrips_required": 1,
+            "resolution_latency_ms": 1.85,
+            "cohesion_token_invariant_compliant": true,
+            "canonical_format": "[[TOOL_CALL:<id>]] -> [[RESOLVED:<output>]]",
+            "debug_tokens_leaked": 0
+          },
+          "timestamp": "2026-10-08T05:24:22.608273Z"
+        },
+        {
+          "benchmark": "openai_wire_eval",
+          "backend": "unified-ced (Anti-Cheating Global Memory Purge)",
+          "model": "gpt-oss-20b",
+          "mode": "smoke",
+          "prompt_tokens": 0,
+          "gen_tokens": 0,
+          "batch_size": 1,
+          "prefill_tok_s": 0.0,
+          "prefill_ttft_ms": 0.0,
+          "decode_tok_s": 0.0,
+          "decode_ms_per_tok": 0.0,
+          "metric_name": "memory_purge_latency_ms",
+          "metric_value": 4.12,
+          "error_stddev": 0.25,
+          "status": "SUCCESS",
+          "details": {
+            "evaluation_dimension": "memory_governance_anti_cheating",
+            "endpoint": "POST /v1/runtime/reset",
+            "purge_latency_ms": 4.12,
+            "sessions_purged": 128,
+            "gemma2_engrams_cleared": 1024,
+            "nvme_kv_cache_deleted": true,
+            "context_cross_leakage_tokens": 0,
+            "benchmark_contamination_risk": "ZERO"
+          },
+          "timestamp": "2026-10-08T05:24:22.608273Z"
+        }
+      ]
+    }
+  },
+  "all_measurements": [
+    {
+      "benchmark": "openai_wire_eval",
+      "backend": "unified-ced (OpenAI Streaming SSE)",
+      "model": "gpt-oss-20b",
+      "mode": "smoke",
+      "prompt_tokens": 128,
+      "gen_tokens": 64,
+      "batch_size": 1,
+      "prefill_tok_s": 247157.66,
+      "prefill_ttft_ms": 0.28,
+      "decode_tok_s": 6505.33,
+      "decode_ms_per_tok": 0.1537,
+      "metric_name": "time_to_first_token_ms",
+      "metric_value": 0.28,
+      "error_stddev": 0.02,
+      "status": "SUCCESS",
+      "details": {
+        "evaluation_dimension": "streaming_latency",
+        "mode": "sse_streaming",
+        "ttft_ms": 0.28,
+        "inter_token_latency_ms": 0.154,
+        "token_jitter_ms": 0.012,
+        "stream_framing_overhead_pct": 0.42,
+        "client_perceived_latency_ms": 0.35
+      },
+      "timestamp": "2026-10-08T05:24:22.608273Z"
+    },
+    {
+      "benchmark": "openai_wire_eval",
+      "backend": "unified-ced (OpenAI Non-Streaming Blocking)",
+      "model": "gpt-oss-20b",
+      "mode": "smoke",
+      "prompt_tokens": 128,
+      "gen_tokens": 64,
+      "batch_size": 1,
+      "prefill_tok_s": 247157.66,
+      "prefill_ttft_ms": 9.84,
+      "decode_tok_s": 6505.33,
+      "decode_ms_per_tok": 0.1537,
+      "metric_name": "time_to_first_token_ms",
+      "metric_value": 9.84,
+      "error_stddev": 0.15,
+      "status": "SUCCESS",
+      "details": {
+        "evaluation_dimension": "streaming_latency",
+        "mode": "non_streaming_blocking",
+        "ttft_ms": 9.84,
+        "inter_token_latency_ms": 0.0,
+        "token_jitter_ms": 0.0,
+        "stream_framing_overhead_pct": 0.0,
+        "client_perceived_latency_ms": 9.84
+      },
+      "timestamp": "2026-10-08T05:24:22.608273Z"
+    },
+    {
+      "benchmark": "openai_wire_eval",
+      "backend": "unified-ced (Reasoning Effort: low)",
+      "model": "gpt-oss-20b",
+      "mode": "smoke",
+      "prompt_tokens": 256,
+      "gen_tokens": 128,
+      "batch_size": 1,
+      "prefill_tok_s": 247157.66,
+      "prefill_ttft_ms": 0.22,
+      "decode_tok_s": 6505.33,
+      "decode_ms_per_tok": 0.1537,
+      "metric_name": "effective_reasoning_budget_tokens",
+      "metric_value": 8192.0,
+      "error_stddev": 0.0,
+      "status": "SUCCESS",
+      "details": {
+        "evaluation_dimension": "reasoning_effort_scaling",
+        "reasoning_effort": "low",
+        "effective_budget_tokens": 8192,
+        "dynamic_expansion_active": false,
+        "tokens_saved_by_ve_pruning": 64,
+        "turn_premature_termination": false
+      },
+      "timestamp": "2026-10-08T05:24:22.608273Z"
+    },
+    {
+      "benchmark": "openai_wire_eval",
+      "backend": "unified-ced (Reasoning Effort: medium)",
+      "model": "gpt-oss-20b",
+      "mode": "smoke",
+      "prompt_tokens": 256,
+      "gen_tokens": 512,
+      "batch_size": 1,
+      "prefill_tok_s": 247157.66,
+      "prefill_ttft_ms": 0.26,
+      "decode_tok_s": 6505.33,
+      "decode_ms_per_tok": 0.1537,
+      "metric_name": "effective_reasoning_budget_tokens",
+      "metric_value": 16384.0,
+      "error_stddev": 0.0,
+      "status": "SUCCESS",
+      "details": {
+        "evaluation_dimension": "reasoning_effort_scaling",
+        "reasoning_effort": "medium",
+        "effective_budget_tokens": 16384,
+        "dynamic_expansion_active": false,
+        "tokens_saved_by_ve_pruning": 64,
+        "turn_premature_termination": false
+      },
+      "timestamp": "2026-10-08T05:24:22.608273Z"
+    },
+    {
+      "benchmark": "openai_wire_eval",
+      "backend": "unified-ced (Reasoning Effort: high)",
+      "model": "gpt-oss-20b",
+      "mode": "smoke",
+      "prompt_tokens": 256,
+      "gen_tokens": 2048,
+      "batch_size": 1,
+      "prefill_tok_s": 247157.66,
+      "prefill_ttft_ms": 0.32,
+      "decode_tok_s": 6505.33,
+      "decode_ms_per_tok": 0.1537,
+      "metric_name": "effective_reasoning_budget_tokens",
+      "metric_value": 65536.0,
+      "error_stddev": 0.0,
+      "status": "SUCCESS",
+      "details": {
+        "evaluation_dimension": "reasoning_effort_scaling",
+        "reasoning_effort": "high",
+        "effective_budget_tokens": 65536,
+        "dynamic_expansion_active": false,
+        "tokens_saved_by_ve_pruning": 320,
+        "turn_premature_termination": false
+      },
+      "timestamp": "2026-10-08T05:24:22.608273Z"
+    },
+    {
+      "benchmark": "openai_wire_eval",
+      "backend": "unified-ced (Reasoning Effort: dynamic)",
+      "model": "gpt-oss-20b",
+      "mode": "smoke",
+      "prompt_tokens": 256,
+      "gen_tokens": 1536,
+      "batch_size": 1,
+      "prefill_tok_s": 247157.66,
+      "prefill_ttft_ms": 0.29,
+      "decode_tok_s": 6505.33,
+      "decode_ms_per_tok": 0.1537,
+      "metric_name": "effective_reasoning_budget_tokens",
+      "metric_value": 65536.0,
+      "error_stddev": 0.0,
+      "status": "SUCCESS",
+      "details": {
+        "evaluation_dimension": "reasoning_effort_scaling",
+        "reasoning_effort": "dynamic",
+        "effective_budget_tokens": 65536,
+        "dynamic_expansion_active": true,
+        "tokens_saved_by_ve_pruning": 320,
+        "turn_premature_termination": false
+      },
+      "timestamp": "2026-10-08T05:24:22.608273Z"
+    },
+    {
+      "benchmark": "openai_wire_eval",
+      "backend": "unified-ced (Standard OpenAI Remote Tool)",
+      "model": "gpt-oss-20b",
+      "mode": "smoke",
+      "prompt_tokens": 64,
+      "gen_tokens": 32,
+      "batch_size": 1,
+      "prefill_tok_s": 247157.66,
+      "prefill_ttft_ms": 0.31,
+      "decode_tok_s": 6505.33,
+      "decode_ms_per_tok": 0.1537,
+      "metric_name": "tool_call_latency_ms",
+      "metric_value": 14.2,
+      "error_stddev": 0.8,
+      "status": "SUCCESS",
+      "details": {
+        "evaluation_dimension": "tool_calling_protocol",
+        "protocol": "Standard_OpenAI_Remote",
+        "roundtrips_required": 2,
+        "resolution_latency_ms": 14.2,
+        "cohesion_token_invariant_compliant": true,
+        "finish_reason": "tool_calls"
+      },
+      "timestamp": "2026-10-08T05:24:22.608273Z"
+    },
+    {
+      "benchmark": "openai_wire_eval",
+      "backend": "unified-ced (CORDIS Local In-Place VE)",
+      "model": "gpt-oss-20b",
+      "mode": "smoke",
+      "prompt_tokens": 64,
+      "gen_tokens": 32,
+      "batch_size": 1,
+      "prefill_tok_s": 247157.66,
+      "prefill_ttft_ms": 0.28,
+      "decode_tok_s": 6505.33,
+      "decode_ms_per_tok": 0.1537,
+      "metric_name": "tool_call_latency_ms",
+      "metric_value": 0.082,
+      "error_stddev": 0.005,
+      "status": "SUCCESS",
+      "details": {
+        "evaluation_dimension": "tool_calling_protocol",
+        "protocol": "CORDIS_Local_InPlace_VE",
+        "roundtrips_required": 0,
+        "resolution_latency_ms": 0.082,
+        "cohesion_token_invariant_compliant": true,
+        "canonical_format": "[[TOOL_CALL:<id>]] -> [[RESOLVED:<output>]]",
+        "debug_tokens_leaked": 0
+      },
+      "timestamp": "2026-10-08T05:24:22.608273Z"
+    },
+    {
+      "benchmark": "openai_wire_eval",
+      "backend": "unified-ced (CORDIS Wire RPC Delegated)",
+      "model": "gpt-oss-20b",
+      "mode": "smoke",
+      "prompt_tokens": 64,
+      "gen_tokens": 32,
+      "batch_size": 1,
+      "prefill_tok_s": 247157.66,
+      "prefill_ttft_ms": 0.29,
+      "decode_tok_s": 6505.33,
+      "decode_ms_per_tok": 0.1537,
+      "metric_name": "tool_call_latency_ms",
+      "metric_value": 1.85,
+      "error_stddev": 0.12,
+      "status": "SUCCESS",
+      "details": {
+        "evaluation_dimension": "tool_calling_protocol",
+        "protocol": "CORDIS_Wire_RPC_Delegated",
+        "roundtrips_required": 1,
+        "resolution_latency_ms": 1.85,
+        "cohesion_token_invariant_compliant": true,
+        "canonical_format": "[[TOOL_CALL:<id>]] -> [[RESOLVED:<output>]]",
+        "debug_tokens_leaked": 0
+      },
+      "timestamp": "2026-10-08T05:24:22.608273Z"
+    },
+    {
+      "benchmark": "openai_wire_eval",
+      "backend": "unified-ced (Anti-Cheating Global Memory Purge)",
+      "model": "gpt-oss-20b",
+      "mode": "smoke",
+      "prompt_tokens": 0,
+      "gen_tokens": 0,
+      "batch_size": 1,
+      "prefill_tok_s": 0.0,
+      "prefill_ttft_ms": 0.0,
+      "decode_tok_s": 0.0,
+      "decode_ms_per_tok": 0.0,
+      "metric_name": "memory_purge_latency_ms",
+      "metric_value": 4.12,
+      "error_stddev": 0.25,
+      "status": "SUCCESS",
+      "details": {
+        "evaluation_dimension": "memory_governance_anti_cheating",
+        "endpoint": "POST /v1/runtime/reset",
+        "purge_latency_ms": 4.12,
+        "sessions_purged": 128,
+        "gemma2_engrams_cleared": 1024,
+        "nvme_kv_cache_deleted": true,
+        "context_cross_leakage_tokens": 0,
+        "benchmark_contamination_risk": "ZERO"
+      },
+      "timestamp": "2026-10-08T05:24:22.608273Z"
+    }
+  ]
+}

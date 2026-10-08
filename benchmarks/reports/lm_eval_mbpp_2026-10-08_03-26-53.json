@@ -1,0 +1,29 @@
+{
+  "results": {
+    "mbpp": {
+      "name": "mbpp",
+      "alias": "mbpp",
+      "sample_len": 5,
+      "pass_at_1,none": 0.0,
+      "pass_at_1_stderr,none": 0.0
+    }
+  },
+  "group_subtasks": {},
+  "configs": {
+    "mbpp": {
+      "task": "mbpp",
+      "dataset_path": "google-research-datasets/mbpp",
+      "dataset_name": "full",
+      "test_split": "test",
+      "doc_to_text": "You are an expert Python programmer, and here is your task: {{text}} Your code should pass these tests:\n\n{{test_list[0]}}\n{{test_list[1]}}\n{{test_list[2]}}\n[BEGIN]\n",
+      "doc_to_target": "{% if is_fewshot is defined %}{{code}}\n[DONE]{% else %}{{test_list[0]}}\n{{test_list[1]}}\n{{test_list[2]}}{% endif %}",
+      "unsafe_code": true,
+      "description": "",
+      "target_delimiter": "",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "first_n",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": 
