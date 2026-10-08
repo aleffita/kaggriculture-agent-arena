@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional, Generator, Tuple
 
 from .audio_engine import AudioStreamEngine
+from .subagents import SubagentPool, SubagentSession
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 UNIFIED_BIN = PROJECT_ROOT / "src" / "litert_explore" / "hpc_engine" / "unified_runtime.exe"
@@ -32,6 +33,22 @@ class LiveSession:
         self.dual_session_enabled = dual_session
         self.audio_engine = audio_engine or AudioStreamEngine(enabled=True)
 
+        # Pool de subagentes concorrentes em sessões isoladas de NVMe
+        self.subagents = SubagentPool(max_concurrent=128)
+        # Pre-registra subagente crítico e subagente matemático padrão
+        self.subagents.spawn(
+            role="Crítico & Verificador de Consenso",
+            goal="Avaliar fidelidade lógica do stream principal e validar alucinações",
+            parent_session_id=self.active_session_id,
+            custom_id="subagent-critic"
+        )
+        self.subagents.spawn(
+            role="Especialista Simbólico OBMEP",
+            goal="Resolver equações e integrais com provas rigorosas e AST LLVM",
+            parent_session_id=self.active_session_id,
+            custom_id="subagent-math-eval"
+        )
+
         # Histórico particionado por session_id (até 128 sessões concorrentes em NVMe)
         self.sessions: Dict[str, List[Dict[str, str]]] = {
             self.active_session_id: []
@@ -40,6 +57,21 @@ class LiveSession:
             self.sessions[f"{self.active_session_id}_critic"] = []
 
         self.last_metrics: Dict[str, Any] = {}
+
+    def spawn_subagent(self, role: str, goal: str, custom_id: Optional[str] = None) -> SubagentSession:
+        """Spawna um novo subagente concorrente no mesmo GPT-OSS multimodal."""
+        sub = self.subagents.spawn(role=role, goal=goal, parent_session_id=self.active_session_id, custom_id=custom_id)
+        # Cria também a sessão correspondente no dicionário de sessões
+        self.create_session(sub.subagent_id)
+        return sub
+
+    def list_subagents(self) -> List[Dict[str, Any]]:
+        """Lista todos os subagentes ativos no pool."""
+        return self.subagents.list_all()
+
+    def execute_subagent(self, subagent_id: str, task: str) -> str:
+        """Executa tarefa em um subagente específico."""
+        return self.subagents.execute_subagent_task(subagent_id, task)
 
     def switch_model(self, new_model: str) -> str:
         """Comuta dinamicamente o modelo ativo (ex: gpt-oss <-> gemma12b)."""
