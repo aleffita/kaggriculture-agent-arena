@@ -54,6 +54,11 @@ class SubagentPool:
         self.subagents: Dict[str, SubagentSession] = {}
         self.message_channel: List[Dict[str, Any]] = []
 
+    def clear(self):
+        """Limpa todos os subagentes e canais de mensagens."""
+        self.subagents.clear()
+        self.message_channel.clear()
+
     def spawn(
         self,
         role: str,

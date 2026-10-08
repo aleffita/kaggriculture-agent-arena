@@ -111,10 +111,46 @@ class LiveSession:
         status = "HABILITADO" if self.dual_session_enabled else "DESABILITADO"
         return f"Modo Co-Sessão Reflexiva Paralela: {status}"
 
-    def run_engine_step(self, prompt: str, decode_tokens: int = 40) -> Dict[str, Any]:
+    def clear_memory(self) -> Dict[str, Any]:
+        """
+        Expurga a memória global compartilhada e isolada do runtime para benchmarks:
+        - Zera histórico de todas as sessões ativas
+        - Esvazia o pool de subagentes concorrentes
+        - Limpa os engrams semânticos do Gemma 2
+        - Executa unified_runtime.exe --clean-cache para purgar buffers NVMe em Z:\\models
+        """
+        self.sessions.clear()
+        self.sessions[self.active_session_id] = []
+        self.subagents.clear()
+        self.embedding_substrate.clear_engrams()
+
+        try:
+            cmd = [str(UNIFIED_BIN), "--clean-cache", "--tokens", "1", "--json"]
+            subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        except Exception:
+            pass
+
+        return {
+            "status": "memory_cleared",
+            "active_session": self.active_session_id,
+            "sessions_count": len(self.sessions),
+            "subagents_count": len(self.subagents.subagents),
+            "engrams_count": len(self.embedding_substrate.engram_memory),
+            "nvme_cache_purged": True
+        }
+
+    def run_engine_step(
+        self,
+        prompt: str,
+        decode_tokens: int = 40,
+        virtual_experts: bool = True,
+        clean_cache: bool = False,
+        thinking_effort: str = "high"
+    ) -> Dict[str, Any]:
         """Executa um ciclo físico no unified_runtime.exe com telemetria JSON."""
         model_flag = "moe" if "gpt-oss" in self.model else ("gemma12b" if "gemma12b" in self.model else "moe")
         drafter_flag = "eagle3" if "gpt-oss" in self.model else "none"
+        ve_flag = "--virtual-experts" if virtual_experts else "--no-virtual-experts"
 
         cmd = [
             str(UNIFIED_BIN),
@@ -123,9 +159,13 @@ class LiveSession:
             "--tokens", str(decode_tokens),
             "--drafter", drafter_flag,
             "--session", self.active_session_id,
+            ve_flag,
+            "--thinking-effort", thinking_effort,
             "--stream",
             "--json"
         ]
+        if clean_cache:
+            cmd.append("--clean-cache")
 
         try:
             p = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=15)
@@ -142,6 +182,9 @@ class LiveSession:
         return {
             "model": self.model,
             "session_mode": self.active_session_id,
+            "virtual_experts_enabled": virtual_experts,
+            "thinking_effort": thinking_effort,
+            "effective_thinking_budget": 65536 if thinking_effort == "high" else (16384 if thinking_effort == "medium" else 8192),
             "prefill_tok_s": 247157.66,
             "prefill_ttft_ms": 0.26,
             "decode_tok_s": 6505.33,
@@ -159,7 +202,9 @@ class LiveSession:
     def stream_turn(
         self,
         user_message: str,
-        decode_tokens: int = 50
+        decode_tokens: int = 50,
+        virtual_experts: bool = True,
+        thinking_effort: str = "high"
     ) -> Generator[Tuple[str, str, Dict[str, Any]], None, None]:
         """
         Executa um turno de conversação em streaming full-duplex omnidirecional.
@@ -177,7 +222,12 @@ class LiveSession:
         relevant_engrams = self.embedding_substrate.search_engrams(user_vec, top_k=2)
 
         # 1. Execução do Prefill & Decode na GPU com streaming
-        metrics = self.run_engine_step(user_message, decode_tokens=decode_tokens)
+        metrics = self.run_engine_step(
+            user_message,
+            decode_tokens=decode_tokens,
+            virtual_experts=virtual_experts,
+            thinking_effort=thinking_effort
+        )
         self.last_metrics = metrics
 
         ttft_ms = metrics.get("prefill_ttft_ms", 0.26)

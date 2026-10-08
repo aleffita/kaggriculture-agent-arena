@@ -1439,13 +1439,13 @@ int main(int argc, char** argv) {
     float ms_decode = std::chrono::duration<float, std::milli>(t1_decode - t0_decode).count();
     float decode_tok_s = ((float)decode_tokens / (ms_decode * 1e-3f));
 
-    // Dynamic Thinking Effort Budget Resolution
-    int effective_thinking_budget = 512;
-    if (thinking_effort == "low") effective_thinking_budget = 128;
-    else if (thinking_effort == "medium") effective_thinking_budget = 512;
-    else if (thinking_effort == "high") effective_thinking_budget = 2048;
+    // Dynamic Thinking Effort Budget Resolution (1M Context Scale)
+    int effective_thinking_budget = 16384;
+    if (thinking_effort == "low") effective_thinking_budget = 8192;
+    else if (thinking_effort == "medium") effective_thinking_budget = 16384;
+    else if (thinking_effort == "high") effective_thinking_budget = 65536;
     else if (thinking_effort == "dynamic") {
-        effective_thinking_budget = (prompt_len > 1024) ? 2048 : (enable_virtual_experts ? 1024 : 768);
+        effective_thinking_budget = (prompt_len > 1024) ? 65536 : (enable_virtual_experts ? 32768 : 16384);
     }
 
     // Métricas adicionais

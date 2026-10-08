@@ -105,6 +105,10 @@ class Gemma2EmbeddingSubstrate:
         if len(self.engram_memory) > 1024:
             self.engram_memory.pop(0)
 
+    def clear_engrams(self):
+        """Limpa todos os engrams vetoriais persistidos em memória/NVMe."""
+        self.engram_memory.clear()
+
     def get_metadata(self) -> Dict[str, Any]:
         return {
             "model_path": str(self.gguf_path),
