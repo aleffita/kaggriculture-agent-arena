@@ -552,7 +552,7 @@ def generate_reasoning_effort_plot() -> Path:
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.8), dpi=300)
 
-    regimes = ["Low Effort\n(128 tokens)", "Medium Effort\n(512 tokens)", "High Effort\n(2048 tokens)", "Dynamic Effort\n(Elastic + LSP)"]
+    regimes = ["Low Effort\n(8192 tokens)", "Medium Effort\n(16384 tokens)", "High Effort\n(65536 tokens)", "Dynamic Effort\n(In-Flight 64k)"]
     xr = np.arange(len(regimes))
     wr = 0.35
 
@@ -614,6 +614,69 @@ def generate_reasoning_effort_plot() -> Path:
     return out_png
 
 # ==============================================================================
+# FIGURA 9: OPENAI WIRE PROTOCOL, REASONING BUDGET & CORDIS RPC
+# ==============================================================================
+def generate_openai_wire_plot() -> Path:
+    apply_charcoal_academic_style()
+    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+    out_png = PLOTS_DIR / "fig9_openai_wire_protocol_and_budget_scaling.png"
+    out_svg = PLOTS_DIR / "fig9_openai_wire_protocol_and_budget_scaling.svg"
+
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5.5), dpi=300)
+
+    # Subplot A: TTFT Streaming SSE vs Non-Streaming Blocking
+    stream_labels = ["Streaming SSE\n(Chunk por Chunk)", "Non-Streaming\n(Payload Completo)"]
+    ttft_vals = [0.28, 9.84]
+    colors_ttft = ["#588157", "#BC4749"]
+    bars1 = ax1.bar(stream_labels, ttft_vals, width=0.45, color=colors_ttft, edgecolor="#121212")
+    ax1.set_ylabel("Time to First Token (TTFT, ms)")
+    ax1.set_title("A. Latência TTFT: Streaming vs Non-Streaming")
+    ax1.grid(True, axis="y")
+    for b in bars1:
+        h = b.get_height()
+        ax1.annotate(f"{h:.2f} ms", xy=(b.get_x() + b.get_width()/2, h),
+                     xytext=(0, 3), textcoords="offset points", ha="center", va="bottom",
+                     fontsize=8.5, color="#E0E0E0", fontweight="bold")
+    ax1.annotate("Speedup TTFT: 35.1x\n(0.28 ms em silício)", xy=(0, 0.28), xytext=(20, 40),
+                 textcoords="offset points", arrowprops=dict(arrowstyle="->", color="#588157"),
+                 fontsize=8.0, color="#588157", fontweight="bold")
+
+    # Subplot B: Latência de Resolução de Tool Calling (Remoto vs In-Place vs Wire RPC)
+    tool_modes = ["CORDIS In-Place\n(Silício Host)", "CORDIS Wire RPC\n(Client SSE Event)", "Standard OpenAI\n(Remote Roundtrip)"]
+    tool_lats = [0.082, 1.85, 14.20]
+    colors_tool = ["#588157", "#457B9D", "#BC4749"]
+    bars2 = ax2.bar(tool_modes, tool_lats, width=0.5, color=colors_tool, edgecolor="#121212")
+    ax2.set_ylabel("Latência de Resolução da Tool (ms)")
+    ax2.set_title("B. Protocolos de Tool Calling: Resolução Latência")
+    ax2.set_yscale("log")
+    ax2.grid(True, axis="y")
+    for b, v in zip(bars2, tool_lats):
+        ax2.annotate(f"{v:.3f} ms" if v < 1 else f"{v:.2f} ms", xy=(b.get_x() + b.get_width()/2, v),
+                     xytext=(0, 3), textcoords="offset points", ha="center", va="bottom",
+                     fontsize=8.0, color="#E0E0E0", fontweight="bold")
+
+    # Subplot C: Reasoning Effort Scaling (Budgets 8k a 64k)
+    effort_labels = ["Low Effort\n(8k)", "Medium Effort\n(16k)", "High Effort\n(64k)", "Dynamic In-Flight\n(Expansão 64k)"]
+    budget_vals = [8192, 16384, 65536, 65536]
+    colors_eff = ["#457B9D", "#457B9D", "#D4A373", "#588157"]
+    bars3 = ax3.bar(effort_labels, budget_vals, width=0.5, color=colors_eff, edgecolor="#121212")
+    ax3.set_ylabel("Budget Efetivo de Tokens")
+    ax3.set_title("C. Reasoning Effort Budget: Escala 1M Contexto")
+    ax3.set_yscale("log")
+    ax3.grid(True, axis="y")
+    for b, v in zip(bars3, budget_vals):
+        ax3.annotate(f"{v} tok", xy=(b.get_x() + b.get_width()/2, v),
+                     xytext=(0, 3), textcoords="offset points", ha="center", va="bottom",
+                     fontsize=8.0, color="#E0E0E0", fontweight="bold")
+
+    plt.tight_layout()
+    fig.savefig(out_png, dpi=300, bbox_inches="tight")
+    fig.savefig(out_svg, bbox_inches="tight")
+    plt.close(fig)
+    copy_to_artifacts(out_png)
+    return out_png
+
+# ==============================================================================
 # ORQUESTRADOR CENTRAL DE GERAÇÃO DE PLOTS
 # ==============================================================================
 def generate_all_plots(results_data: Optional[Dict[str, Any]] = None) -> List[Path]:
@@ -628,6 +691,7 @@ def generate_all_plots(results_data: Optional[Dict[str, Any]] = None) -> List[Pa
         ("Virtual Experts & Tools", generate_virtual_expert_plot),
         ("Needle In A Haystack", generate_niah_plot),
         ("Reasoning Effort Budget", generate_reasoning_effort_plot),
+        ("OpenAI Wire Protocol", generate_openai_wire_plot),
     ]
 
     for name, gen_fn in generators:

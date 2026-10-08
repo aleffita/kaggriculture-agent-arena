@@ -13,6 +13,7 @@ from .tiled_context_bench import D3D12TiledContextBenchmarkPlugin
 from .analytical_plotter_bench import AnalyticalPlotterBenchmarkPlugin
 from .multimodal_judge_bench import MultimodalJudgeBenchmarkPlugin
 from .moshi_audio_stream_bench import MoshiAudioStreamBenchmarkPlugin
+from .openai_wire_eval import OpenAIWireEvalBenchmarkPlugin
 
 __all__ = [
     "BaseBenchmarkPlugin",
@@ -29,4 +30,5 @@ __all__ = [
     "AnalyticalPlotterBenchmarkPlugin",
     "MultimodalJudgeBenchmarkPlugin",
     "MoshiAudioStreamBenchmarkPlugin",
+    "OpenAIWireEvalBenchmarkPlugin",
 ]
