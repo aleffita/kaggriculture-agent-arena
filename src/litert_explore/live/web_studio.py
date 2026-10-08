@@ -12,6 +12,7 @@ from flask import Flask, request, jsonify, render_template_string, Response, str
 
 from .audio_engine import AudioStreamEngine
 from .session import LiveSession
+from .openai_api import create_openai_blueprint
 
 # Desabilitar logs verbosos do Flask werkzeug
 log = logging.getLogger('werkzeug')
@@ -999,9 +1000,12 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
 """
 
 def create_studio_app(session: Optional[LiveSession] = None) -> Flask:
-    """Cria e configura a aplicação Flask para o Live Studio."""
+    """Cria e configura a aplicação Flask para o Live Studio e API OpenAI."""
     app = Flask(__name__)
     live_session = session or LiveSession(model="gpt-oss", dual_session=False)
+
+    # Registra a API compatível com OpenAI e extensões do protocolo CORDIS
+    app.register_blueprint(create_openai_blueprint(live_session))
 
     @app.route("/")
     def index():
