@@ -1,0 +1,232 @@
+{
+  "results": {
+    "humaneval": {
+      "name": "humaneval",
+      "alias": "humaneval",
+      "sample_len": 2,
+      "pass@1,create_test": 0.0,
+      "pass@1_stderr,create_test": 0.0
+    }
+  },
+  "group_subtasks": {},
+  "configs": {
+    "humaneval": {
+      "task": "humaneval",
+      "dataset_path": "openai/openai_humaneval",
+      "test_split": "test",
+      "doc_to_text": "{{prompt}}",
+      "doc_to_target": "{{test}}\ncheck({{entry_point}})",
+      "unsafe_code": true,
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{prompt}}",
+        "doc_to_choice": null,
+        "doc_to_target": "{{test}}\ncheck({{entry_point}})",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "def pass_at_k(references: list[str], predictions: list[list[str]], k: list[int] = None):\n    global compute_\n    assert k is not None\n    if isinstance(k, int):\n        k = [k]\n    res = compute_.compute(\n        references=references,\n        predictions=predictions,\n        k=k,\n    )\n    return res[0]\n",
+          "aggregation": "mean",
+          "higher_is_better": true,
+          "k": [
+            1
+          ]
+        }
+      ],
+      "output_type": "generate_until",
+      "generation_kwargs": {
+        "until": [
+          "\nclass",
+          "\ndef",
+          "\n#",
+          "\nif",
+          "\nprint"
+        ],
+        "max_gen_toks": 1024,
+        "do_sample": false
+      },
+      "repeats": 1,
+      "filter_list": [
+        {
+          "name": "create_test",
+          "filter": [
+            {
+              "function": "custom",
+              "filter_fn": "<function build_predictions at 0x7e0496fa5f80>"
+            }
+          ]
+        }
+      ],
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "model": "gemma-4-E2B-it",
+        "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+        "api_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsaXRlcnQtc2hhZG93LXNlc3Npb24iLCJpYXQiOjE3OTE0NzE2MjYsIm1vZGVsIjoiZ2VtbWEtNC1FMkItaXQiLCJyZWFzb25pbmdfZWZmb3J0IjoibG93IiwidmlydHVhbF9leHBlcnRzIjp7ImVuYWJsZWQiOnRydWUsInB5dGhvbl9yZXBsIjp0cnVlLCJjb2RlX2ludGVycHJldGVyIjp0cnVlLCJsbG1fY29kZV9nZW4iOmZhbHNlLCJtaWNyb3RleF9sZWFuNCI6dHJ1ZSwiYW5hbHl0aWNhbF9wbG90dGVyIjp0cnVlLCJ3ZWJfc2VhcmNoIjp0cnVlLCJicm93c2VyIjp0cnVlLCJyZXF1ZXN0X2J1ZGdldCI6dHJ1ZSwiZGlza19leHBlcnRfc3RvcmUiOnRydWV9LCJyYXdfb3V0cHV0IjpmYWxzZSwibWV0YWRhdGEiOnt9fQ.JvUMfN47Lggx2MgtOO0kGk_HB1tbEBiVn3sDyTDfOO4",
+        "num_concurrent": 1,
+        "eos_string": "<end_of_turn>",
+        "config_source": "/home/debian/.cache/uv/archive-v0/4JDBNuCjBebYStaj/lib/python3.12/site-packages/lm_eval/tasks/humaneval/humaneval.yaml"
+      }
+    }
+  },
+  "versions": {
+    "humaneval": 1.0
+  },
+  "n-shot": {
+    "humaneval": 0
+  },
+  "higher_is_better": {
+    "humaneval": {
+      "pass_at_k": true,
+      "pass@1": true
+    }
+  },
+  "n-samples": {
+    "humaneval": {
+      "original": 164,
+      "effective": 2
+    }
+  },
+  "samples": {
+    "humaneval": [
+      {
+        "doc_id": 0,
+        "doc": {
+          "task_id": "HumanEval/0",
+          "prompt": "from typing import List\n\n\ndef has_close_elements(numbers: List[float], threshold: float) -> bool:\n    \"\"\" Check if in given list of numbers, are any two numbers closer to each other than\n    given threshold.\n    >>> has_close_elements([1.0, 2.0, 3.0], 0.5)\n    False\n    >>> has_close_elements([1.0, 2.8, 3.0, 4.0, 5.0, 2.0], 0.3)\n    True\n    \"\"\"\n",
+          "canonical_solution": "    for idx, elem in enumerate(numbers):\n        for idx2, elem2 in enumerate(numbers):\n            if idx != idx2:\n                distance = abs(elem - elem2)\n                if distance < threshold:\n                    return True\n\n    return False\n",
+          "test": "\n\nMETADATA = {\n    'author': 'jt',\n    'dataset': 'test'\n}\n\n\ndef check(candidate):\n    assert candidate([1.0, 2.0, 3.9, 4.0, 5.0, 2.2], 0.3) == True\n    assert candidate([1.0, 2.0, 3.9, 4.0, 5.0, 2.2], 0.05) == False\n    assert candidate([1.0, 2.0, 5.9, 4.0, 5.0], 0.95) == True\n    assert candidate([1.0, 2.0, 5.9, 4.0, 5.0], 0.8) == False\n    assert candidate([1.0, 2.0, 3.0, 4.0, 5.0, 2.0], 0.1) == True\n    assert candidate([1.1, 2.2, 3.1, 4.1, 5.1], 1.0) == True\n    assert candidate([1.1, 2.2, 3.1, 4.1, 5.1], 0.5) == False\n\n",
+          "entry_point": "has_close_elements"
+        },
+        "target": "\n\nMETADATA = {\n    'author': 'jt',\n    'dataset': 'test'\n}\n\n\ndef check(candidate):\n    assert candidate([1.0, 2.0, 3.9, 4.0, 5.0, 2.2], 0.3) == True\n    assert candidate([1.0, 2.0, 3.9, 4.0, 5.0, 2.2], 0.05) == False\n    assert candidate([1.0, 2.0, 5.9, 4.0, 5.0], 0.95) == True\n    assert candidate([1.0, 2.0, 5.9, 4.0, 5.0], 0.8) == False\n    assert candidate([1.0, 2.0, 3.0, 4.0, 5.0, 2.0], 0.1) == True\n    assert candidate([1.1, 2.2, 3.1, 4.1, 5.1], 1.0) == True\n    assert candidate([1.1, 2.2, 3.1, 4.1, 5.1], 0.5) == False\n\n\ncheck(has_close_elements)",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"from typing import List\\n\\n\\ndef has_close_elements(numbers: List[float], threshold: float) -> bool:\\n    \\\"\\\"\\\" Check if in given list of numbers, are any two numbers closer to each other than\\n    given threshold.\\n    >>> has_close_elements([1.0, 2.0, 3.0], 0.5)\\n    False\\n    >>> has_close_elements([1.0, 2.8, 3.0, 4.0, 5.0, 2.0], 0.3)\\n    True\\n    \\\"\\\"\\\"\\n\"}]"
+            ],
+            {
+              "until": [
+                "\nclass",
+                "\ndef",
+                "\n#",
+                "\nif",
+                "\nprint"
+              ],
+              "max_gen_toks": 1024,
+              "do_sample": false
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "```python\nfrom typing import List\n"
+          ]
+        ],
+        "filtered_resps": [
+          [
+            "from typing import List\n\n\ndef has_close_elements(numbers: List[float], threshold: float) -> bool:\n    \"\"\" Check if in given list of numbers, are any two numbers closer to each other than\n    given threshold.\n    >>> has_close_elements([1.0, 2.0, 3.0], 0.5)\n    False\n    >>> has_close_elements([1.0, 2.8, 3.0, 4.0, 5.0, 2.0], 0.3)\n    True\n    \"\"\"\n```python\nfrom typing import List\n"
+          ]
+        ],
+        "filter": "create_test",
+        "metrics": [
+          "pass@1"
+        ],
+        "doc_hash": "51330d8caa0784cc324cc1db95f6b0d73670802e1729865056c2469e212d40a5",
+        "prompt_hash": "bd83852367d2a50bc94955ab870a20046d8af750acad677d88b116407a363e54",
+        "target_hash": "d7de8bac324e281816668aa93fb171c16f9f833f74ec6e32ee7b551875e65daa",
+        "pass@1": 0.0
+      },
+      {
+        "doc_id": 1,
+        "doc": {
+          "task_id": "HumanEval/1",
+          "prompt": "from typing import List\n\n\ndef separate_paren_groups(paren_string: str) -> List[str]:\n    \"\"\" Input to this function is a string containing multiple groups of nested parentheses. Your goal is to\n    separate those group into separate strings and return the list of those.\n    Separate groups are balanced (each open brace is properly closed) and not nested within each other\n    Ignore any spaces in the input string.\n    >>> separate_paren_groups('( ) (( )) (( )( ))')\n    ['()', '(())', '(()())']\n    \"\"\"\n",
+          "canonical_solution": "    result = []\n    current_string = []\n    current_depth = 0\n\n    for c in paren_string:\n        if c == '(':\n            current_depth += 1\n            current_string.append(c)\n        elif c == ')':\n            current_depth -= 1\n            current_string.append(c)\n\n            if current_depth == 0:\n                result.append(''.join(current_string))\n                current_string.clear()\n\n    return result\n",
+          "test": "\n\nMETADATA = {\n    'author': 'jt',\n    'dataset': 'test'\n}\n\n\ndef check(candidate):\n    assert candidate('(()()) ((())) () ((())()())') == [\n        '(()())', '((()))', '()', '((())()())'\n    ]\n    assert candidate('() (()) ((())) (((())))') == [\n        '()', '(())', '((()))', '(((())))'\n    ]\n    assert candidate('(()(())((())))') == [\n        '(()(())((())))'\n    ]\n    assert candidate('( ) (( )) (( )( ))') == ['()', '(())', '(()())']\n",
+          "entry_point": "separate_paren_groups"
+        },
+        "target": "\n\nMETADATA = {\n    'author': 'jt',\n    'dataset': 'test'\n}\n\n\ndef check(candidate):\n    assert candidate('(()()) ((())) () ((())()())') == [\n        '(()())', '((()))', '()', '((())()())'\n    ]\n    assert candidate('() (()) ((())) (((())))') == [\n        '()', '(())', '((()))', '(((())))'\n    ]\n    assert candidate('(()(())((())))') == [\n        '(()(())((())))'\n    ]\n    assert candidate('( ) (( )) (( )( ))') == ['()', '(())', '(()())']\n\ncheck(separate_paren_groups)",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"from typing import List\\n\\n\\ndef separate_paren_groups(paren_string: str) -> List[str]:\\n    \\\"\\\"\\\" Input to this function is a string containing multiple groups of nested parentheses. Your goal is to\\n    separate those group into separate strings and return the list of those.\\n    Separate groups are balanced (each open brace is properly closed) and not nested within each other\\n    Ignore any spaces in the input string.\\n    >>> separate_paren_groups('( ) (( )) (( )( ))')\\n    ['()', '(())', '(()())']\\n    \\\"\\\"\\\"\\n\"}]"
+            ],
+            {
+              "until": [
+                "\nclass",
+                "\ndef",
+                "\n#",
+                "\nif",
+                "\nprint"
+              ],
+              "max_gen_toks": 1024,
+              "do_sample": false
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "```python\nfrom typing import List\n"
+          ]
+        ],
+        "filtered_resps": [
+          [
+            "from typing import List\n\n\ndef separate_paren_groups(paren_string: str) -> List[str]:\n    \"\"\" Input to this function is a string containing multiple groups of nested parentheses. Your goal is to\n    separate those group into separate strings and return the list of those.\n    Separate groups are balanced (each open brace is properly closed) and not nested within each other\n    Ignore any spaces in the input string.\n    >>> separate_paren_groups('( ) (( )) (( )( ))')\n    ['()', '(())', '(()())']\n    \"\"\"\n```python\nfrom typing import List\n"
+          ]
+        ],
+        "filter": "create_test",
+        "metrics": [
+          "pass@1"
+        ],
+        "doc_hash": "45fda07b46c7057899ce8622c21eb50362d8f3ced0c7ce5026d16d5b2740deb7",
+        "prompt_hash": "1727b76395002e2b1a39bcde6f89d00f80be46a03f16bac1f63e7ac1bc9140e4",
+        "target_hash": "6f022b9598355ce573043dc46a16629039bf0c55fa743aa817b8d05e8c44d8cc",
+        "pass@1": 0.0
+      }
+    ]
+  },
+  "config": {
+    "model": "local-chat-completions",
+    "model_args": {
+      "model": "gemma-4-E2B-it",
+      "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+      "api_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsaXRlcnQtc2hhZG93LXNlc3Npb24iLCJpYXQiOjE3OTE0NzE2MjYsIm1vZGVsIjoiZ2VtbWEtNC1FMkItaXQiLCJyZWFzb25pbmdfZWZmb3J0IjoibG93IiwidmlydHVhbF9leHBlcnRzIjp7ImVuYWJsZWQiOnRydWUsInB5dGhvbl9yZXBsIjp0cnVlLCJjb2RlX2ludGVycHJldGVyIjp0cnVlLCJsbG1fY29kZV9nZW4iOmZhbHNlLCJtaWNyb3RleF9sZWFuNCI6dHJ1ZSwiYW5hbHl0aWNhbF9wbG90dGVyIjp0cnVlLCJ3ZWJfc2VhcmNoIjp0cnVlLCJicm93c2VyIjp0cnVlLCJyZXF1ZXN0X2J1ZGdldCI6dHJ1ZSwiZGlza19leHBlcnRfc3RvcmUiOnRydWV9LCJyYXdfb3V0cHV0IjpmYWxzZSwibWV0YWRhdGEiOnt9fQ.JvUMfN47Lggx2MgtOO0kGk_HB1tbEBiVn3sDyTDfOO4",
+      "num_concurrent": 1,
+      "eos_string": "<end_of_turn>"
+    },
+    "batch_size": null,
+    "batch_sizes": [],
+    "device": null,
+    "use_cache": null,
+    "limit": 2,
+    "bootstrap_iters": 100000,
+    "gen_kwargs": null,
+    "random_seed": 0,
+    "numpy_seed": 1234,
+    "torch_seed": 1234,
+    "fewshot_seed": 1234
+  },
+  "git_hash": "3a6b22d68468f37e7d836e12d6702abc2dcbf837",
+  "date": 1791471627.12414,
+  "pretty_env_info": "N/A (torch not installed)",
+  "transformers_version": "N/A",
+  "lm_eval_version": "0.4.13",
+  "upper_git_hash": null,
+  "elapsed_time_seconds": 36.75,
+  "timestamp": "2026-10-08_12-01-03",
+  "model_name": "gemma-4-E2B-it",
+  "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+  "reasoning_effort": "low",
+  "virtual_experts_mode": "true"
+}

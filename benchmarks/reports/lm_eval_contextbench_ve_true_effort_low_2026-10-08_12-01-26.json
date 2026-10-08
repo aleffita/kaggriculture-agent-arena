@@ -1,0 +1,36 @@
+{
+  "results": {
+    "contextbench_needle_retention": {
+      "sample_len": 2,
+      "exact_match": 1.0,
+      "clm_mechanism": "in_place_retention"
+    },
+    "contextbench_sudoku_sketchpad": {
+      "sample_len": 2,
+      "exact_match": 1.0,
+      "clm_mechanism": "surgical_in_place_edit"
+    },
+    "contextbench_kv_store": {
+      "sample_len": 2,
+      "exact_match": 1.0,
+      "clm_mechanism": "suffix_cache_reuse"
+    },
+    "contextbench_log_triage": {
+      "sample_len": 2,
+      "exact_match": 1.0,
+      "clm_mechanism": "log_compaction_filter"
+    }
+  },
+  "clm_flops_metrics": {
+    "suffix_cache_reuse_active": true,
+    "prefix_cache_savings_pct": 59.2,
+    "cache_aware_prefill_ratio": 0.408,
+    "harness_engine": "clm_harness"
+  },
+  "elapsed_time_seconds": 6.21,
+  "timestamp": "2026-10-08_12-01-26",
+  "model_name": "gemma-4-E2B-it",
+  "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+  "reasoning_effort": "low",
+  "virtual_experts_mode": "true"
+}

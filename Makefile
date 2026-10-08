@@ -78,12 +78,12 @@ build-engine:
 # ------------------------------------------------------------------------------
 server-start:
 	@echo [+] Iniciando litert-web headless em segundo plano...
-	@powershell -NoProfile -Command "Start-Process uv -ArgumentList 'run', 'litert-web', '--host', '0.0.0.0', '--port', '8765', '--headless' -WindowStyle Hidden"
+	@powershell -NoProfile -Command "Start-Process uv -ArgumentList 'run', 'litert-web', '--host', '0.0.0.0', '--port', '8765', '--headless' -WorkingDirectory '$(CURDIR)' -WindowStyle Hidden"
 	@echo [OK] Servidor despachado na porta 8765.
 
 server-stop:
 	@echo [+] Encerrando listeners na porta 8765...
-	@powershell -NoProfile -Command "$$c = Get-NetTCPConnection -LocalPort 8765 -ErrorAction SilentlyContinue; if ($$c) { Stop-Process -Id ($$c.OwningProcess | Select-Object -Unique) -Force; Write-Host '[OK] Encerrado.' } else { Write-Host '[!] Nenhum ativo.' }"
+	@powershell -NoProfile -Command "$$pids = (Get-NetTCPConnection -LocalPort 8765 -ErrorAction SilentlyContinue).OwningProcess | Select-Object -Unique; if ($$pids) { foreach ($$p in $$pids) { Stop-Process -Id $$p -Force -ErrorAction SilentlyContinue }; Write-Host '[OK] Encerrado.' } else { Write-Host '[!] Nenhum ativo.' }"
 
 server-status:
 	@uv run python -c "import urllib.request, json; print('[OK] Online:', [m['id'] for m in json.loads(urllib.request.urlopen('http://127.0.0.1:8765/v1/models').read())['data']])"
@@ -96,6 +96,9 @@ bench-smoke:
 
 bench-full:
 	uv run litert-autoresearch --all --mode full
+
+bench-stock:
+	uv run python benchmarks/eval_stock_litert.py
 
 plots:
 	uv run python benchmarks/plots.py

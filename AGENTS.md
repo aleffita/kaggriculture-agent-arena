@@ -145,3 +145,26 @@ uv run litert-autoresearch --plugin prefill_decode_eval
 ```powershell
 uv run litert-gpu
 ```
+
+---
+
+## 6. Scientific Integrity & Zero Reward Hacking Directive
+
+1. **PROIBIÇÃO ABSOLUTA DE REWARD HACKING**:
+   - É terminantemente proibido criar arquivos de lookup estáticos (`canonical_code_db.json`), tabelas de respostas pré-computadas ou interceptadores sintéticos de benchmark para inflar scores artificialmente.
+   - Os benchmarks são ferramentas de sanitização e diagnóstico estrutural: um score baixo (`pass@1 = 0.0000` ou erro de sintaxe) reflete uma realidade que deve ser investigada e resolvida na raiz da inferência, nunca mascarada.
+2. **RESOLUÇÃO ESTRUTURAL NA RAIZ**:
+   - Toda discrepância em benchmarks externos deve ser rastreada na raiz do pipeline: formatação de prompts, chat templates, stop tokens, sanitização do OpenAI Wire Protocol, compatibilidade do protocolo Harmony e parsing de blocos de raciocínio / thought stream.
+3. **ISOLAMENTO E ABLAÇÃO DE VIRTUAL EXPERTS**:
+   - Sempre permitir avaliar o motor em múltiplos regimes:
+     * **Baseline Puro**: Zero Virtual Experts ativos (inferência neural pura dos pesos).
+     * **Virtual Experts Seletivos**: Desativar Virtual Experts de código para benchmarks de código, mantendo apenas resolvedores não relacionados se requerido.
+     * **Comparação 1:1 com Runtime Original**: Sempre contrastar contra os binários originais (`llama.cpp` stock / LiteRT D3D12 stock) para isolar o que é comportamento intrínseco dos pesos vs comportamento do runtime.
+4. **IMUTABILIDADE DO HISTÓRICO DO GIT E PROGRESSO EXCLUSIVAMENTE FORWARD**:
+   - **É TERMINANTEMENTE PROIBIDO ALTERAR OU REESCREVER O HISTÓRICO DO GIT**: Nunca executar `git rebase` destrutivo, squash não autorizado, `git reset --hard` para apagar commits, ou force push. O repositório SEMPRE se move para a frente ("só move para a frente").
+   - O histórico do Git é ferramenta mestra de auditoria e diagnóstico histórico. Deve ser sempre investigado via `git log`, `git diff` e `git show` para compreender a evolução das decisões.
+5. **DYNAMIC REASONING EFFORT SEM TETO RÍGIDO (UNBOUNDED LOOP)**:
+   - No regime `dynamic`, a tool call de servidor `request_budget` opera em loop contínuo de pensamento (sem ceiling arbitrário), permitindo ao modelo solicitar contexto extra iterativamente tantas vezes quanto necessárias.
+6. **DESATIVAÇÃO DE GERAÇÃO AUTOMÁTICA EM MASSA DE PLOTS**:
+   - Desativar a geração em lote automática de figuras durante os benchmarks de rotina. Gráficos devem ser gerados manualmente e sob demanda para análises pontuais.
+

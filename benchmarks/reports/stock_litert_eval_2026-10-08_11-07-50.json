@@ -1,0 +1,64 @@
+{
+  "benchmark": "stock_original_litert_eval",
+  "model": "gemma-4-E2B-it",
+  "backend": "Google LiteRT-LM Direct3D 12 (NVIDIA GeForce RTX 2060)",
+  "hardware": "RTX 2060 (6 GB VRAM) + GTX 1050 Ti (4 GB VRAM)",
+  "timestamp": "2026-10-08_11-07-50",
+  "init_time_seconds": 2.95,
+  "total_eval_time_seconds": 77.59,
+  "total_estimated_tokens": 2910.7,
+  "overall_average_throughput_tok_s": 37.51,
+  "average_sample_latency_s": 15.518,
+  "samples": [
+    {
+      "id": "code_humaneval_0",
+      "category": "code",
+      "prompt_length_chars": 329,
+      "output_length_chars": 897,
+      "estimated_tokens": 156.0,
+      "latency_seconds": 8.209,
+      "throughput_tokens_per_sec": 19.0,
+      "response_preview": "```python\ndef has_close_elements(numbers: list[float], threshold: float) -> bool:\n    \"\"\" Check if in given list of numbers, are any two numbers closer to each other than given threshold.\n    >>> has_"
+    },
+    {
+      "id": "code_humaneval_1",
+      "category": "code",
+      "prompt_length_chars": 480,
+      "output_length_chars": 7030,
+      "estimated_tokens": 1407.9,
+      "latency_seconds": 33.603,
+      "throughput_tokens_per_sec": 41.9,
+      "response_preview": "```python\ndef separate_paren_groups(paren_string: str) -> list[str]:\n    \"\"\" Input to this function is a string containing multiple groups of nested parentheses. Your goal is to\n    separate those gro"
+    },
+    {
+      "id": "math_gsm8k_0",
+      "category": "math",
+      "prompt_length_chars": 205,
+      "output_length_chars": 624,
+      "estimated_tokens": 159.9,
+      "latency_seconds": 3.578,
+      "throughput_tokens_per_sec": 44.69,
+      "response_preview": "Here is the step-by-step solution:\n\n**1. Calculate the number of clips sold in April:**\nNatalia sold clips to 48 friends in April.\n*   **April sales = 48 clips**\n\n**2. Calculate the number of clips so"
+    },
+    {
+      "id": "math_gsm8k_1",
+      "category": "math",
+      "prompt_length_chars": 149,
+      "output_length_chars": 551,
+      "estimated_tokens": 106.6,
+      "latency_seconds": 3.594,
+      "throughput_tokens_per_sec": 29.66,
+      "response_preview": "Here's how to calculate Weng's earnings:\n\n**1. Convert the time worked from minutes to hours:**\n\n* There are 60 minutes in an hour.\n* Time worked in hours = $\\frac{50 \\text{ minutes}}{60 \\text{ minute"
+    },
+    {
+      "id": "reasoning_general",
+      "category": "reasoning",
+      "prompt_length_chars": 148,
+      "output_length_chars": 6157,
+      "estimated_tokens": 1080.3,
+      "latency_seconds": 28.604,
+      "throughput_tokens_per_sec": 37.77,
+      "response_preview": "This is a fascinating comparison that bridges two distinct areas of modern deep learning: **efficient spatial data structures (BVH)** for geometric/spatial tasks and **efficient computation paradigms "
+    }
+  ]
+}

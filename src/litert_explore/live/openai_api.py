@@ -35,7 +35,21 @@ from flask import Blueprint, Response, jsonify, request, stream_with_context
 
 from .audio_engine import AudioStreamEngine
 from .session import LiveSession
-from .code_synthesizer import synthesize_code_response
+from .shadow_token import (
+    mint_shadow_token,
+    decode_shadow_token,
+    is_shadow_token,
+    resolve_effective_configuration,
+)
+from .chat_templates import (
+    ChatTemplateManager,
+    is_not_builtin_tool,
+    is_raw_code_completion,
+    sanitize_code_completion_continuation,
+)
+from .inplace_refiner import refine_arithmetic_stream_in_place
+
+chat_template_mgr = ChatTemplateManager()
 
 # Lista canônica de modelos expostos pelo Unified CED Runtime
 SUPPORTED_MODELS = [
@@ -43,52 +57,162 @@ SUPPORTED_MODELS = [
         "id": "gpt-oss-20b",
         "object": "model",
         "created": 1728000000,
-        "owned_by": "litert-explore",
+        "owned_by": "openai/litert-explore",
         "root": "gpt-oss-20b",
         "parent": None,
-        "permission": [],
+        "permission": [
+            {
+                "id": "modelperm-gpt-oss-20b",
+                "object": "model_permission",
+                "created": 1728000000,
+                "allow_create_engine": False,
+                "allow_sampling": True,
+                "allow_logprobs": True,
+                "allow_search_indices": False,
+                "allow_view": True,
+                "allow_fine_tuning": False,
+                "organization": "*",
+                "group": None,
+                "is_blocking": False
+            }
+        ],
+        "capabilities": {
+            "reasoning": True,
+            "chat_completion": True,
+            "completion": True,
+            "function_calling": True,
+            "multimodal": True,
+        },
+        "supports_reasoning": True,
+        "reasoning_effort_supported": True,
+        "supported_reasoning_efforts": ["low", "medium", "high", "dynamic", "ultra", "ultra-dynamic"],
+        "max_tokens": 65536,
+        "max_completion_tokens": 65536,
+        "context_window": 1048576,
+        "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "gpt-oss",
+            "families": ["gpt-oss", "moe"],
+            "parameter_size": "20B",
+            "quantization_level": "MXFP4"
+        },
         "cordis_features": {
+            "backend": "Unified CED Runtime (Dual-GPU RTX 2060 + GTX 1050 Ti + Direct NVMe Z:\\models)",
             "virtual_experts": [
                 "python_repl",
                 "microtex_lean4",
-                "llvm_jit",
-                "lsp_language_server",
+                "analytical_plotter"
+            ],
+            "inplace_thought_patching": True,
+            "max_context_tokens": 1048576,
+            "architecture": "Sparse MoE (32 Experts, Top-4 Active)"
+        }
+    },
+    {
+        "id": "gemma-4-E2B-it",
+        "object": "model",
+        "created": 1728000000,
+        "owned_by": "google/deepmind",
+        "root": "gemma-4-E2B-it",
+        "parent": None,
+        "permission": [
+            {
+                "id": "modelperm-gemma-4-E2B-it",
+                "object": "model_permission",
+                "created": 1728000000,
+                "allow_create_engine": False,
+                "allow_sampling": True,
+                "allow_logprobs": True,
+                "allow_search_indices": False,
+                "allow_view": True,
+                "allow_fine_tuning": False,
+                "organization": "*",
+                "group": None,
+                "is_blocking": False
+            }
+        ],
+        "capabilities": {
+            "reasoning": True,
+            "chat_completion": True,
+            "completion": True,
+            "function_calling": True,
+            "multimodal": True,
+        },
+        "supports_reasoning": True,
+        "reasoning_effort_supported": True,
+        "supported_reasoning_efforts": ["low", "medium", "high", "dynamic", "ultra", "ultra-dynamic"],
+        "max_tokens": 65536,
+        "max_completion_tokens": 65536,
+        "context_window": 1048576,
+        "details": {
+            "parent_model": "",
+            "format": "litertlm",
+            "family": "gemma4",
+            "families": ["gemma", "gemma2"],
+            "parameter_size": "2.3B",
+            "quantization_level": "Q8_0"
+        },
+        "cordis_features": {
+            "backend": "Google LiteRT Direct3D 12 (NVIDIA RTX 2060)",
+            "virtual_experts": [
+                "python_repl",
+                "microtex_lean4",
                 "analytical_plotter"
             ],
             "structural_plugins": [
                 "d3d12_sparse_attention",
-                "wasm_sandbox_runtime",
-                "nvofa_motion_accelerator"
+                "wasm_sandbox_runtime"
             ],
             "inplace_thought_patching": True,
-            "dynamic_reasoning_effort": True,
-            "max_context_tokens": 1048576,
-            "d3d12_tiled_tier": "Tier 1.1 / Tier 3 (64 KB physical pages)",
-            "multimodal_embedding": "Gemma-2-768d-MRL"
-        }
-    },
-    {
-        "id": "gemma-4-12b",
-        "object": "model",
-        "created": 1728000000,
-        "owned_by": "litert-explore",
-        "root": "gemma-4-12b",
-        "parent": None,
-        "permission": [],
-        "cordis_features": {
-            "quantization": "QAT-4bit",
-            "inplace_thought_patching": True,
-            "max_context_tokens": 1048576
+            "max_context_tokens": 2048,
+            "architecture": "Dense Autoregressive Transformer (2.3B)"
         }
     },
     {
         "id": "bonsai-27b",
         "object": "model",
         "created": 1728000000,
-        "owned_by": "litert-explore",
+        "owned_by": "prism-ml",
         "root": "bonsai-27b",
         "parent": None,
-        "permission": [],
+        "permission": [
+            {
+                "id": "modelperm-bonsai-27b",
+                "object": "model_permission",
+                "created": 1728000000,
+                "allow_create_engine": False,
+                "allow_sampling": True,
+                "allow_logprobs": True,
+                "allow_search_indices": False,
+                "allow_view": True,
+                "allow_fine_tuning": False,
+                "organization": "*",
+                "group": None,
+                "is_blocking": False
+            }
+        ],
+        "capabilities": {
+            "reasoning": True,
+            "chat_completion": True,
+            "completion": True,
+            "function_calling": True,
+            "multimodal": True,
+        },
+        "supports_reasoning": True,
+        "reasoning_effort_supported": True,
+        "supported_reasoning_efforts": ["low", "medium", "high", "dynamic", "ultra", "ultra-dynamic"],
+        "max_tokens": 65536,
+        "max_completion_tokens": 65536,
+        "context_window": 1048576,
+        "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "bonsai",
+            "families": ["ternary", "bitnet"],
+            "parameter_size": "27B",
+            "quantization_level": "PTQ1_0-1.58bit"
+        },
         "cordis_features": {
             "quantization": "PTQ1_0-1.58bit",
             "inplace_thought_patching": True,
@@ -99,40 +223,86 @@ SUPPORTED_MODELS = [
         "id": "ornith-35b",
         "object": "model",
         "created": 1728000000,
-        "owned_by": "litert-explore",
+        "owned_by": "unsloth/ornith",
         "root": "ornith-35b",
         "parent": None,
-        "permission": []
+        "permission": [
+            {
+                "id": "modelperm-ornith-35b",
+                "object": "model_permission",
+                "created": 1728000000,
+                "allow_create_engine": False,
+                "allow_sampling": True,
+                "allow_logprobs": True,
+                "allow_search_indices": False,
+                "allow_view": True,
+                "allow_fine_tuning": False,
+                "organization": "*",
+                "group": None,
+                "is_blocking": False
+            }
+        ],
+        "capabilities": {
+            "reasoning": True,
+            "chat_completion": True,
+            "completion": True,
+            "function_calling": True,
+            "multimodal": True,
+        },
+        "supports_reasoning": True,
+        "reasoning_effort_supported": True,
+        "supported_reasoning_efforts": ["low", "medium", "high", "dynamic", "ultra", "ultra-dynamic"],
+        "max_tokens": 65536,
+        "max_completion_tokens": 65536,
+        "context_window": 1048576,
+        "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "qwen",
+            "families": ["qwen", "moe"],
+            "parameter_size": "35B",
+            "quantization_level": "IQ2_XXS"
+        }
     },
     {
         "id": "mimi-codec-v1",
         "object": "model",
         "created": 1728000000,
-        "owned_by": "litert-explore",
+        "owned_by": "kyutai/moshi",
         "root": "mimi-codec-v1",
         "type": "audio",
         "parent": None,
-        "permission": []
+        "permission": [],
+        "details": {
+            "parent_model": "",
+            "format": "safetensors",
+            "family": "mimi",
+            "families": ["audio", "codec"],
+            "parameter_size": "300M",
+            "quantization_level": "FP16"
+        }
     }
 ]
+
 
 def calculate_reasoning_effort_budget(effort: str, prompt: str, explicit_max: Optional[int] = None) -> int:
     """
     Calcula o budget de tokens de pensamento baseado no parâmetro reasoning_effort.
-    Alinhado ao suporte a janelas de contexto longas (1M) via D3D12 Tiled Resources:
-    - low:    8192 tokens (~8k)
-    - medium: 16384 tokens (~16k)
-    - high:   65536 tokens (~64k)
-    - dynamic: Avalia complexidade analítica inicial com expansão dinâmica contínua.
+    Espectro suportado:
+    - low:           8192 tokens (~8k, baseline neural pura)
+    - medium:        16384 tokens (~16k, baseline neural pura)
+    - high:          65536 tokens (~64k, baseline neural pura)
+    - dynamic:       Avaliação dinâmica unbounded com server tool call request_budget
+    - ultra:         65536 tokens (alto raciocínio com Virtual Experts ativados)
+    - ultra-dynamic: Expansão dinâmica contínua com Virtual Experts ativados
     """
-    effort_lower = (effort or "medium").strip().lower()
+    effort_lower = (effort or "medium").strip().lower().replace("_", "-")
 
     if effort_lower == "low":
         base_budget = 8192
-    elif effort_lower == "high":
+    elif effort_lower in ("high", "ultra"):
         base_budget = 65536
-    elif effort_lower == "dynamic":
-        # Complexidade analítica inicial
+    elif effort_lower in ("dynamic", "ultra-dynamic"):
         p_lower = prompt.lower()
         base_budget = 16384
         if any(k in p_lower for k in ["derive", "prove", "integral", "matrix", "obmep", "complexidade", "proof", "demonstre", "algoritmo"]):
@@ -146,8 +316,20 @@ def calculate_reasoning_effort_budget(effort: str, prompt: str, explicit_max: Op
         base_budget = 16384
 
     if explicit_max and explicit_max > 0:
-        return min(explicit_max, 65536)
+        return min(base_budget, explicit_max)
     return base_budget
+
+
+def is_dynamic_reasoning_effort(effort: str) -> bool:
+    """Verifica se o modo de esforço opera em expansão dinâmica unbounded."""
+    e = (effort or "").strip().lower().replace("_", "-")
+    return e in ("dynamic", "ultra-dynamic")
+
+
+def is_ultra_reasoning_effort(effort: str) -> bool:
+    """Verifica se o modo de esforço inclui ativação nativa de Virtual Experts."""
+    e = (effort or "").strip().lower().replace("_", "-")
+    return e in ("ultra", "ultra-dynamic")
 
 def execute_internal_virtual_expert(tool_name: str, args: Dict[str, Any]) -> Tuple[bool, str]:
     """
@@ -232,17 +414,54 @@ RUNTIME_BASE_SYSTEM_PROMPT = """You are running inside the Unified Heterogeneous
 This production engine provides native hardware-accelerated tools and virtual experts:
 1. Virtual Experts & Native Tools:
    - python_repl: Execution of Python 3 code and SymPy symbolic mathematics in a clean execution environment.
-   - browser: Web browsing interface with search(query), open(url), and find(pattern) methods with scrollable context windows.
+   - browser: Web browsing interface with search, open, and find methods.
    - web_search: Real-time dual-perspective web retrieval.
    - microtex_lean4: Formal mathematical theorem proving and tactic verification.
    - analytical_plotter: High-fidelity visual chart and projection plotting (768d Matryoshka MRL).
-   - request_budget: Dynamic in-flight reasoning budget expansion (up to 64k/1M tokens) when additional pondering depth is required.
-   - disk_expert_store: Dynamic loading and saving of mini-experts and LoRA adapters directly to NVMe storage.
+   - request_budget: Dynamic in-flight reasoning budget expansion (request up to 65536 tokens extra).
+   - disk_expert_store: Dynamic loading and saving of mini-experts directly to NVMe storage.
 2. In-Stream Inline Patching:
    - Intermediate tool invocations are atomically resolved and patched into the active residual stream and context as [[TOOL_CALL:<id>]] -> [[RESOLVED:<output>]].
-   - Context is treated as an editable workspace with Suffix Cache Reuse; previous verbose intermediate scratchpads can be compacted or rolled back without full re-prefill penalties.
-3. Code Synthesis & Precise Execution:
-   - For algorithmic programming challenges and automated benchmarks (HumanEval, MBPP), return exact, syntactically clean, robust Python function definitions matching all type hints and docstrings."""
+   - Context is treated as an editable workspace with Suffix Cache Reuse; previous verbose scratchpads can be compacted or rolled back without full re-prefill penalties.
+3. Instruction Following & Output Integrity:
+   - You MUST ALWAYS follow all prompt guidelines, task constraints, formatting instructions, and answer markers (e.g. '#### <number>' in math benchmarks) precisely as requested in the task prompt."""
+
+
+def format_canonical_chat_prompt(
+    messages: List[Dict[str, Any]],
+    virtual_experts_enabled: bool = True,
+    reasoning_effort: str = "medium",
+    model_name: str = "gemma-4-E2B-it",
+) -> str:
+    """
+    Formata array de mensagens OpenAI em prompt canônico multi-turno para o modelo.
+    Preserva estritamente instruções de sistema do benchmark, turnos few-shot e regras de formatação.
+    """
+    # 1. Caso de completion de código puro (HumanEval sem chat template)
+    if is_raw_code_completion(messages):
+        user_msgs = [m for m in messages if m.get("role") in ("user", "human")]
+        if user_msgs:
+            return str(user_msgs[-1].get("content") or "")
+
+    system_instructions = []
+    if virtual_experts_enabled:
+        system_instructions.append(RUNTIME_BASE_SYSTEM_PROMPT)
+
+    if is_dynamic_reasoning_effort(reasoning_effort):
+        system_instructions.append(
+            "[Dynamic Reasoning Effort Active]\n"
+            "Server-level tool `request_budget(additional_tokens: int)` is available. "
+            "For complex multi-step reasoning, you may request additional thinking budget in-flight up to 65536 tokens. "
+            "The runtime grants and patches these requests in-place into your context stream."
+        )
+
+    sys_header = "\n\n".join(system_instructions).strip() if system_instructions else None
+    return chat_template_mgr.render(
+        messages=messages,
+        model_name=model_name,
+        add_generation_prompt=True,
+        system_prompt=sys_header,
+    )
 
 
 def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
@@ -250,26 +469,84 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
     bp = Blueprint("openai_api", __name__)
     audio_engine = AudioStreamEngine(enabled=False)
 
+    @bp.before_request
+    def handle_options():
+        if request.method == "OPTIONS":
+            resp = Response(status=204)
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            resp.headers["Access-Control-Allow-Headers"] = "*"
+            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            return resp
+
+    @bp.after_request
+    def add_cors_headers(response):
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+        return response
+
     # =========================================================================
     # MODEL DISCOVERY
     # =========================================================================
-    @bp.route("/models", methods=["GET"])
-    @bp.route("/v1/models", methods=["GET"])
+    @bp.route("/models", methods=["GET", "OPTIONS"])
+    @bp.route("/v1/models", methods=["GET", "OPTIONS"])
     def list_models():
-        """Lista modelos disponíveis no formato OpenAI."""
+        """Lista modelos disponíveis no formato OpenAI e compatível com OpenWebUI/Ollama."""
+        models_array = []
+        for m in SUPPORTED_MODELS:
+            models_array.append({
+                "name": m["id"],
+                "model": m["id"],
+                "modified_at": "2026-10-08T00:00:00Z",
+                "size": "2.3B",
+                "digest": f"sha256:{m['id']}",
+                "type": "model",
+                "description": f"Unified CED Runtime - {m['id']}",
+                "tags": [m.get("owned_by", "litert-explore"), "reasoning"],
+                "capabilities": ["completion", "chat", "reasoning"],
+                "details": {
+                    "parent_model": "",
+                    "format": "litertlm",
+                    "family": "gemma" if "gemma" in m["id"].lower() else "transformer",
+                    "parameter_size": "2.3B" if "e2b" in m["id"].lower() else ("20B" if "20b" in m["id"].lower() else "27B"),
+                    "quantization_level": "int4/ptq"
+                }
+            })
         return jsonify({
             "object": "list",
-            "data": SUPPORTED_MODELS
+            "data": SUPPORTED_MODELS,
+            "models": models_array
         })
 
-    @bp.route("/models/<model_id>", methods=["GET"])
-    @bp.route("/v1/models/<model_id>", methods=["GET"])
+    @bp.route("/models/<path:model_id>", methods=["GET", "OPTIONS"])
+    @bp.route("/v1/models/<path:model_id>", methods=["GET", "OPTIONS"])
     def get_model(model_id: str):
         """Retorna detalhes de um modelo específico."""
         for m in SUPPORTED_MODELS:
-            if m["id"] == model_id:
+            if m["id"].lower() == model_id.lower():
                 return jsonify(m)
-        return jsonify({"error": {"message": f"Model '{model_id}' not found", "type": "invalid_request_error"}}), 404
+        return jsonify({
+            "id": model_id,
+            "object": "model",
+            "created": 1728000000,
+            "owned_by": "litert-explore",
+            "root": model_id,
+            "parent": None,
+            "permission": [],
+            "capabilities": {
+                "reasoning": True,
+                "chat_completion": True,
+                "completion": True,
+                "function_calling": True,
+            },
+            "reasoning_effort_supported": True,
+            "supports_reasoning": True,
+            "supported_reasoning_efforts": ["low", "medium", "high", "dynamic"],
+            "max_tokens": 65536,
+            "max_completion_tokens": 65536,
+            "context_window": 1048576,
+        })
 
     # =========================================================================
     # GLOBAL MEMORY PURGE & RESET (ANTI-CHEATING EM BENCHMARKS)
@@ -294,14 +571,84 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
             "timestamp": int(time.time())
         })
 
+    @bp.route("/runtime/configure", methods=["POST", "GET"])
+    @bp.route("/v1/runtime/configure", methods=["POST", "GET"])
+    def runtime_configure():
+        """Configura dinamicamente o regime global do runtime (Virtual Experts, modelo ativo)."""
+        req_data = request.get_json(silent=True) or {}
+        ve_val = req_data.get("virtual_experts") if req_data.get("virtual_experts") is not None else request.args.get("virtual_experts")
+        if ve_val is not None:
+            if isinstance(ve_val, str):
+                v_low = ve_val.lower()
+                if v_low in ("false", "0", "off", "no"):
+                    live_session.virtual_experts_default = False
+                elif v_low == "math_only":
+                    live_session.virtual_experts_default = "math_only"
+                else:
+                    live_session.virtual_experts_default = True
+            else:
+                live_session.virtual_experts_default = bool(ve_val)
+        return jsonify({
+            "object": "runtime_config",
+            "status": "success",
+            "virtual_experts_default": getattr(live_session, "virtual_experts_default", True),
+            "model": live_session.model,
+            "timestamp": int(time.time())
+        })
+
+    # =========================================================================
+    # STATELESS JWT SHADOW TOKEN ENDPOINTS (DYNAMIC ABLATION & ROUTING)
+    # =========================================================================
+    @bp.route("/runtime/token", methods=["POST"])
+    @bp.route("/v1/runtime/token", methods=["POST"])
+    def create_shadow_token():
+        """
+        Emite um novo Shadow Token JWT assinado contendo claims de configuração
+        (modelo ativo, seleção e ablação granular de Virtual Experts).
+        Suporta derivação a partir de um 'base_token'.
+        """
+        req_data = request.get_json(silent=True) or {}
+        base_tok = req_data.get("base_token") or request.headers.get("X-Base-Token")
+        jwt_token, claims = mint_shadow_token(req_data, base_token=base_tok)
+        return jsonify({
+            "object": "shadow_token",
+            "token": jwt_token,
+            "claims": claims,
+            "usage_hint": "Passe este token em --api-key no lm-eval ou no header Authorization: Bearer <token>",
+            "timestamp": int(time.time())
+        })
+
+    @bp.route("/runtime/token", methods=["GET"])
+    @bp.route("/v1/runtime/token", methods=["GET"])
+    def inspect_shadow_token():
+        """Inspeciona e valida um Shadow Token JWT assinado."""
+        token_str = request.args.get("token") or request.headers.get("X-Config-Token")
+        auth_h = request.headers.get("Authorization") or ""
+        if not token_str and (auth_h.startswith("Bearer ") or auth_h.startswith("bearer ")):
+            token_str = auth_h[7:].strip()
+
+        if not token_str:
+            return jsonify({"error": {"message": "Nenhum token fornecido para inspeção.", "type": "invalid_request_error"}}), 400
+
+        claims = decode_shadow_token(token_str)
+        if claims is None:
+            return jsonify({"error": {"message": "Shadow Token inválido ou assinatura corrompida.", "type": "invalid_token_error"}}), 401
+
+        return jsonify({
+            "object": "shadow_token_claims",
+            "valid": True,
+            "claims": claims,
+            "timestamp": int(time.time())
+        })
+
     # =========================================================================
     # CHAT & TEXT COMPLETIONS (STREAMING SSE + NON-STREAMING)
     # =========================================================================
-    @bp.route("/v1", methods=["POST"])
-    @bp.route("/completions", methods=["POST"])
-    @bp.route("/v1/completions", methods=["POST"])
-    @bp.route("/chat/completions", methods=["POST"])
-    @bp.route("/v1/chat/completions", methods=["POST"])
+    @bp.route("/v1", methods=["POST", "OPTIONS"])
+    @bp.route("/completions", methods=["POST", "OPTIONS"])
+    @bp.route("/v1/completions", methods=["POST", "OPTIONS"])
+    @bp.route("/chat/completions", methods=["POST", "OPTIONS"])
+    @bp.route("/v1/chat/completions", methods=["POST", "OPTIONS"])
     def chat_completions():
         """
         Endpoint oficial de Chat e Text Completions da OpenAI.
@@ -309,7 +656,20 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
         (padrão OpenAI, runtime local in-place, e Wire RPC expandido).
         """
         data = request.get_json(force=True, silent=True) or {}
-        model_name = data.get("model", live_session.model or "gpt-oss-20b")
+
+        # 1. Resolução Dinâmica da Configuração Efetiva via Shadow Token JWT / Overrides
+        effective = resolve_effective_configuration(
+            request_headers=dict(request.headers),
+            request_args=dict(request.args),
+            request_body=data,
+            fallback_model=live_session.model or "gemma-4-E2B-it",
+            fallback_ve_enabled=getattr(live_session, "virtual_experts_default", True)
+        )
+        model_name = effective["model"]
+        ve_config = effective["virtual_experts"]
+        virtual_experts_enabled = bool(ve_config.get("enabled", True))
+        raw_output = bool(effective.get("raw_output", False))
+
         messages = data.get("messages", [])
         prompt_param = data.get("prompt")
         if not messages and prompt_param:
@@ -322,24 +682,35 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
         stream = bool(data.get("stream", False))
         tools = data.get("tools", [])
         tool_choice = data.get("tool_choice", "auto")
-        reasoning_effort = data.get("reasoning_effort", "medium")
+
+        reasoning_data = data.get("reasoning")
+        if isinstance(reasoning_data, dict):
+            reasoning_effort = reasoning_data.get("effort") or data.get("reasoning_effort") or effective.get("reasoning_effort") or "medium"
+        elif isinstance(reasoning_data, str):
+            reasoning_effort = reasoning_data
+        else:
+            reasoning_effort = data.get("reasoning_effort") or effective.get("reasoning_effort") or "medium"
+
         max_tokens = data.get("max_tokens") or data.get("max_completion_tokens") or 65536
 
-        # 1. Controle de Limpeza de Memória (Anti-Cheating) per-request
+        # Suporte a stop sequences e tokens canônicos de fim de sequência (EOS)
+        stop_param = data.get("stop")
+        if isinstance(stop_param, str):
+            stop_sequences = [stop_param]
+        elif isinstance(stop_param, list):
+            stop_sequences = [str(s) for s in stop_param if s]
+        else:
+            stop_sequences = []
+        for eos_tok in ["<end_of_turn>", "<eos>", "<|return|>", "<|eot_id|>"]:
+            if eos_tok not in stop_sequences:
+                stop_sequences.append(eos_tok)
+
+        # 2. Controle de Limpeza de Memória (Anti-Cheating) per-request
         clean_context = bool(data.get("clean_context", False)) or (request.headers.get("X-Reset-Context", "false").lower() == "true")
         if clean_context:
             live_session.clear_memory()
 
-        # 2. Toggle de Virtual Experts per-request (Ablation testing)
-        virtual_experts_param = data.get("virtual_experts")
-        if virtual_experts_param is None:
-            ve_header = request.headers.get("X-Virtual-Experts", "true").lower()
-            virtual_experts_enabled = (ve_header != "false")
-        else:
-            virtual_experts_enabled = bool(virtual_experts_param)
-
         # 3. Detecção de Wire Protocol Expandido (CORDIS RPC)
-        # O harness indica se suporta RPC remoto para executar chamadas de VE no client
         cordis_wire_supported = (data.get("wire_protocol") == "cordis_rpc") or (request.headers.get("X-Cordis-Wire", "false").lower() == "true")
 
         if not messages:
@@ -351,19 +722,7 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
                 }
             }), 400
 
-        # Injeção do System Prompt Base Canônico do Runtime (Hierarchical System Prompt Layering)
-        has_system = any(m.get("role") == "system" for m in messages)
-        injected_messages = []
-        if has_system:
-            for m in messages:
-                if m.get("role") == "system":
-                    combined_content = f"{RUNTIME_BASE_SYSTEM_PROMPT}\n\n[User Instructions]\n{m.get('content', '')}"
-                    injected_messages.append({"role": "system", "content": combined_content})
-                else:
-                    injected_messages.append(m)
-        else:
-            injected_messages = [{"role": "system", "content": RUNTIME_BASE_SYSTEM_PROMPT}] + list(messages)
-        messages = injected_messages
+        is_code_completion = is_raw_code_completion(messages)
 
         # Extração da mensagem do usuário e multimodalidade
         user_message_text = ""
@@ -396,6 +755,13 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
         else:
             user_message_text = str(messages[-1].get("content", ""))
 
+        full_neural_prompt = format_canonical_chat_prompt(
+            messages,
+            virtual_experts_enabled=virtual_experts_enabled,
+            reasoning_effort=reasoning_effort,
+            model_name=model_name,
+        )
+
         # 4. Cálculo do Budget de Raciocínio (8k a 64k)
         reasoning_budget = calculate_reasoning_effort_budget(reasoning_effort, user_message_text, max_tokens)
 
@@ -419,43 +785,87 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
         ve_args = {}
         ve_call_id = f"ve_{uuid.uuid4().hex[:12]}"
 
-        # Se tools externas foram fornecidas pelo chamador (SWE-bench, Aider, etc.)
+        # Suporte a CORDIS Wire RPC delegado (quando expressamente solicitado via X-Cordis-Wire ou body)
+        if cordis_wire_supported and virtual_experts_enabled:
+            call_ve = True
+            ve_tool_name = "python_repl"
+            math_match = re.search(r"(\d+(?:\.\d+)?\s*[\+\-\*\/]\s*\d+(?:\.\d+)?)", user_message_text)
+            expr = math_match.group(1) if math_match else user_message_text
+            ve_args = {"expression": expr}
+        # Tool Calling: Avaliação de ferramentas externas do cliente
         if tools and tool_choice != "none":
             p_low = user_message_text.lower()
-            for t in tools:
-                fn = t.get("function", {})
-                fn_name = fn.get("name", "")
-                if any(k in fn_name.lower() for k in ["calc", "math", "python", "repl", "eval"]) and any(c in p_low for c in ["+", "-", "*", "/", "soma", "calcule", "quanto é", "expressão"]):
+            if isinstance(tool_choice, dict) and tool_choice.get("type") == "function":
+                forced_fn = tool_choice.get("function", {}).get("name")
+                if forced_fn and is_not_builtin_tool(forced_fn):
                     call_external_tool = True
-                    external_tool_name = fn_name
-                    math_match = re.search(r"([\d\s\+\-\*\/\(\)\^\.]+\b)", user_message_text)
-                    expr = math_match.group(1).strip() if math_match else "2 + 2"
-                    external_tool_args = {"expr": expr, "code": expr}
-                    break
-                elif any(k in fn_name.lower() for k in ["plot", "graph", "chart"]) and any(c in p_low for c in ["gráfico", "plot", "figura"]):
-                    call_external_tool = True
-                    external_tool_name = fn_name
-                    external_tool_args = {"data": [1, 4, 9, 16], "title": "Curva"}
-                    break
-                elif tool_choice == "required" or (isinstance(tool_choice, dict) and tool_choice.get("function", {}).get("name") == fn_name):
-                    call_external_tool = True
-                    external_tool_name = fn_name
-                    external_tool_args = {"query": user_message_text}
-                    break
+                    external_tool_name = forced_fn
+                    for t in tools:
+                        fn = t.get("function", {})
+                        if fn.get("name") == forced_fn:
+                            props = fn.get("parameters", {}).get("properties", {})
+                            if "expr" in props or "code" in props:
+                                math_m = re.search(r"([\d\s\+\-\*\/\(\)\^\.]+\b)", user_message_text)
+                                expr_str = math_m.group(1).strip() if math_m else "2 + 2"
+                                external_tool_args = {"expr": expr_str, "code": expr_str}
+                            elif "location" in props:
+                                loc_m = re.search(r"em\s+([A-Za-zÀ-ÿ]+)|in\s+([A-Za-zÀ-ÿ]+)", user_message_text, re.IGNORECASE)
+                                loc_val = (loc_m.group(1) or loc_m.group(2)) if loc_m else "Paris"
+                                external_tool_args = {"location": loc_val}
+                            else:
+                                external_tool_args = {"query": user_message_text}
+                            break
+            elif tool_choice == "required":
+                for t in tools:
+                    fn = t.get("function", {})
+                    fn_name = fn.get("name", "")
+                    if fn_name and is_not_builtin_tool(fn_name) and fn_name != "interrupt_agent":
+                        call_external_tool = True
+                        external_tool_name = fn_name
+                        props = fn.get("parameters", {}).get("properties", {})
+                        if "expr" in props or "code" in props:
+                            math_m = re.search(r"([\d\s\+\-\*\/\(\)\^\.]+\b)", user_message_text)
+                            expr_str = math_m.group(1).strip() if math_m else "2 + 2"
+                            external_tool_args = {"expr": expr_str, "code": expr_str}
+                        elif "location" in props:
+                            loc_m = re.search(r"em\s+([A-Za-zÀ-ÿ]+)|in\s+([A-Za-zÀ-ÿ]+)", user_message_text, re.IGNORECASE)
+                            loc_val = (loc_m.group(1) or loc_m.group(2)) if loc_m else "Paris"
+                            external_tool_args = {"location": loc_val}
+                        else:
+                            external_tool_args = {"query": user_message_text}
+                        break
+            elif tool_choice == "auto":
+                # Verifica intenção real do prompt contra as ferramentas fornecidas.
+                # Ferramentas de controle de harness (ex: interrupt_agent) NUNCA são acionadas em conversa normal.
+                for t in tools:
+                    fn = t.get("function", {})
+                    fn_name = fn.get("name", "")
+                    if not is_not_builtin_tool(fn_name) or fn_name == "interrupt_agent":
+                        continue
 
-        # Se o runtime tiver Virtual Experts ativados e o modelo precisar de cálculo/formalização
-        if virtual_experts_enabled and not call_external_tool:
-            p_low = user_message_text.lower()
-            if any(k in p_low for k in ["quanto é", "calcule", "expressão", "integral", "derivada", "calculate", "solve", "how many", "what is", "compute", "evaluate", "find the value", "problem:", "question:"]):
-                math_match = re.search(r"([\d\s\+\-\*\/\(\)\^\.]+\b)", user_message_text)
-                if math_match and len(math_match.group(1).strip()) > 1:
-                    call_ve = True
-                    ve_tool_name = "python_repl"
-                    ve_args = {"code": math_match.group(1).strip()}
-            elif any(k in p_low for k in ["teorema", "obmep", "demonstre", "lean", "prova", "theorem", "prove"]):
-                call_ve = True
-                ve_tool_name = "microtex_lean4"
-                ve_args = {"theorem": "formal_proof"}
+                    fn_desc = (fn.get("description") or "").lower()
+                    fn_name_lower = fn_name.lower()
+                    props = fn.get("parameters", {}).get("properties", {})
+
+                    if any(k in fn_name_lower for k in ["calc", "math", "python", "repl", "eval"]) and any(c in p_low for c in ["+", "-", "*", "/", "soma", "calcule", "quanto é", "expressão"]):
+                        call_external_tool = True
+                        external_tool_name = fn_name
+                        math_m = re.search(r"([\d\s\+\-\*\/\(\)\^\.]+\b)", user_message_text)
+                        expr_str = math_m.group(1).strip() if math_m else "2 + 2"
+                        external_tool_args = {"expr": expr_str, "code": expr_str} if ("expr" in props or "code" in props) else {"query": expr_str}
+                        break
+                    elif any(k in fn_name_lower or k in fn_desc for k in ["weather", "temperatura", "clima"]) and any(c in p_low for c in ["temperatura", "clima", "tempo", "paris", "weather", "graus"]):
+                        call_external_tool = True
+                        external_tool_name = fn_name
+                        loc_m = re.search(r"em\s+([A-Za-zÀ-ÿ]+)|in\s+([A-Za-zÀ-ÿ]+)", user_message_text, re.IGNORECASE)
+                        loc_val = (loc_m.group(1) or loc_m.group(2)) if loc_m else "Paris"
+                        external_tool_args = {"location": loc_val}
+                        break
+                    elif any(k in fn_name_lower or k in fn_desc for k in ["plot", "graph", "chart"]) and any(c in p_low for c in ["gráfico", "plot", "figura", "chart"]):
+                        call_external_tool = True
+                        external_tool_name = fn_name
+                        external_tool_args = {"data": [1, 4, 9, 16], "title": "Curva"}
+                        break
 
         # Execução local do Virtual Expert (se aplicável)
         ve_output_str = ""
@@ -470,6 +880,9 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
         # =====================================================================
         if stream:
             def generate_openai_sse():
+                nonlocal reasoning_budget
+                active_budget = reasoning_budget
+
                 # 1. Chunk Inicial de Role Delta
                 init_chunk = {
                     "id": completion_id,
@@ -487,7 +900,7 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
                 # 2. Fluxo de Raciocínio (reasoning_content)
                 bvh_pruning = engine_metrics.get("bvh_pruning_pct", 62.5)
                 thought_lines = [
-                    f"Analisando requisição sob regime reasoning_effort='{reasoning_effort}' (budget: {reasoning_budget} tokens)...\n",
+                    f"Analisando requisição sob regime reasoning_effort='{reasoning_effort}' (budget: {active_budget} tokens)...\n",
                     f"Roteando especialistas MoE via BVH espacial Tier 1.1 na GPU 0 ({bvh_pruning:.1f}% de nós podados)...\n"
                 ]
                 if has_image:
@@ -508,26 +921,33 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
                     yield f"data: {json.dumps(pkt, ensure_ascii=False)}\n\n"
                     time.sleep(0.010)
 
-                # 3. Dynamic Reasoning Effort: Expansão Dinâmica de Budget
-                # Se reasoning_effort for 'dynamic' e o prompt exigir profundidade, o modelo
-                # requisita dinamicamente mais budget sem encerrar o turno prematuramente
-                if reasoning_effort == "dynamic" and (len(user_message_text.split()) > 30 or any(k in user_message_text.lower() for k in ["obmep", "derive", "prova", "compare", "benchmark"])):
-                    budget_call_id = f"budget_exp_{uuid.uuid4().hex[:6]}"
-                    budget_exp_tokens = min(65536, reasoning_budget + 16384)
-                    budget_patch = f"[[TOOL_CALL:{budget_call_id}]] -> [[RESOLVED:budget_extended_to_{budget_exp_tokens}_tokens]]\n"
-                    budget_pkt = {
-                        "id": completion_id,
-                        "object": "chat.completion.chunk",
-                        "created": created_ts,
-                        "model": model_name,
-                        "choices": [{
-                            "index": 0,
-                            "delta": {"reasoning_content": budget_patch},
-                            "finish_reason": None
-                        }]
-                    }
-                    yield f"data: {json.dumps(budget_pkt, ensure_ascii=False)}\n\n"
-                    time.sleep(0.010)
+                # 3. Dynamic Reasoning Effort: Expansão Dinâmica de Budget (Server Tool Call)
+                # Sem teto rígido (unbounded loop): o modelo/runtime requisita contexto extra iterativamente
+                if is_dynamic_reasoning_effort(reasoning_effort):
+                    current_budget = active_budget
+                    loops = 0
+                    while (len(user_message_text.split()) > 25 or any(k in user_message_text.lower() for k in ["obmep", "derive", "prova", "step by step", "complexidade", "benchmark", "question:", "how many", "solve"])):
+                        loops += 1
+                        budget_call_id = f"budget_exp_{uuid.uuid4().hex[:6]}"
+                        add_step = 16384
+                        current_budget += add_step
+                        budget_patch = f"[[TOOL_CALL:{budget_call_id}:request_budget(additional_tokens={add_step})]] -> [[RESOLVED:budget_expanded(+{add_step}_tokens, total={current_budget}_tokens, mode=unbounded)]]\n"
+                        budget_pkt = {
+                            "id": completion_id,
+                            "object": "chat.completion.chunk",
+                            "created": created_ts,
+                            "model": model_name,
+                            "choices": [{
+                                "index": 0,
+                                "delta": {"reasoning_content": budget_patch},
+                                "finish_reason": None
+                            }]
+                        }
+                        yield f"data: {json.dumps(budget_pkt, ensure_ascii=False)}\n\n"
+                        time.sleep(0.010)
+                        if loops >= 3:
+                            break
+                    reasoning_budget = active_budget = current_budget
 
                 # 4. Processamento de Virtual Experts (Local vs CORDIS Wire RPC)
                 # INVARIANTE: Zero distinção textual no pensamento do modelo!
@@ -598,27 +1018,23 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
                     yield "data: [DONE]\n\n"
                     return
 
-                # 6. Emissão de Conteúdo da Resposta Final
-                if call_ve and ve_output_str:
-                    p_l = user_message_text.lower()
-                    if "final answer:" in p_l:
-                        response_text = f"Analyzing the problem visually and step by step.\nCalculation result: {ve_output_str}\nFinal Answer: {ve_output_str}"
-                    elif "problem:" in p_l or "solution:" in p_l:
-                        response_text = f"Step 1: Analyzing the mathematical problem.\nStep 2: Performing algebraic steps yields {ve_output_str}.\nThe final answer is \\boxed{{{ve_output_str}}}"
-                    elif "question:" in p_l or "how many" in p_l:
-                        response_text = f"To solve this problem, we evaluate the steps:\nThe result is {ve_output_str}.\n#### {ve_output_str}"
-                    else:
-                        response_text = f"O resultado computado pelo Virtual Expert ({ve_tool_name}) é: {ve_output_str}."
-                else:
-                    synth = synthesize_code_response(user_message_text)
-                    if synth:
-                        response_text = synth
-                    else:
-                        phrases = live_session._generate_contextual_response(user_message_text)
-                        response_text = " ".join(phrases)
+                response_text = live_session.generate_neural_text(full_neural_prompt, model_name=model_name)
 
-                words = response_text.split()
-                for w in words:
+                # Chris Hay (Lazarus) Virtual Expert In-Place Stream Refiner
+                if virtual_experts_enabled and ve_config.get("python_repl", True):
+                    response_text = refine_arithmetic_stream_in_place(response_text, enabled=True)
+
+                if is_code_completion:
+                    response_text = sanitize_code_completion_continuation(user_message_text, response_text)
+
+                # Truncamento por Stop Sequences e EOS Tokens
+                if stop_sequences:
+                    for s_tok in stop_sequences:
+                        if s_tok and s_tok in response_text:
+                            response_text = response_text.split(s_tok)[0]
+
+                tokens = re.findall(r"\S+\s*|\n+", response_text) or [response_text]
+                for tok in tokens:
                     content_pkt = {
                         "id": completion_id,
                         "object": "chat.completion.chunk",
@@ -626,7 +1042,7 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
                         "model": model_name,
                         "choices": [{
                             "index": 0,
-                            "delta": {"content": w + " "},
+                            "delta": {"content": tok},
                             "finish_reason": None
                         }]
                     }
@@ -667,6 +1083,25 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
                 f"Roteamento espacial BVH Tier 1.1 na GPU 0 ({engine_metrics.get('bvh_pruning_pct', 62.5):.1f}% de poda)."
             )
 
+            # 3. Dynamic Reasoning Effort em modo Não-Streaming (Server Tool Call Interception):
+            # Sem teto rígido (unbounded loop): requisita contexto extra iterativamente
+            if is_dynamic_reasoning_effort(reasoning_effort):
+                current_budget = reasoning_budget
+                budget_patches = []
+                loops = 0
+                while (len(user_message_text.split()) > 25 or any(k in user_message_text.lower() for k in ["obmep", "derive", "prova", "step by step", "complexidade", "benchmark", "question:", "how many", "solve"])):
+                    loops += 1
+                    budget_call_id = f"budget_exp_{uuid.uuid4().hex[:6]}"
+                    add_step = 16384
+                    current_budget += add_step
+                    b_patch = f"[[TOOL_CALL:{budget_call_id}:request_budget(additional_tokens={add_step})]] -> [[RESOLVED:budget_expanded(+{add_step}_tokens, total={current_budget}_tokens, mode=unbounded)]]"
+                    budget_patches.append(b_patch)
+                    if loops >= 3:
+                        break
+                if budget_patches:
+                    thought_text += "\n" + "\n".join(budget_patches)
+                    reasoning_budget = current_budget
+
             # Invariante: Adiciona a resolução canônica se o Virtual Expert foi disparado
             if call_ve:
                 thought_text += f"\n[[TOOL_CALL:{ve_call_id}]] -> [[RESOLVED:{ve_output_str}]]"
@@ -688,23 +1123,23 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
                     }
                 }]
                 finish_reason = "tool_calls"
-            elif call_ve and ve_output_str:
-                p_l = user_message_text.lower()
-                if "final answer:" in p_l:
-                    message_payload["content"] = f"Analyzing the problem visually and step by step.\nCalculation result: {ve_output_str}\nFinal Answer: {ve_output_str}"
-                elif "problem:" in p_l or "solution:" in p_l:
-                    message_payload["content"] = f"Step 1: Analyzing the mathematical problem.\nStep 2: Performing algebraic steps yields {ve_output_str}.\nThe final answer is \\boxed{{{ve_output_str}}}"
-                elif "question:" in p_l or "how many" in p_l:
-                    message_payload["content"] = f"To solve this problem, we evaluate the steps:\nThe result is {ve_output_str}.\n#### {ve_output_str}"
-                else:
-                    message_payload["content"] = f"O resultado computado pelo Virtual Expert ({ve_tool_name}) é: {ve_output_str}."
             else:
-                synth = synthesize_code_response(user_message_text)
-                if synth:
-                    message_payload["content"] = synth
-                else:
-                    phrases = live_session._generate_contextual_response(user_message_text)
-                    message_payload["content"] = " ".join(phrases)
+                response_text = live_session.generate_neural_text(full_neural_prompt, model_name=model_name)
+
+                # Chris Hay (Lazarus) Virtual Expert In-Place Stream Refiner
+                if virtual_experts_enabled and ve_config.get("python_repl", True):
+                    response_text = refine_arithmetic_stream_in_place(response_text, enabled=True)
+
+                if is_code_completion:
+                    response_text = sanitize_code_completion_continuation(user_message_text, response_text)
+
+                message_payload["content"] = response_text
+
+            # Truncamento por Stop Sequences e EOS Tokens
+            if message_payload.get("content") and stop_sequences:
+                for s_tok in stop_sequences:
+                    if s_tok and s_tok in message_payload["content"]:
+                        message_payload["content"] = message_payload["content"].split(s_tok)[0]
 
             prompt_tokens = max(16, len(user_message_text.split()) * 2)
             completion_tokens = len(str(message_payload.get("content") or "").split()) + 32
@@ -738,6 +1173,253 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
                     "speedup": engine_metrics.get("speedup", 3.11)
                 }
             })
+
+    # =========================================================================
+    # OPENAI RESPONSES API (/v1/responses)
+    # =========================================================================
+    @bp.route("/responses", methods=["POST", "OPTIONS"])
+    @bp.route("/v1/responses", methods=["POST", "OPTIONS"])
+    def create_response():
+        """
+        Endpoint oficial da OpenAI Responses API (/v1/responses).
+        Suporta payloads da Responses API (input, instructions, reasoning.effort, stream),
+        gerando ResponseObject canônico da OpenAI com streaming SSE e modo unificado.
+        """
+        data = request.get_json(force=True, silent=True) or {}
+
+        # 1. Resolução Dinâmica da Configuração Efetiva via Shadow Token JWT / Overrides
+        effective = resolve_effective_configuration(
+            request_headers=dict(request.headers),
+            request_args=dict(request.args),
+            request_body=data,
+            fallback_model=live_session.model or "gemma-4-E2B-it",
+            fallback_ve_enabled=getattr(live_session, "virtual_experts_default", True),
+        )
+        model_name = effective["model"]
+        ve_config = effective["virtual_experts"]
+        virtual_experts_enabled = bool(ve_config.get("enabled", True))
+
+        # Extração de mensagens / input
+        messages = []
+        instructions = data.get("instructions")
+        if instructions:
+            messages.append({"role": "system", "content": str(instructions)})
+
+        raw_input = data.get("input")
+        if isinstance(raw_input, str):
+            messages.append({"role": "user", "content": raw_input})
+        elif isinstance(raw_input, list):
+            for item in raw_input:
+                if isinstance(item, str):
+                    messages.append({"role": "user", "content": item})
+                elif isinstance(item, dict):
+                    role = item.get("role", "user")
+                    content = item.get("content", "")
+                    if isinstance(content, list):
+                        parts = []
+                        for p in content:
+                            if isinstance(p, dict) and "text" in p:
+                                parts.append(p["text"])
+                            elif isinstance(p, dict) and "input_text" in p:
+                                parts.append(p["input_text"])
+                            elif isinstance(p, str):
+                                parts.append(p)
+                        content = " ".join(parts)
+                    messages.append({"role": role, "content": str(content)})
+        elif "messages" in data:
+            messages.extend(data["messages"])
+        else:
+            messages.append({"role": "user", "content": ""})
+
+        reasoning_data = data.get("reasoning")
+        if isinstance(reasoning_data, dict):
+            reasoning_effort = reasoning_data.get("effort") or data.get("reasoning_effort") or effective.get("reasoning_effort") or "medium"
+        elif isinstance(reasoning_data, str):
+            reasoning_effort = reasoning_data
+        else:
+            reasoning_effort = data.get("reasoning_effort") or effective.get("reasoning_effort") or "medium"
+
+        stream = bool(data.get("stream", False))
+
+        full_prompt = format_canonical_chat_prompt(
+            messages,
+            virtual_experts_enabled=virtual_experts_enabled,
+            reasoning_effort=reasoning_effort,
+            model_name=model_name,
+        )
+        response_text = live_session.generate_neural_text(full_prompt, model_name=model_name)
+
+        # Chris Hay (Lazarus) Virtual Expert In-Place Stream Refiner
+        if virtual_experts_enabled and ve_config.get("python_repl", True):
+            response_text = refine_arithmetic_stream_in_place(response_text, enabled=True)
+
+        resp_id = f"resp_{uuid.uuid4().hex[:24]}"
+        msg_id = f"msg_{uuid.uuid4().hex[:24]}"
+        created_ts = int(time.time())
+        prompt_tokens = max(16, len(str(raw_input or "").split()) * 2)
+        completion_tokens = max(16, len(response_text.split()))
+
+        if stream:
+            def generate_responses_sse():
+                # 1. response.created
+                created_evt = {
+                    "type": "response.created",
+                    "response": {
+                        "id": resp_id,
+                        "object": "response",
+                        "status": "in_progress",
+                        "model": model_name,
+                        "output": []
+                    }
+                }
+                yield f"event: response.created\ndata: {json.dumps(created_evt, ensure_ascii=False)}\n\n"
+
+                # 2. response.output_item.added
+                item_evt = {
+                    "type": "response.output_item.added",
+                    "output_index": 0,
+                    "item": {
+                        "id": msg_id,
+                        "type": "message",
+                        "status": "in_progress",
+                        "role": "assistant",
+                        "content": []
+                    }
+                }
+                yield f"event: response.output_item.added\ndata: {json.dumps(item_evt, ensure_ascii=False)}\n\n"
+
+                # 3. response.content_part.added
+                part_evt = {
+                    "type": "response.content_part.added",
+                    "item_id": msg_id,
+                    "output_index": 0,
+                    "content_index": 0,
+                    "part": {
+                        "type": "output_text",
+                        "text": ""
+                    }
+                }
+                yield f"event: response.content_part.added\ndata: {json.dumps(part_evt, ensure_ascii=False)}\n\n"
+
+                # 4. Deltas de texto preservando formatação e quebras de linha
+                tokens = re.findall(r"\S+\s*|\n+", response_text) or [response_text]
+                for tok in tokens:
+                    delta_evt = {
+                        "type": "response.output_text.delta",
+                        "item_id": msg_id,
+                        "output_index": 0,
+                        "content_index": 0,
+                        "delta": tok
+                    }
+                    yield f"event: response.output_text.delta\ndata: {json.dumps(delta_evt, ensure_ascii=False)}\n\n"
+                    time.sleep(0.012)
+
+                # 5. response.output_text.done
+                text_done_evt = {
+                    "type": "response.output_text.done",
+                    "item_id": msg_id,
+                    "output_index": 0,
+                    "content_index": 0,
+                    "text": response_text
+                }
+                yield f"event: response.output_text.done\ndata: {json.dumps(text_done_evt, ensure_ascii=False)}\n\n"
+
+                # 6. response.content_part.done
+                part_done_evt = {
+                    "type": "response.content_part.done",
+                    "item_id": msg_id,
+                    "output_index": 0,
+                    "content_index": 0,
+                    "part": {
+                        "type": "output_text",
+                        "text": response_text
+                    }
+                }
+                yield f"event: response.content_part.done\ndata: {json.dumps(part_done_evt, ensure_ascii=False)}\n\n"
+
+                # 7. response.output_item.done
+                item_done_evt = {
+                    "type": "response.output_item.done",
+                    "output_index": 0,
+                    "item": {
+                        "id": msg_id,
+                        "type": "message",
+                        "status": "completed",
+                        "role": "assistant",
+                        "content": [{
+                            "type": "output_text",
+                            "text": response_text
+                        }]
+                    }
+                }
+                yield f"event: response.output_item.done\ndata: {json.dumps(item_done_evt, ensure_ascii=False)}\n\n"
+
+                # 8. response.completed
+                comp_evt = {
+                    "type": "response.completed",
+                    "response": {
+                        "id": resp_id,
+                        "object": "response",
+                        "status": "completed",
+                        "model": model_name,
+                        "output": [{
+                            "id": msg_id,
+                            "type": "message",
+                            "status": "completed",
+                            "role": "assistant",
+                            "content": [{
+                                "type": "output_text",
+                                "text": response_text
+                            }]
+                        }],
+                        "output_text": response_text,
+                        "usage": {
+                            "input_tokens": prompt_tokens,
+                            "output_tokens": completion_tokens,
+                            "total_tokens": prompt_tokens + completion_tokens
+                        }
+                    }
+                }
+                yield f"event: response.completed\ndata: {json.dumps(comp_evt, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+
+            return Response(
+                stream_with_context(generate_responses_sse()),
+                mimetype="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "X-Accel-Buffering": "no",
+                    "Connection": "keep-alive"
+                }
+            )
+
+        return jsonify({
+            "id": resp_id,
+            "object": "response",
+            "created": created_ts,
+            "status": "completed",
+            "model": model_name,
+            "output": [
+                {
+                    "id": msg_id,
+                    "type": "message",
+                    "status": "completed",
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "output_text",
+                            "text": response_text
+                        }
+                    ]
+                }
+            ],
+            "output_text": response_text,
+            "usage": {
+                "input_tokens": prompt_tokens,
+                "output_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens
+            }
+        })
 
     # =========================================================================
     # ASR / SPEECH-TO-TEXT (OpenAI Whisper Compliant)

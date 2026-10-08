@@ -1,0 +1,319 @@
+{
+  "results": {
+    "gsm8k": {
+      "name": "gsm8k",
+      "alias": "gsm8k",
+      "sample_len": 2,
+      "exact_match,strict-match": 0.0,
+      "exact_match_stderr,strict-match": 0.0,
+      "exact_match,flexible-extract": 1.0,
+      "exact_match_stderr,flexible-extract": 0.0
+    }
+  },
+  "group_subtasks": {},
+  "configs": {
+    "gsm8k": {
+      "task": "gsm8k",
+      "dataset_path": "openai/gsm8k",
+      "dataset_name": "main",
+      "training_split": "train",
+      "test_split": "test",
+      "fewshot_split": "train",
+      "doc_to_text": "Question: {{question}}\nAnswer:",
+      "doc_to_target": "{{answer}}",
+      "unsafe_code": false,
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": "train",
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "Question: {{question}}\nAnswer:",
+        "doc_to_choice": null,
+        "doc_to_target": "{{answer}}",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 5,
+      "metric_list": [
+        {
+          "metric": "exact_match",
+          "aggregation": "mean",
+          "higher_is_better": true,
+          "ignore_case": true,
+          "ignore_punctuation": false,
+          "regexes_to_ignore": [
+            ",",
+            "\\$",
+            "(?s).*#### ",
+            "\\.$"
+          ]
+        }
+      ],
+      "output_type": "generate_until",
+      "generation_kwargs": {
+        "until": [
+          "Question:",
+          "</s>",
+          "<|im_end|>"
+        ],
+        "do_sample": false,
+        "temperature": 0.0
+      },
+      "repeats": 1,
+      "filter_list": [
+        {
+          "name": "strict-match",
+          "filter": [
+            {
+              "function": "regex",
+              "regex_pattern": "#### (\\-?[0-9\\.\\,]+)"
+            },
+            {
+              "function": "take_first"
+            }
+          ]
+        },
+        {
+          "name": "flexible-extract",
+          "filter": [
+            {
+              "function": "regex",
+              "group_select": -1,
+              "regex_pattern": "(-?[$0-9.,]{2,})|(-?[0-9]+)"
+            },
+            {
+              "function": "take_first"
+            }
+          ]
+        }
+      ],
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 3.0,
+        "model": "gemma-4-E2B-it",
+        "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+        "api_key": "sk-unified-ced-local",
+        "num_concurrent": 1,
+        "eos_string": "<end_of_turn>",
+        "config_source": "/home/debian/.cache/uv/archive-v0/3aR7EknQAWGAmPAz/lib/python3.12/site-packages/lm_eval/tasks/gsm8k/gsm8k.yaml"
+      }
+    }
+  },
+  "versions": {
+    "gsm8k": 3.0
+  },
+  "n-shot": {
+    "gsm8k": 5
+  },
+  "higher_is_better": {
+    "gsm8k": {
+      "exact_match": true
+    }
+  },
+  "n-samples": {
+    "gsm8k": {
+      "original": 1319,
+      "effective": 2
+    }
+  },
+  "samples": {
+    "gsm8k": [
+      {
+        "doc_id": 0,
+        "doc": {
+          "question": "Janet’s ducks lay 16 eggs per day. She eats three for breakfast every morning and bakes muffins for her friends every day with four. She sells the remainder at the farmers' market daily for $2 per fresh duck egg. How much in dollars does she make every day at the farmers' market?",
+          "answer": "Janet sells 16 - 3 - 4 = <<16-3-4=9>>9 duck eggs a day.\nShe makes 9 * 2 = $<<9*2=18>>18 every day at the farmer’s market.\n#### 18"
+        },
+        "target": "Janet sells 16 - 3 - 4 = <<16-3-4=9>>9 duck eggs a day.\nShe makes 9 * 2 = $<<9*2=18>>18 every day at the farmer’s market.\n#### 18",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"Question: Jen and Tyler are gymnasts practicing flips. Jen is practicing the triple-flip while Tyler is practicing the double-flip. Jen did sixteen triple-flips during practice. Tyler flipped in the air half the number of times Jen did. How many double-flips did Tyler do?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"Jen did 16 triple-flips, so she did 16 * 3 = <<16*3=48>>48 flips.\\nTyler did half the number of flips, so he did 48 / 2 = <<48/2=24>>24 flips.\\nA double flip has two flips, so Tyler did 24 / 2 = <<24/2=12>>12 double-flips.\\n#### 12\"}, {\"role\": \"user\", \"content\": \"Question: Four people in a law firm are planning a party. Mary will buy a platter of pasta for $20 and a loaf of bread for $2. Elle and Andrea will split the cost for buying 4 cans of soda which cost $1.50 each, and chicken wings for $10. Joe will buy a cake that costs $5. How much more will Mary spend than the rest of the firm put together?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"Mary will spend $20 + $2 = $<<20+2=22>>22.\\nElle and Andrea will spend $1.5 x 4 = $<<1.5*4=6>>6 for the soda.\\nElle and Andrea will spend $6 + $10 = $<<6+10=16>>16 for the soda and chicken wings.\\nElle, Andrea, and Joe together will spend $16 + $5 = $<<16+5=21>>21.\\nSo, Mary will spend $22 - $21 = $<<22-21=1>>1 more than all of them combined.\\n#### 1\"}, {\"role\": \"user\", \"content\": \"Question: A charcoal grill burns fifteen coals to ash every twenty minutes of grilling. The grill ran for long enough to burn three bags of coals. Each bag of coal contains 60 coals. How long did the grill run?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"The grill burned 3 * 60 = <<3*60=180>>180 coals.\\nIt takes 20 minutes to burn 15 coals, so the grill ran for 180 / 15 * 20 = <<180/15*20=240>>240 minutes.\\n#### 240\"}, {\"role\": \"user\", \"content\": \"Question: A bear is preparing to hibernate for the winter and needs to gain 1000 pounds. At the end of summer, the bear feasts on berries and small woodland animals. During autumn, it devours acorns and salmon. It gained a fifth of the weight it needed from berries during summer, and during autumn, it gained twice that amount from acorns. Salmon made up half of the remaining weight it had needed to gain. How many pounds did it gain eating small animals?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"The bear gained 1 / 5 * 1000 = <<1/5*1000=200>>200 pounds from berries.\\nIt gained 2 * 200 = <<2*200=400>>400 pounds from acorns.\\nIt still needed 1000 - 200 - 400 = <<1000-200-400=400>>400 pounds.\\nThus, it gained 400 / 2 = <<400/2=200>>200 pounds from salmon.\\nTherefore, the bear gained 400 - 200 = <<400-200=200>>200 pounds from small animals.\\n#### 200\"}, {\"role\": \"user\", \"content\": \"Question: Brendan can cut 8 yards of grass per day, he bought a lawnmower and it helped him to cut more yards by Fifty percent per day. How many yards will Brendan be able to cut after a week?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"The additional yard Brendan can cut after buying the lawnmower is 8 x 0.50 = <<8*0.50=4>>4 yards.\\nSo, the total yards he can cut with the lawnmower is 8 + 4 = <<8+4=12>>12.\\nTherefore, the total number of yards he can cut in a week is 12 x 7 = <<12*7=84>>84 yards.\\n#### 84\"}, {\"role\": \"user\", \"content\": \"Question: Janet’s ducks lay 16 eggs per day. She eats three for breakfast every morning and bakes muffins for her friends every day with four. She sells the remainder at the farmers' market daily for $2 per fresh duck egg. How much in dollars does she make every day at the farmers' market?\\nAnswer:\"}]"
+            ],
+            {
+              "until": [
+                "Question:",
+                "</s>",
+                "<|im_end|>"
+              ],
+              "do_sample": false,
+              "temperature": 0.0
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "Here's how to solve the problem step-by-step:\n\n1. **Calculate the total number of eggs Janet has:**\n   Janet's ducks lay 16 eggs per day.\n\n2. **Calculate the number of eggs she eats:**\n   She eats 3 eggs for breakfast.\n\n3. **Calculate the number of eggs she uses for muffins:**\n   She uses 4 eggs for muffins.\n\n4. **Calculate the total number of eggs used:**\n   Eggs used = Eggs eaten + Eggs for muffins\n   Eggs used = $3 + 4 = 7$ eggs\n\n5. **Calculate the number of eggs remaining for sale:**\n   Eggs remaining = Total eggs laid - Total eggs used\n   Eggs remaining = $16 - 7 = 9$ eggs\n\n6. **Calculate the total money she makes from selling the remainder:**\n   She sells the remaining 9 eggs for $\\$2$ per egg.\n   Money made = Number of remaining eggs $\\times$ Price per egg\n   Money made = $9 \\times \\$2 = \\$18$\n\n**Answer:** She makes **\\$18** every day at the farmers' market."
+          ]
+        ],
+        "filtered_resps": [
+          "[invalid]"
+        ],
+        "filter": "strict-match",
+        "metrics": [
+          "exact_match"
+        ],
+        "doc_hash": "986c19252f3c7f6eaeff2229e9a5777f96a85c0ceea931a92d2289084dfd518c",
+        "prompt_hash": "186f661ab969ce14d829576c94407a0f0258694b14e04e152cb94bce7fa1e6b1",
+        "target_hash": "623a0fbdf774fcb55e485a3e6b012e6c3965616af5b8eb9b9aebd2f6712be2eb",
+        "exact_match": 0.0
+      },
+      {
+        "doc_id": 1,
+        "doc": {
+          "question": "A robe takes 2 bolts of blue fiber and half that much white fiber.  How many bolts in total does it take?",
+          "answer": "It takes 2/2=<<2/2=1>>1 bolt of white fiber\nSo the total amount of fabric is 2+1=<<2+1=3>>3 bolts of fabric\n#### 3"
+        },
+        "target": "It takes 2/2=<<2/2=1>>1 bolt of white fiber\nSo the total amount of fabric is 2+1=<<2+1=3>>3 bolts of fabric\n#### 3",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"Question: Steve finds 100 gold bars while visiting Oregon. He wants to distribute his gold bars evenly to his 4 friends. If 20 gold bars were lost on the way back to San Diego, how many gold bars will each of his 4 friends get when he returns?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"He only has 100 - 20 = <<100-20=80>>80 gold bars after losing 20 of them.\\nHe then gives each of his friends 80 ÷ 4 = <<80/4=20>>20 gold bars.\\n#### 20\"}, {\"role\": \"user\", \"content\": \"Question: In a week, Mortdecai collects 8 dozen  eggs every Tuesday and Thursday, and he delivers 3 dozen  eggs to the market and 5 dozen eggs to the mall. He then uses 4 dozen eggs to make a pie every Saturday. Mortdecai donates the remaining eggs to the charity by Sunday. How many  eggs does he donate to the charity?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"Mortdecai collects a total of 8x2 = <<8*2=16>>16 dozens of eggs.\\nHe sells a total of 3 + 5 = <<3+5=8>>8 dozens of eggs.\\nSo, 16 - 8 = <<16-8=8>>8 dozens of eggs are left.\\nAfter using 4 dozens of eggs to make a pie, 8 - 4 = <<8-4=4>>4 dozens of eggs are left.\\nSince there are 12 in 1 dozen, then Mortdecai donates 4 x 12 = <<4*12=48>>48 pieces of eggs to the charity.\\n#### 48\"}, {\"role\": \"user\", \"content\": \"Question: Corey downloaded two movie series from his Netflix account with 12 and 14 seasons per series, respectively. However, in the week, his computer got a mechanical failure, and he lost two episodes from each season for both series. If each season in the movie series that Corey downloaded had 16 episodes, how many episodes remained after the computer's mechanical failure?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"In the first movie series with 12 seasons, after the mechanical failure, the number of episodes that Corey lost is 2*12 = <<2*12=24>>24\\nOriginally, the movie series with 12 seasons had 12*16 = <<12*16=192>>192 episodes.\\nAfter the mechanical failure, Corey had 192-24 = <<192-24=168>>168 episodes remaining in the first movie series.\\nSimilarly, the 14 season movie series also had 14*2 = <<14*2=28>>28 lost after the computer's mechanical failure.\\nOriginally, the movie series with 14 seasons has 14*16 = <<14*16=224>>224 episodes.\\nThe mechanical failure of the computer reduced the number of episodes in the 14 season movie series to 224-28 = <<224-28=196>>196\\nAfter the loss, Corey had 196+168 = <<196+168=364>>364 episodes remaining from the two movie series he had downloaded.\\n#### 364\"}, {\"role\": \"user\", \"content\": \"Question: There were 18 students assigned in a minibus for a field trip. Eight of these students were boys. On the day of the field trip, the number of girls and boys was the same since some of the girls were not able to join the trip. How many girls were not able to join the field trip?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"8 boys + 8 girls = <<8+8=16>>16 students joined the field trip.\\nThus, 18 - 16 = <<18-16=2>>2 girls were not able to join the field trip.\\n#### 2\"}, {\"role\": \"user\", \"content\": \"Question: There are 200 more red apples than green apples in a grocery store. A truck arrives and delivers another 340 green apples. If there were originally 32 green apples, how many more green apples than red apples are there in the store now?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"There are 200 + 32 = <<200+32=232>>232 red apples.\\nAfter the delivery there are 340 + 32 = <<340+32=372>>372 green apples\\nThere are now 372 - 232 = <<372-232=140>>140 more green apples than red apples now.\\n#### 140\"}, {\"role\": \"user\", \"content\": \"Question: A robe takes 2 bolts of blue fiber and half that much white fiber.  How many bolts in total does it take?\\nAnswer:\"}]"
+            ],
+            {
+              "until": [
+                "Question:",
+                "</s>",
+                "<|im_end|>"
+              ],
+              "do_sample": false,
+              "temperature": 0.0
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "Here's how to solve the problem step-by-step:\n\n1. **Identify the amount of blue fiber:** The robe takes 2 bolts of blue fiber.\n2. **Calculate the amount of white fiber:** The robe takes half that much white fiber.\n   * White fiber = $\\frac{1}{2} \\times (\\text{Amount of blue fiber})$\n   * White fiber = $\\frac{1}{2} \\times 2 \\text{ bolts} = 1 \\text{ bolt}$ of white fiber.\n3. **Calculate the total number of bolts:** Add the bolts of blue fiber and white fiber.\n   * Total bolts = Bolts of blue fiber + Bolts of white fiber\n   * Total bolts = $2 + 1 = 3$ bolts.\n\n**Answer:** It takes a total of **3** bolts."
+          ]
+        ],
+        "filtered_resps": [
+          "[invalid]"
+        ],
+        "filter": "strict-match",
+        "metrics": [
+          "exact_match"
+        ],
+        "doc_hash": "00f836ab1a16e62131c59e2c6ce14552295991067d5b9f912f47449305e3b9e1",
+        "prompt_hash": "cbb3f3d86a58947d25b71871d67452e93ae821805016105f2d3fdd20dae4e6c9",
+        "target_hash": "2c77b25809301541010b4cb58fc194c5b7308c37495cf8847113b267becb19a5",
+        "exact_match": 0.0
+      },
+      {
+        "doc_id": 0,
+        "doc": {
+          "question": "Janet’s ducks lay 16 eggs per day. She eats three for breakfast every morning and bakes muffins for her friends every day with four. She sells the remainder at the farmers' market daily for $2 per fresh duck egg. How much in dollars does she make every day at the farmers' market?",
+          "answer": "Janet sells 16 - 3 - 4 = <<16-3-4=9>>9 duck eggs a day.\nShe makes 9 * 2 = $<<9*2=18>>18 every day at the farmer’s market.\n#### 18"
+        },
+        "target": "Janet sells 16 - 3 - 4 = <<16-3-4=9>>9 duck eggs a day.\nShe makes 9 * 2 = $<<9*2=18>>18 every day at the farmer’s market.\n#### 18",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"Question: Jen and Tyler are gymnasts practicing flips. Jen is practicing the triple-flip while Tyler is practicing the double-flip. Jen did sixteen triple-flips during practice. Tyler flipped in the air half the number of times Jen did. How many double-flips did Tyler do?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"Jen did 16 triple-flips, so she did 16 * 3 = <<16*3=48>>48 flips.\\nTyler did half the number of flips, so he did 48 / 2 = <<48/2=24>>24 flips.\\nA double flip has two flips, so Tyler did 24 / 2 = <<24/2=12>>12 double-flips.\\n#### 12\"}, {\"role\": \"user\", \"content\": \"Question: Four people in a law firm are planning a party. Mary will buy a platter of pasta for $20 and a loaf of bread for $2. Elle and Andrea will split the cost for buying 4 cans of soda which cost $1.50 each, and chicken wings for $10. Joe will buy a cake that costs $5. How much more will Mary spend than the rest of the firm put together?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"Mary will spend $20 + $2 = $<<20+2=22>>22.\\nElle and Andrea will spend $1.5 x 4 = $<<1.5*4=6>>6 for the soda.\\nElle and Andrea will spend $6 + $10 = $<<6+10=16>>16 for the soda and chicken wings.\\nElle, Andrea, and Joe together will spend $16 + $5 = $<<16+5=21>>21.\\nSo, Mary will spend $22 - $21 = $<<22-21=1>>1 more than all of them combined.\\n#### 1\"}, {\"role\": \"user\", \"content\": \"Question: A charcoal grill burns fifteen coals to ash every twenty minutes of grilling. The grill ran for long enough to burn three bags of coals. Each bag of coal contains 60 coals. How long did the grill run?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"The grill burned 3 * 60 = <<3*60=180>>180 coals.\\nIt takes 20 minutes to burn 15 coals, so the grill ran for 180 / 15 * 20 = <<180/15*20=240>>240 minutes.\\n#### 240\"}, {\"role\": \"user\", \"content\": \"Question: A bear is preparing to hibernate for the winter and needs to gain 1000 pounds. At the end of summer, the bear feasts on berries and small woodland animals. During autumn, it devours acorns and salmon. It gained a fifth of the weight it needed from berries during summer, and during autumn, it gained twice that amount from acorns. Salmon made up half of the remaining weight it had needed to gain. How many pounds did it gain eating small animals?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"The bear gained 1 / 5 * 1000 = <<1/5*1000=200>>200 pounds from berries.\\nIt gained 2 * 200 = <<2*200=400>>400 pounds from acorns.\\nIt still needed 1000 - 200 - 400 = <<1000-200-400=400>>400 pounds.\\nThus, it gained 400 / 2 = <<400/2=200>>200 pounds from salmon.\\nTherefore, the bear gained 400 - 200 = <<400-200=200>>200 pounds from small animals.\\n#### 200\"}, {\"role\": \"user\", \"content\": \"Question: Brendan can cut 8 yards of grass per day, he bought a lawnmower and it helped him to cut more yards by Fifty percent per day. How many yards will Brendan be able to cut after a week?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"The additional yard Brendan can cut after buying the lawnmower is 8 x 0.50 = <<8*0.50=4>>4 yards.\\nSo, the total yards he can cut with the lawnmower is 8 + 4 = <<8+4=12>>12.\\nTherefore, the total number of yards he can cut in a week is 12 x 7 = <<12*7=84>>84 yards.\\n#### 84\"}, {\"role\": \"user\", \"content\": \"Question: Janet’s ducks lay 16 eggs per day. She eats three for breakfast every morning and bakes muffins for her friends every day with four. She sells the remainder at the farmers' market daily for $2 per fresh duck egg. How much in dollars does she make every day at the farmers' market?\\nAnswer:\"}]"
+            ],
+            {
+              "until": [
+                "Question:",
+                "</s>",
+                "<|im_end|>"
+              ],
+              "do_sample": false,
+              "temperature": 0.0
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "Here's how to solve the problem step-by-step:\n\n1. **Calculate the total number of eggs Janet has:**\n   Janet's ducks lay 16 eggs per day.\n\n2. **Calculate the number of eggs she eats:**\n   She eats 3 eggs for breakfast.\n\n3. **Calculate the number of eggs she uses for muffins:**\n   She uses 4 eggs for muffins.\n\n4. **Calculate the total number of eggs used:**\n   Eggs used = Eggs eaten + Eggs for muffins\n   Eggs used = $3 + 4 = 7$ eggs\n\n5. **Calculate the number of eggs remaining for sale:**\n   Eggs remaining = Total eggs laid - Total eggs used\n   Eggs remaining = $16 - 7 = 9$ eggs\n\n6. **Calculate the total money she makes from selling the remainder:**\n   She sells the remaining 9 eggs for $\\$2$ per egg.\n   Money made = Number of remaining eggs $\\times$ Price per egg\n   Money made = $9 \\times \\$2 = \\$18$\n\n**Answer:** She makes **\\$18** every day at the farmers' market."
+          ]
+        ],
+        "filtered_resps": [
+          "$18"
+        ],
+        "filter": "flexible-extract",
+        "metrics": [
+          "exact_match"
+        ],
+        "doc_hash": "986c19252f3c7f6eaeff2229e9a5777f96a85c0ceea931a92d2289084dfd518c",
+        "prompt_hash": "186f661ab969ce14d829576c94407a0f0258694b14e04e152cb94bce7fa1e6b1",
+        "target_hash": "623a0fbdf774fcb55e485a3e6b012e6c3965616af5b8eb9b9aebd2f6712be2eb",
+        "exact_match": 1.0
+      },
+      {
+        "doc_id": 1,
+        "doc": {
+          "question": "A robe takes 2 bolts of blue fiber and half that much white fiber.  How many bolts in total does it take?",
+          "answer": "It takes 2/2=<<2/2=1>>1 bolt of white fiber\nSo the total amount of fabric is 2+1=<<2+1=3>>3 bolts of fabric\n#### 3"
+        },
+        "target": "It takes 2/2=<<2/2=1>>1 bolt of white fiber\nSo the total amount of fabric is 2+1=<<2+1=3>>3 bolts of fabric\n#### 3",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"Question: Steve finds 100 gold bars while visiting Oregon. He wants to distribute his gold bars evenly to his 4 friends. If 20 gold bars were lost on the way back to San Diego, how many gold bars will each of his 4 friends get when he returns?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"He only has 100 - 20 = <<100-20=80>>80 gold bars after losing 20 of them.\\nHe then gives each of his friends 80 ÷ 4 = <<80/4=20>>20 gold bars.\\n#### 20\"}, {\"role\": \"user\", \"content\": \"Question: In a week, Mortdecai collects 8 dozen  eggs every Tuesday and Thursday, and he delivers 3 dozen  eggs to the market and 5 dozen eggs to the mall. He then uses 4 dozen eggs to make a pie every Saturday. Mortdecai donates the remaining eggs to the charity by Sunday. How many  eggs does he donate to the charity?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"Mortdecai collects a total of 8x2 = <<8*2=16>>16 dozens of eggs.\\nHe sells a total of 3 + 5 = <<3+5=8>>8 dozens of eggs.\\nSo, 16 - 8 = <<16-8=8>>8 dozens of eggs are left.\\nAfter using 4 dozens of eggs to make a pie, 8 - 4 = <<8-4=4>>4 dozens of eggs are left.\\nSince there are 12 in 1 dozen, then Mortdecai donates 4 x 12 = <<4*12=48>>48 pieces of eggs to the charity.\\n#### 48\"}, {\"role\": \"user\", \"content\": \"Question: Corey downloaded two movie series from his Netflix account with 12 and 14 seasons per series, respectively. However, in the week, his computer got a mechanical failure, and he lost two episodes from each season for both series. If each season in the movie series that Corey downloaded had 16 episodes, how many episodes remained after the computer's mechanical failure?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"In the first movie series with 12 seasons, after the mechanical failure, the number of episodes that Corey lost is 2*12 = <<2*12=24>>24\\nOriginally, the movie series with 12 seasons had 12*16 = <<12*16=192>>192 episodes.\\nAfter the mechanical failure, Corey had 192-24 = <<192-24=168>>168 episodes remaining in the first movie series.\\nSimilarly, the 14 season movie series also had 14*2 = <<14*2=28>>28 lost after the computer's mechanical failure.\\nOriginally, the movie series with 14 seasons has 14*16 = <<14*16=224>>224 episodes.\\nThe mechanical failure of the computer reduced the number of episodes in the 14 season movie series to 224-28 = <<224-28=196>>196\\nAfter the loss, Corey had 196+168 = <<196+168=364>>364 episodes remaining from the two movie series he had downloaded.\\n#### 364\"}, {\"role\": \"user\", \"content\": \"Question: There were 18 students assigned in a minibus for a field trip. Eight of these students were boys. On the day of the field trip, the number of girls and boys was the same since some of the girls were not able to join the trip. How many girls were not able to join the field trip?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"8 boys + 8 girls = <<8+8=16>>16 students joined the field trip.\\nThus, 18 - 16 = <<18-16=2>>2 girls were not able to join the field trip.\\n#### 2\"}, {\"role\": \"user\", \"content\": \"Question: There are 200 more red apples than green apples in a grocery store. A truck arrives and delivers another 340 green apples. If there were originally 32 green apples, how many more green apples than red apples are there in the store now?\\nAnswer:\"}, {\"role\": \"assistant\", \"content\": \"There are 200 + 32 = <<200+32=232>>232 red apples.\\nAfter the delivery there are 340 + 32 = <<340+32=372>>372 green apples\\nThere are now 372 - 232 = <<372-232=140>>140 more green apples than red apples now.\\n#### 140\"}, {\"role\": \"user\", \"content\": \"Question: A robe takes 2 bolts of blue fiber and half that much white fiber.  How many bolts in total does it take?\\nAnswer:\"}]"
+            ],
+            {
+              "until": [
+                "Question:",
+                "</s>",
+                "<|im_end|>"
+              ],
+              "do_sample": false,
+              "temperature": 0.0
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "Here's how to solve the problem step-by-step:\n\n1. **Identify the amount of blue fiber:** The robe takes 2 bolts of blue fiber.\n2. **Calculate the amount of white fiber:** The robe takes half that much white fiber.\n   * White fiber = $\\frac{1}{2} \\times (\\text{Amount of blue fiber})$\n   * White fiber = $\\frac{1}{2} \\times 2 \\text{ bolts} = 1 \\text{ bolt}$ of white fiber.\n3. **Calculate the total number of bolts:** Add the bolts of blue fiber and white fiber.\n   * Total bolts = Bolts of blue fiber + Bolts of white fiber\n   * Total bolts = $2 + 1 = 3$ bolts.\n\n**Answer:** It takes a total of **3** bolts."
+          ]
+        ],
+        "filtered_resps": [
+          "3"
+        ],
+        "filter": "flexible-extract",
+        "metrics": [
+          "exact_match"
+        ],
+        "doc_hash": "00f836ab1a16e62131c59e2c6ce14552295991067d5b9f912f47449305e3b9e1",
+        "prompt_hash": "cbb3f3d86a58947d25b71871d67452e93ae821805016105f2d3fdd20dae4e6c9",
+        "target_hash": "2c77b25809301541010b4cb58fc194c5b7308c37495cf8847113b267becb19a5",
+        "exact_match": 1.0
+      }
+    ]
+  },
+  "config": {
+    "model": "local-chat-completions",
+    "model_args": {
+      "model": "gemma-4-E2B-it",
+      "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+      "api_key": "sk-unified-ced-local",
+      "num_concurrent": 1,
+      "eos_string": "<end_of_turn>"
+    },
+    "batch_size": null,
+    "batch_sizes": [],
+    "device": null,
+    "use_cache": null,
+    "limit": 2,
+    "bootstrap_iters": 100000,
+    "gen_kwargs": null,
+    "random_seed": 0,
+    "numpy_seed": 1234,
+    "torch_seed": 1234,
+    "fewshot_seed": 1234
+  },
+  "git_hash": "3a6b22d68468f37e7d836e12d6702abc2dcbf837",
+  "date": 1791468289.693967,
+  "pretty_env_info": "N/A (torch not installed)",
+  "transformers_version": "N/A",
+  "lm_eval_version": "0.4.13",
+  "upper_git_hash": null,
+  "elapsed_time_seconds": 48.65,
+  "timestamp": "2026-10-08_11-05-38",
+  "model_name": "gemma-4-E2B-it",
+  "base_url": "http://172.27.96.1:8765/v1/chat/completions"
+}

@@ -1,0 +1,184 @@
+{
+  "results": {
+    "humaneval": {
+      "name": "humaneval",
+      "alias": "humaneval",
+      "sample_len": 1,
+      "pass@1,create_test": 1.0,
+      "pass@1_stderr,create_test": "N/A"
+    }
+  },
+  "group_subtasks": {},
+  "configs": {
+    "humaneval": {
+      "task": "humaneval",
+      "dataset_path": "openai/openai_humaneval",
+      "test_split": "test",
+      "doc_to_text": "{{prompt}}",
+      "doc_to_target": "{{test}}\ncheck({{entry_point}})",
+      "unsafe_code": true,
+      "description": "",
+      "target_delimiter": " ",
+      "fewshot_delimiter": "\n\n",
+      "fewshot_config": {
+        "sampler": "default",
+        "split": null,
+        "process_docs": null,
+        "fewshot_indices": null,
+        "samples": null,
+        "doc_to_text": "{{prompt}}",
+        "doc_to_choice": null,
+        "doc_to_target": "{{test}}\ncheck({{entry_point}})",
+        "gen_prefix": null,
+        "fewshot_delimiter": "\n\n",
+        "target_delimiter": " "
+      },
+      "num_fewshot": 0,
+      "metric_list": [
+        {
+          "metric": "def pass_at_k(references: list[str], predictions: list[list[str]], k: list[int] = None):\n    global compute_\n    assert k is not None\n    if isinstance(k, int):\n        k = [k]\n    res = compute_.compute(\n        references=references,\n        predictions=predictions,\n        k=k,\n    )\n    return res[0]\n",
+          "aggregation": "mean",
+          "higher_is_better": true,
+          "k": [
+            1
+          ]
+        }
+      ],
+      "output_type": "generate_until",
+      "generation_kwargs": {
+        "until": [
+          "\nclass",
+          "\ndef",
+          "\n#",
+          "\nif",
+          "\nprint"
+        ],
+        "max_gen_toks": 1024,
+        "do_sample": false
+      },
+      "repeats": 1,
+      "filter_list": [
+        {
+          "name": "create_test",
+          "filter": [
+            {
+              "function": "custom",
+              "filter_fn": "<function build_predictions at 0x71f2cb57dbc0>"
+            }
+          ]
+        }
+      ],
+      "should_decontaminate": false,
+      "metadata": {
+        "version": 1.0,
+        "model": "gemma-4-E2B-it",
+        "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+        "api_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsaXRlcnQtc2hhZG93LXNlc3Npb24iLCJpYXQiOjE3OTE0Njk5NjYsIm1vZGVsIjoiZ2VtbWEtNC1FMkItaXQiLCJyZWFzb25pbmdfZWZmb3J0IjoiZHluYW1pYyIsInZpcnR1YWxfZXhwZXJ0cyI6eyJlbmFibGVkIjp0cnVlLCJweXRob25fcmVwbCI6dHJ1ZSwiY29kZV9pbnRlcnByZXRlciI6dHJ1ZSwibGxtX2NvZGVfZ2VuIjpmYWxzZSwibWljcm90ZXhfbGVhbjQiOnRydWUsImFuYWx5dGljYWxfcGxvdHRlciI6dHJ1ZSwid2ViX3NlYXJjaCI6dHJ1ZSwiYnJvd3NlciI6dHJ1ZSwicmVxdWVzdF9idWRnZXQiOnRydWUsImRpc2tfZXhwZXJ0X3N0b3JlIjp0cnVlfSwicmF3X291dHB1dCI6ZmFsc2UsIm1ldGFkYXRhIjp7fX0.0UIkQ9fG1X1fko2WB-G9aVC23Qp__AiKbfSLafMoN3s",
+        "num_concurrent": 1,
+        "eos_string": "<end_of_turn>",
+        "config_source": "/home/debian/.cache/uv/archive-v0/3aR7EknQAWGAmPAz/lib/python3.12/site-packages/lm_eval/tasks/humaneval/humaneval.yaml"
+      }
+    }
+  },
+  "versions": {
+    "humaneval": 1.0
+  },
+  "n-shot": {
+    "humaneval": 0
+  },
+  "higher_is_better": {
+    "humaneval": {
+      "pass_at_k": true,
+      "pass@1": true
+    }
+  },
+  "n-samples": {
+    "humaneval": {
+      "original": 164,
+      "effective": 1
+    }
+  },
+  "samples": {
+    "humaneval": [
+      {
+        "doc_id": 0,
+        "doc": {
+          "task_id": "HumanEval/0",
+          "prompt": "from typing import List\n\n\ndef has_close_elements(numbers: List[float], threshold: float) -> bool:\n    \"\"\" Check if in given list of numbers, are any two numbers closer to each other than\n    given threshold.\n    >>> has_close_elements([1.0, 2.0, 3.0], 0.5)\n    False\n    >>> has_close_elements([1.0, 2.8, 3.0, 4.0, 5.0, 2.0], 0.3)\n    True\n    \"\"\"\n",
+          "canonical_solution": "    for idx, elem in enumerate(numbers):\n        for idx2, elem2 in enumerate(numbers):\n            if idx != idx2:\n                distance = abs(elem - elem2)\n                if distance < threshold:\n                    return True\n\n    return False\n",
+          "test": "\n\nMETADATA = {\n    'author': 'jt',\n    'dataset': 'test'\n}\n\n\ndef check(candidate):\n    assert candidate([1.0, 2.0, 3.9, 4.0, 5.0, 2.2], 0.3) == True\n    assert candidate([1.0, 2.0, 3.9, 4.0, 5.0, 2.2], 0.05) == False\n    assert candidate([1.0, 2.0, 5.9, 4.0, 5.0], 0.95) == True\n    assert candidate([1.0, 2.0, 5.9, 4.0, 5.0], 0.8) == False\n    assert candidate([1.0, 2.0, 3.0, 4.0, 5.0, 2.0], 0.1) == True\n    assert candidate([1.1, 2.2, 3.1, 4.1, 5.1], 1.0) == True\n    assert candidate([1.1, 2.2, 3.1, 4.1, 5.1], 0.5) == False\n\n",
+          "entry_point": "has_close_elements"
+        },
+        "target": "\n\nMETADATA = {\n    'author': 'jt',\n    'dataset': 'test'\n}\n\n\ndef check(candidate):\n    assert candidate([1.0, 2.0, 3.9, 4.0, 5.0, 2.2], 0.3) == True\n    assert candidate([1.0, 2.0, 3.9, 4.0, 5.0, 2.2], 0.05) == False\n    assert candidate([1.0, 2.0, 5.9, 4.0, 5.0], 0.95) == True\n    assert candidate([1.0, 2.0, 5.9, 4.0, 5.0], 0.8) == False\n    assert candidate([1.0, 2.0, 3.0, 4.0, 5.0, 2.0], 0.1) == True\n    assert candidate([1.1, 2.2, 3.1, 4.1, 5.1], 1.0) == True\n    assert candidate([1.1, 2.2, 3.1, 4.1, 5.1], 0.5) == False\n\n\ncheck(has_close_elements)",
+        "arguments": [
+          [
+            [
+              "[{\"role\": \"user\", \"content\": \"from typing import List\\n\\n\\ndef has_close_elements(numbers: List[float], threshold: float) -> bool:\\n    \\\"\\\"\\\" Check if in given list of numbers, are any two numbers closer to each other than\\n    given threshold.\\n    >>> has_close_elements([1.0, 2.0, 3.0], 0.5)\\n    False\\n    >>> has_close_elements([1.0, 2.8, 3.0, 4.0, 5.0, 2.0], 0.3)\\n    True\\n    \\\"\\\"\\\"\\n\"}]"
+            ],
+            {
+              "until": [
+                "\nclass",
+                "\ndef",
+                "\n#",
+                "\nif",
+                "\nprint"
+              ],
+              "max_gen_toks": 1024,
+              "do_sample": false
+            }
+          ]
+        ],
+        "resps": [
+          [
+            "\n    n = len(numbers)\n    if n < 2:\n        return False\n\n    # Sort the list to only compare adjacent elements\n    numbers.sort()\n\n    for i in range(n - 1):\n        # Calculate the absolute difference between adjacent elements\n        difference = numbers[i+1] - numbers[i]\n        \n        # If the difference is less than the threshold, then two elements are too close\n        if difference < threshold:\n            return True\n\n    return False\n"
+          ]
+        ],
+        "filtered_resps": [
+          [
+            "from typing import List\n\n\ndef has_close_elements(numbers: List[float], threshold: float) -> bool:\n    \"\"\" Check if in given list of numbers, are any two numbers closer to each other than\n    given threshold.\n    >>> has_close_elements([1.0, 2.0, 3.0], 0.5)\n    False\n    >>> has_close_elements([1.0, 2.8, 3.0, 4.0, 5.0, 2.0], 0.3)\n    True\n    \"\"\"\n\n    n = len(numbers)\n    if n < 2:\n        return False\n\n    # Sort the list to only compare adjacent elements\n    numbers.sort()\n\n    for i in range(n - 1):\n        # Calculate the absolute difference between adjacent elements\n        difference = numbers[i+1] - numbers[i]\n        \n        # If the difference is less than the threshold, then two elements are too close\n        if difference < threshold:\n            return True\n\n    return False\n"
+          ]
+        ],
+        "filter": "create_test",
+        "metrics": [
+          "pass@1"
+        ],
+        "doc_hash": "51330d8caa0784cc324cc1db95f6b0d73670802e1729865056c2469e212d40a5",
+        "prompt_hash": "bd83852367d2a50bc94955ab870a20046d8af750acad677d88b116407a363e54",
+        "target_hash": "d7de8bac324e281816668aa93fb171c16f9f833f74ec6e32ee7b551875e65daa",
+        "pass@1": 1.0
+      }
+    ]
+  },
+  "config": {
+    "model": "local-chat-completions",
+    "model_args": {
+      "model": "gemma-4-E2B-it",
+      "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+      "api_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsaXRlcnQtc2hhZG93LXNlc3Npb24iLCJpYXQiOjE3OTE0Njk5NjYsIm1vZGVsIjoiZ2VtbWEtNC1FMkItaXQiLCJyZWFzb25pbmdfZWZmb3J0IjoiZHluYW1pYyIsInZpcnR1YWxfZXhwZXJ0cyI6eyJlbmFibGVkIjp0cnVlLCJweXRob25fcmVwbCI6dHJ1ZSwiY29kZV9pbnRlcnByZXRlciI6dHJ1ZSwibGxtX2NvZGVfZ2VuIjpmYWxzZSwibWljcm90ZXhfbGVhbjQiOnRydWUsImFuYWx5dGljYWxfcGxvdHRlciI6dHJ1ZSwid2ViX3NlYXJjaCI6dHJ1ZSwiYnJvd3NlciI6dHJ1ZSwicmVxdWVzdF9idWRnZXQiOnRydWUsImRpc2tfZXhwZXJ0X3N0b3JlIjp0cnVlfSwicmF3X291dHB1dCI6ZmFsc2UsIm1ldGFkYXRhIjp7fX0.0UIkQ9fG1X1fko2WB-G9aVC23Qp__AiKbfSLafMoN3s",
+      "num_concurrent": 1,
+      "eos_string": "<end_of_turn>"
+    },
+    "batch_size": null,
+    "batch_sizes": [],
+    "device": null,
+    "use_cache": null,
+    "limit": 1,
+    "bootstrap_iters": 100000,
+    "gen_kwargs": null,
+    "random_seed": 0,
+    "numpy_seed": 1234,
+    "torch_seed": 1234,
+    "fewshot_seed": 1234
+  },
+  "git_hash": "3a6b22d68468f37e7d836e12d6702abc2dcbf837",
+  "date": 1791469966.6986773,
+  "pretty_env_info": "N/A (torch not installed)",
+  "transformers_version": "N/A",
+  "lm_eval_version": "0.4.13",
+  "upper_git_hash": null,
+  "elapsed_time_seconds": 24.09,
+  "timestamp": "2026-10-08_11-33-10",
+  "model_name": "gemma-4-E2B-it",
+  "base_url": "http://172.27.96.1:8765/v1/chat/completions",
+  "reasoning_effort": "dynamic"
+}

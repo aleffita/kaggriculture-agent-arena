@@ -16,7 +16,6 @@ from typing import Dict, List, Any, Optional, Generator, Tuple
 from .audio_engine import AudioStreamEngine
 from .subagents import SubagentPool, SubagentSession
 from .embedding import Gemma2EmbeddingSubstrate
-from .code_synthesizer import synthesize_code_response
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 UNIFIED_BIN = PROJECT_ROOT / "src" / "litert_explore" / "hpc_engine" / "unified_runtime.exe"
@@ -50,6 +49,85 @@ class LiveSession:
         }
 
         self.last_metrics: Dict[str, Any] = {}
+        self.virtual_experts_default: Union[bool, str] = True
+
+        # Pool dinâmico de runners neurais acelerados por GPU (RTX 2060 + GTX 1050 Ti)
+        self.runners: Dict[str, Any] = {}
+        self.runner = None
+
+        # 1. Runner dedicado GPT-OSS-20B (Sparse MoE 32 especialistas, Top-4 ativos, Harmony)
+        try:
+            from .gpt_oss_runner import GptOssUnifiedRunner
+            gpt_runner = GptOssUnifiedRunner()
+            self.runners["gpt-oss-20b"] = gpt_runner
+            self.runners["gpt-oss"] = gpt_runner
+            self.runners["moe"] = gpt_runner
+            if "gpt" in (self.model or "").lower():
+                self.runner = gpt_runner
+        except Exception as e:
+            print(f"[LiveSession] Aviso ao carregar GptOssUnifiedRunner: {e}")
+
+        # 2. Runner LiteRT Direct3D 12 (Gemma 4 2.3B)
+        try:
+            from ..engine import LiteRtModelRunner
+            gemma_runner = LiteRtModelRunner(backend="gpu", gpu_target="2060")
+            self.runners["gemma-4-E2B-it"] = gemma_runner
+            self.runners["gemma-4"] = gemma_runner
+            self.runners["gemma"] = gemma_runner
+            if not self.runner or "gemma" in (self.model or "").lower():
+                self.runner = gemma_runner
+            self.runners["default"] = self.runner
+        except Exception as e:
+            print(f"[LiveSession] Aviso ao carregar LiteRtModelRunner: {e}")
+
+        if not self.runner and "gpt-oss-20b" in self.runners:
+            self.runner = self.runners["gpt-oss-20b"]
+
+    def get_or_create_runner(self, model_name: str) -> Any:
+        """Obtém ou instancia dinamicamente o runner do modelo solicitado."""
+        if not model_name:
+            model_name = self.model or "gpt-oss-20b"
+        m_lower = model_name.lower().strip()
+
+        if m_lower in self.runners:
+            return self.runners[m_lower]
+
+        for k, r in self.runners.items():
+            if k in m_lower or m_lower in k:
+                return r
+
+        # Roteamento especializado por arquitetura
+        if any(token in m_lower for token in ["gpt", "oss", "moe"]):
+            if "gpt-oss-20b" in self.runners:
+                return self.runners["gpt-oss-20b"]
+            from .gpt_oss_runner import GptOssUnifiedRunner
+            new_gpt = GptOssUnifiedRunner()
+            self.runners["gpt-oss-20b"] = new_gpt
+            return new_gpt
+
+        if "gemma" in m_lower:
+            if "gemma-4-E2B-it" in self.runners:
+                return self.runners["gemma-4-E2B-it"]
+            try:
+                from ..engine import LiteRtModelRunner
+                new_gemma = LiteRtModelRunner(backend="gpu", gpu_target="2060")
+                self.runners[m_lower] = new_gemma
+                return new_gemma
+            except Exception as e:
+                print(f"[LiveSession] Erro ao alocar runner para '{model_name}': {e}")
+
+        return self.runner
+
+    def generate_neural_text(self, prompt: str, model_name: Optional[str] = None) -> str:
+        """Executa inferência neural real na GPU via LiteRtModelRunner com suporte a multi-modelo."""
+        target_runner = self.get_or_create_runner(model_name or self.model)
+        if target_runner is not None:
+            try:
+                return target_runner.generate(prompt)
+            except Exception as e:
+                print(f"[LiveSession] Erro na inferência neural ({model_name}): {e}")
+        phrases = self._generate_contextual_response(prompt)
+        return " ".join(phrases)
 
     def interrupt(self):
         """Sinaliza interrupção imediata (Barge-In) ativada por fala do usuário."""
@@ -318,24 +396,30 @@ class LiveSession:
             ]
 
         # 3. Matemática, OBMEP e cálculo simbólico
-        elif any(w in msg_lower for w in ["matemática", "matematica", "obmep", "integral", "derivada", "equação", "equacao", "soma", "cálculo", "calculo", "fórmula", "formula", "teorema", "problem:", "question:", "how many"]):
-            nums = re.findall(r"\b\d+\b", user_message)
-            ans = str(int(nums[0]) * 2) if len(nums) == 1 else (str(sum(int(x) for x in nums[:2])) if len(nums) >= 2 else "42")
+        elif any(w in msg_lower for w in ["matemática", "matematica", "obmep", "integral", "derivada", "equação", "equacao", "soma", "cálculo", "calculo", "fórmula", "formula", "teorema"]):
+            if self.runner is not None:
+                try:
+                    raw = self.runner.generate(user_message)
+                    return [raw]
+                except Exception as e:
+                    print(f"[LiveSession] Erro na geração neural matemática: {e}")
             return [
-                "Analisando a estrutura matemática com verificação analítica rigorosa passo a passo.",
-                f"Executando as operações necessárias sobre os dados fornecidos, obtemos a solução {ans}.",
-                f"#### {ans}\nThe final answer is \\boxed{{{ans}}}"
+                "Analisando a estrutura formal do problema com rigor algébrico e conceitual.",
+                "Para derivações simbólicas e equações, recomendo decompor os axiomas e passos intermediários.",
+                "Podemos derivar a prova ou efetuar os cálculos com precisão passo a passo."
             ]
 
-        # 4. Geração de Código e Algoritmos (MBPP / HumanEval)
+        # 4. Geração de Código e Algoritmos
         elif any(w in msg_lower for w in ["write a function", "write a python function", "def ", "assert", "python code", "código", "codigo"]):
-            synth = synthesize_code_response(user_message)
-            if synth:
-                return [synth]
-            fn_match = re.search(r"(?:def|function)\s+([a-zA-Z_]\w*)", user_message)
-            fn_name = fn_match.group(1) if fn_match else "solve_task"
+            if self.runner is not None:
+                try:
+                    raw = self.runner.generate(user_message)
+                    return [raw]
+                except Exception as e:
+                    print(f"[LiveSession] Erro na síntese neural: {e}")
             return [
-                f"```python\ndef {fn_name}(*args, **kwargs):\n    \"\"\"Implementation for {fn_name} aligned with specification.\"\"\"\n    if args:\n        return args[0]\n    return True\n```"
+                "Analisando a especificação do algoritmo e assinaturas de tipo requeridas.",
+                "Para implementação robusta, recomendo verificar casos de borda e complexidade de tempo/espaço."
             ]
 
         # 5. Multimodalidade, Visão e Imagens / ChartQA
