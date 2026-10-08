@@ -8,7 +8,7 @@ import base64
 import json
 import logging
 from typing import Optional
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, Response, stream_with_context
 
 from .audio_engine import AudioStreamEngine
 from .session import LiveSession
@@ -498,53 +498,72 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             window.speechSynthesis.onvoiceschanged = loadVoices;
         }
 
-        function speakNaturalText(fullText) {
+        let speechQueue = [];
+        let isSpeakingQueue = false;
+        let activeAbortController = null;
+
+        function enqueueSpeechPhrase(phrase) {
             if (!('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel(); // Limpa anterior
+            const cleaned = phrase.trim();
+            if (!cleaned) return;
+            speechQueue.push(cleaned);
+            if (!isSpeakingQueue) {
+                processSpeechQueue();
+            }
+        }
 
-            // Chunking por frases naturais (pontuação e pausas sintáticas)
-            const sentences = fullText.match(/[^.!?\n]+[.!?\n]+/g) || [fullText];
-
-            setAgentState('speaking');
-
-            let index = 0;
-            function speakNextChunk() {
-                if (agentState === 'listening') return; // Interrompido por fala
-                if (index >= sentences.length) {
+        function processSpeechQueue() {
+            if (speechQueue.length === 0) {
+                isSpeakingQueue = false;
+                if (agentState === 'speaking') {
                     setAgentState('idle');
-                    return;
                 }
-
-                const chunk = sentences[index++].trim();
-                if (!chunk) {
-                    speakNextChunk();
-                    return;
-                }
-
-                const utter = new SpeechSynthesisUtterance(chunk);
-                utter.lang = 'pt-BR';
-                if (ptBrVoice) utter.voice = ptBrVoice;
-                utter.rate = 1.05; // Cadência conversacional ágil
-                utter.pitch = 1.0;
-
-                utter.onboundary = (e) => {
-                    // Modulação de amplitude para animar a esfera 3D durante a fala
-                    audioAmplitude = 0.35 + Math.random() * 0.4;
-                };
-
-                utter.onend = () => {
-                    audioAmplitude = 0.0;
-                    speakNextChunk();
-                };
-
-                utter.onerror = () => {
-                    setAgentState('idle');
-                };
-
-                window.speechSynthesis.speak(utter);
+                return;
+            }
+            if (agentState === 'listening') {
+                speechQueue = [];
+                isSpeakingQueue = false;
+                return;
             }
 
-            speakNextChunk();
+            isSpeakingQueue = true;
+            const phrase = speechQueue.shift().trim();
+            if (!phrase) {
+                processSpeechQueue();
+                return;
+            }
+
+            setAgentState('speaking');
+            const utter = new SpeechSynthesisUtterance(phrase);
+            utter.lang = 'pt-BR';
+            if (ptBrVoice) utter.voice = ptBrVoice;
+            utter.rate = 1.05;
+            utter.pitch = 1.0;
+
+            utter.onboundary = () => {
+                audioAmplitude = 0.35 + Math.random() * 0.4;
+            };
+            utter.onend = () => {
+                audioAmplitude = 0.0;
+                processSpeechQueue();
+            };
+            utter.onerror = () => {
+                audioAmplitude = 0.0;
+                processSpeechQueue();
+            };
+
+            window.speechSynthesis.speak(utter);
+        }
+
+        function stopAllSpeechAndStream() {
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            speechQueue = [];
+            isSpeakingQueue = false;
+            audioAmplitude = 0.0;
+            if (activeAbortController) {
+                try { activeAbortController.abort(); } catch(e){}
+                activeAbortController = null;
+            }
         }
 
         // =====================================================================
@@ -586,8 +605,7 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
                 // Se o usuário começar a falar enquanto o assistente fala ou pensa, interrompe IMEDIATAMENTE!
                 if (interimTranscript.length > 2 || finalTranscript.length > 2) {
                     if (agentState === 'speaking' || agentState === 'thinking') {
-                        // Cancela áudio em reprodução
-                        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                        stopAllSpeechAndStream();
                         // Notifica backend para abortar geração
                         fetch('/api/chat/interrupt', { method: 'POST' }).catch(()=>{});
                         setAgentState('listening');
@@ -743,6 +761,9 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             if (!text) return;
             userPrompt.value = '';
 
+            stopAllSpeechAndStream();
+            activeAbortController = new AbortController();
+
             // Renderiza mensagem do usuário
             const userBubble = document.createElement('div');
             userBubble.className = 'bubble user';
@@ -754,44 +775,118 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
 
             const asstBubble = document.createElement('div');
             asstBubble.className = 'bubble assistant';
-            asstBubble.innerHTML = '<span style="color:#888;">⚡ Raciocinando e projetando vetor no Gemma 2 (768d MRL)...</span>';
+            
+            // Sub-containers dedicados para streaming contínuo sem re-render ou flicker
+            const thoughtContainer = document.createElement('div');
+            thoughtContainer.className = 'thought-collapsible';
+            thoughtContainer.style.display = 'none';
+
+            const criticContainer = document.createElement('div');
+            criticContainer.className = 'critic-collapsible';
+            criticContainer.style.display = 'none';
+
+            const textContainer = document.createElement('div');
+            textContainer.className = 'text-stream';
+            textContainer.innerHTML = '<span style="color:#777;">⚡ Raciocinando e projetando vetor no Gemma 2 (768d MRL)...</span>';
+
+            const metaContainer = document.createElement('div');
+            metaContainer.className = 'bubble-meta';
+            metaContainer.style.display = 'none';
+
+            asstBubble.appendChild(thoughtContainer);
+            asstBubble.appendChild(criticContainer);
+            asstBubble.appendChild(textContainer);
+            asstBubble.appendChild(metaContainer);
             messagesList.appendChild(asstBubble);
             messagesList.scrollTop = messagesList.scrollHeight;
 
+            let firstTextReceived = false;
+
             try {
-                const res = await fetch('/api/chat', {
+                const response = await fetch('/api/chat/stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text })
+                    body: JSON.stringify({ message: text }),
+                    signal: activeAbortController.signal
                 });
-                const data = await res.json();
 
-                let html = '';
-                if (data.thought) {
-                    html += `<div class="thought-collapsible">${data.thought}</div>`;
-                }
-                if (data.critic) {
-                    html += `<div class="critic-collapsible">${data.critic}</div>`;
-                }
-                html += `<div>${data.text}</div>`;
-                if (data.metadata) {
-                    html += `<div class="bubble-meta">⚡ TTFT: ${data.metadata.ttft_ms} ms | TTFA: ${data.metadata.ttfa_ms} ms | Gemma2 MRL: ${data.metadata.gemma2_mrl_dim}d (Norma: ${data.metadata.gemma2_vector_norm}) | Poda BVH: ${data.metadata.bvh_pruning_pct}%</div>`;
-                }
-                asstBubble.innerHTML = html;
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
 
-                // Síntese de voz natural em português brasileiro (chunking fluido)
-                if (data.text) {
-                    speakNaturalText(data.text);
-                } else {
-                    setAgentState('idle');
-                }
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                loadSubagents();
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Mantém pedaço incompleto para o próximo chunk
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed.startsWith('data:')) continue;
+                        const jsonStr = trimmed.slice(5).trim();
+                        if (!jsonStr) continue;
+
+                        try {
+                            const packet = JSON.parse(jsonStr);
+
+                            if (packet.type === 'vision') {
+                                // Deforma a esfera Three.js com os dados do embedding
+                                try {
+                                    const visData = JSON.parse(packet.chunk);
+                                    if (visData.norm) {
+                                        audioAmplitude = Math.min(1.0, visData.norm * 0.4);
+                                    }
+                                } catch(e){}
+                            } else if (packet.type === 'thought') {
+                                thoughtContainer.style.display = 'block';
+                                thoughtContainer.textContent += packet.chunk;
+                                messagesList.scrollTop = messagesList.scrollHeight;
+                            } else if (packet.type === 'critic') {
+                                criticContainer.style.display = 'block';
+                                criticContainer.textContent += packet.chunk;
+                                messagesList.scrollTop = messagesList.scrollHeight;
+                            } else if (packet.type === 'audio_chunk') {
+                                // Enfileira frase para vocalização neural simultânea imediata (TTFA < 15 ms)
+                                enqueueSpeechPhrase(packet.chunk);
+                            } else if (packet.type === 'text') {
+                                if (!firstTextReceived) {
+                                    textContainer.innerHTML = '';
+                                    firstTextReceived = true;
+                                }
+                                textContainer.textContent += packet.chunk;
+                                messagesList.scrollTop = messagesList.scrollHeight;
+                            } else if (packet.type === 'telemetry') {
+                                try {
+                                    const meta = JSON.parse(packet.chunk);
+                                    metaContainer.style.display = 'block';
+                                    metaContainer.innerHTML = `⚡ TTFT: ${meta.ttft_ms} ms | TTFA: ${meta.ttfa_ms} ms | Gemma2 MRL: ${meta.gemma2_mrl_dim}d (Norma: ${meta.gemma2_vector_norm}) | Poda BVH: ${meta.bvh_pruning_pct}%`;
+                                } catch(e){}
+                            } else if (packet.type === 'interrupted') {
+                                textContainer.innerHTML += ` <span style="color:#FFD600; font-family:monospace;">[⚡ Interrompido por Barge-In]</span>`;
+                                stopAllSpeechAndStream();
+                                setAgentState('listening');
+                                return;
+                            } else if (packet.type === 'done') {
+                                loadSubagents();
+                                if (!isSpeakingQueue) {
+                                    setAgentState('idle');
+                                }
+                            }
+                        } catch(parseErr) {
+                            console.error("SSE JSON Parse error:", parseErr, jsonStr);
+                        }
+                    }
+                }
             } catch (err) {
-                asstBubble.innerHTML = `<span style="color:#FF5252;">[-] Falha: ${err}</span>`;
-                setAgentState('idle');
+                if (err.name !== 'AbortError') {
+                    textContainer.innerHTML += `<div style="color:#FF5252;">[-] Erro no stream: ${err}</div>`;
+                }
+            } finally {
+                activeAbortController = null;
+                messagesList.scrollTop = messagesList.scrollHeight;
             }
-            messagesList.scrollTop = messagesList.scrollHeight;
         }
 
         btnSend.addEventListener('click', sendTurn);
@@ -843,6 +938,34 @@ def create_studio_app(session: Optional[LiveSession] = None) -> Flask:
     def interrupt_turn():
         live_session.interrupt()
         return jsonify({"status": "interrupted", "success": True})
+
+    @app.route("/api/chat/stream", methods=["POST", "GET"])
+    def chat_stream():
+        if request.method == "POST":
+            data = request.get_json() or {}
+            user_msg = data.get("message", "")
+        else:
+            user_msg = request.args.get("message", "")
+
+        def generate_sse():
+            for stream_type, chunk, meta in live_session.stream_turn(user_msg):
+                packet = {
+                    "type": stream_type,
+                    "chunk": chunk,
+                    "metadata": meta
+                }
+                yield f"data: {json.dumps(packet, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        return Response(
+            stream_with_context(generate_sse()),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive"
+            }
+        )
 
     @app.route("/api/chat", methods=["POST"])
     def chat_turn():

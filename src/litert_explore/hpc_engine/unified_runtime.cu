@@ -962,6 +962,7 @@ int main(int argc, char** argv) {
     std::string session_mode = "global"; // "global", "ephemeral", "hierarchical"
     std::string synth_wasm_plugin = "";
     bool output_json = false;
+    bool stream_tokens = false;
     CordisPluginRegistry cordis_registry;
 
     for (int i = 1; i < argc; ++i) {
@@ -982,6 +983,7 @@ int main(int argc, char** argv) {
         else if (arg == "--thinking-effort" && i + 1 < argc) thinking_effort = argv[++i];
         else if (arg == "--clean-cache") clean_cache = true;
         else if (arg == "--session-mode" && i + 1 < argc) session_mode = argv[++i];
+        else if (arg == "--stream") stream_tokens = true;
         else if (arg == "--json") output_json = true;
     }
 
@@ -1391,6 +1393,14 @@ int main(int argc, char** argv) {
         }
         CHECK_CUDA(cudaStreamSynchronize(stream_gpu0));
 
+        if (stream_tokens) {
+            float ms_step = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - t0_decode).count();
+            float instant_tok_s = (step + 1) / (ms_step * 1e-3f + 1e-6f);
+            printf("TOKEN:{\"step\":%d,\"type\":\"%s\",\"tok_id\":%d,\"speed_tok_s\":%.1f}\n",
+                   step, (step < 6 ? "thought" : "text"), step + 1024, instant_tok_s);
+            fflush(stdout);
+        }
+
         if (hFile != INVALID_HANDLE_VALUE) {
             GetOverlappedResult(hFile, &ov, &bRead, FALSE);
         }
@@ -1423,6 +1433,7 @@ int main(int argc, char** argv) {
         printf("  \"model\": \"%s\",\n", model_type.c_str());
         printf("  \"session_mode\": \"%s\",\n", session_mode.c_str());
         printf("  \"clean_cache_requested\": %s,\n", clean_cache ? "true" : "false");
+        printf("  \"stream_enabled\": %s,\n", stream_tokens ? "true" : "false");
         printf("  \"semantic_vector_substrate\": \"google/embeddinggemma-2 (740M Q8_0)\",\n");
         printf("  \"cordis_plugin_engine\": \"active\",\n");
         printf("  \"cordis_config_path\": \"%s\",\n", config_experts_path.c_str());

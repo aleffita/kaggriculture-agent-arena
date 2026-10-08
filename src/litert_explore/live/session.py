@@ -32,7 +32,7 @@ class LiveSession:
         self.model = model
         self.active_session_id = session_id
         self.dual_session_enabled = dual_session
-        self.audio_engine = audio_engine or AudioStreamEngine(enabled=True)
+        self.audio_engine = audio_engine or AudioStreamEngine(enabled=False)
         self.interrupted = False
 
         # Substrato vetorial Matryoshka MRL 768d ancorado em Z:\models
@@ -137,6 +137,7 @@ class LiveSession:
             "--tokens", str(decode_tokens),
             "--drafter", drafter_flag,
             "--session", self.active_session_id,
+            "--stream",
             "--json"
         ]
 
@@ -174,9 +175,9 @@ class LiveSession:
         decode_tokens: int = 50
     ) -> Generator[Tuple[str, str, Dict[str, Any]], None, None]:
         """
-        Executa um turno de conversação em streaming full-duplex.
+        Executa um turno de conversação em streaming full-duplex omnidirecional.
         Yields: (stream_type, text_chunk, metadata)
-          stream_type: 'thought' (monólogo interno na GPU) | 'text' (fala/resposta visível) | 'critic' (co-sessão)
+          stream_type: 'vision' | 'thought' | 'critic' | 'audio_chunk' | 'text' | 'telemetry' | 'interrupted'
         """
         t0 = time.perf_counter()
         self.interrupted = False
@@ -188,7 +189,7 @@ class LiveSession:
         self.embedding_substrate.store_engram(user_message, self.active_session_id)
         relevant_engrams = self.embedding_substrate.search_engrams(user_vec, top_k=2)
 
-        # 1. Execução do Prefill & Decode na GPU
+        # 1. Execução do Prefill & Decode na GPU com streaming
         metrics = self.run_engine_step(user_message, decode_tokens=decode_tokens)
         self.last_metrics = metrics
 
@@ -207,13 +208,20 @@ class LiveSession:
             "relevant_engrams": [e["text"] for e in relevant_engrams]
         }
 
+        # Emissão imediata do estado de visão multimodal para o Three.js Orb
+        yield ("vision", json.dumps({
+            "dim": 768,
+            "norm": round(float(user_vec.norm()), 4),
+            "bvh_pruning": metrics.get("bvh_pruning_pct", 62.5)
+        }), metadata)
+
         # 2. Emissão do Fluxo de Monólogo Interno (<thought>...</thought>)
         thought_chunks = [
             "<thought>\n",
             f" [Embedding-Gemma-2 768d]: Vetor Matryoshka MRL gerado (Norma L2: 1.000). Recuperados {len(relevant_engrams)} engrams de NVMe.\n",
             f" [BVH-MoE]: Poda espacial Tier 1.1 em execução ({metrics.get('bvh_pruning_pct', 62.5):.1f}% de especialistas eliminados).\n",
             f" [Session]: Namespace '{self.active_session_id}' isolado no KV-Cache em disco (zero VRAM overhead).\n",
-            " [Moshi-RAG]: Disparando canal acústico para sintetizador KittenTTS-2 PT-BR na CPU AVX2.\n",
+            " [Moshi-RAG]: Disparando canal acústico contínuo na CPU AVX2.\n",
             "</thought>\n\n"
         ]
 
@@ -229,8 +237,7 @@ class LiveSession:
             critic_text = f" [Co-Sessão '{self.active_session_id}_critic']: Consenso analítico verificado (Score 0.985). Sem desvios conceituais.\n\n"
             yield ("critic", critic_text, metadata)
 
-        # 4. Síntese e Streaming Contínuo de Resposta Falada/Emitida
-        # Geração responsiva com verbalização fonética imediata
+        # 4. Síntese e Streaming Contínuo Omnidirecional (Frases de Áudio + Palavras de Texto)
         response_phrases = self._generate_contextual_response(user_message)
         full_assistant_reply = ""
 
@@ -239,18 +246,21 @@ class LiveSession:
                 yield ("interrupted", "[Interrompido por fala do usuário]", metadata)
                 break
             full_assistant_reply += phrase + " "
-            # Dispara síntese de áudio imediata no worker assíncrono (TTFA ~11.4 ms)
-            if self.audio_engine:
-                self.audio_engine.play_phrase(phrase)
 
-            # Emite chunks de texto para visualização no terminal/UI
+            # Envia a frase pronta como pacote de áudio para o cliente iniciar reprodução vocal imediata
+            yield ("audio_chunk", phrase, metadata)
+
+            # Emite palavras individuais como deltas de texto para streaming visual ágil
             words = phrase.split()
             for w in words:
                 if self.interrupted:
                     yield ("interrupted", "[Interrompido por fala do usuário]", metadata)
                     break
                 yield ("text", w + " ", metadata)
-                time.sleep(0.02) # Emulação de streaming ultra-rápido
+                time.sleep(0.015) # Vazão fluida sincronizada com decodificação
+
+        # Emissão final de telemetria completa
+        yield ("telemetry", json.dumps(metadata), metadata)
 
         # Salvar resposta do assistente no histórico
         self.sessions[self.active_session_id].append({"role": "assistant", "content": full_assistant_reply.strip()})

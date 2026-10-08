@@ -190,10 +190,13 @@ HTML_LIVE_CLIENT = r"""<!DOCTYPE html>
                 }
                 asstEl.innerHTML = html;
 
-                // Tocar áudio se retornado
-                if (data.audio_b64) {
-                    const audio = new Audio("data:audio/wav;base64," + data.audio_b64);
-                    audio.play().catch(e => console.log("Autoplay bloqueado:", e));
+                // Síntese de voz neural limpa no navegador (PT-BR)
+                if (data.text && 'speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utter = new SpeechSynthesisUtterance(data.text);
+                    utter.lang = 'pt-BR';
+                    utter.rate = 1.05;
+                    window.speechSynthesis.speak(utter);
                 }
             } catch (err) {
                 asstEl.innerHTML = `<div style="color:#E57373;">[-] Erro na chamada: ${err}</div>`;
@@ -251,18 +254,11 @@ class LiveRequestHandler(BaseHTTPRequestHandler):
                 elif stream_type == "text":
                     spoken_text += chunk
 
-            # Gerar WAV base64 para reprodução no browser
-            audio_b64 = ""
-            if spoken_text and self.session.audio_engine:
-                wav_bytes = self.session.audio_engine.synthesize_speech_wav(spoken_text)
-                audio_b64 = base64.b64encode(wav_bytes).decode("ascii")
-
             res_payload = {
                 "thought": thought_text.strip(),
                 "critic": critic_text.strip(),
                 "text": spoken_text.strip(),
-                "metadata": last_meta,
-                "audio_b64": audio_b64
+                "metadata": last_meta
             }
 
             self.send_response(200)

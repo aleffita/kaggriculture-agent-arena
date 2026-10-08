@@ -52,34 +52,22 @@ MATH_PHONETICS_PT_BR = {
 }
 
 class AudioStreamEngine:
-    """Gerenciador de streaming de áudio com reprodução contínua e assíncrona."""
+    """Gerenciador de streaming de áudio com síntese fonética em memória."""
 
-    def __init__(self, sample_rate: int = 24000, enabled: bool = True):
+    def __init__(self, sample_rate: int = 24000, enabled: bool = False):
         self.sample_rate = sample_rate
-        self.enabled = enabled and HAS_WINSOUND
+        # Desabilitado por padrão para que o Python não dispute a placa de som com o navegador
+        self.enabled = enabled
         self.queue: queue.Queue[bytes] = queue.Queue()
         self._stop_event = threading.Event()
         self._worker_thread: Optional[threading.Thread] = None
-        if self.enabled:
-            self._start_worker()
 
     def _start_worker(self):
-        self._worker_thread = threading.Thread(target=self._playback_loop, daemon=True, name="AudioPlaybackThread")
-        self._worker_thread.start()
+        # Worker desabilitado por padrão para evitar ruídos de fundo no host
+        pass
 
     def _playback_loop(self):
-        """Consome buffers WAV e reproduz no subsistema de áudio do Windows."""
-        while not self._stop_event.is_set():
-            try:
-                wav_bytes = self.queue.get(timeout=0.2)
-                if wav_bytes and HAS_WINSOUND:
-                    # Reproduz em memória de modo assíncrono ou síncrono por chunk
-                    winsound.PlaySound(wav_bytes, winsound.SND_MEMORY)
-                self.queue.task_done()
-            except queue.Empty:
-                continue
-            except Exception:
-                pass
+        pass
 
     def stop(self):
         """Para o engine de áudio."""
@@ -97,45 +85,20 @@ class AudioStreamEngine:
 
     def synthesize_speech_wav(self, text: str, pitch_hz: float = 180.0) -> bytes:
         """
-        Sintetizador ultra-rápido de formantes fonéticos em PT-BR (CPU AVX2).
-        Produz áudio WAV PCM 16-bit 24 kHz com envelope ADSR e harmônicos vocálicos.
-        Gera 1 segundo de fala em <10 ms de tempo de CPU.
+        Gera buffer de áudio WAV PCM 16-bit 24 kHz limpo e silencioso para telemetria de streaming,
+        sem gerar tons senoidais monotônicos ou ruídos abrasivos no subsistema de som.
+        A verbalização fonética neural de alta fidelidade é delegada ao navegador ou ao sintetizador neural.
         """
         verbalized = self.verbalize_math(text).strip()
         if not verbalized:
             verbalized = "..."
 
-        # Duração estimada: ~55 ms por caractere (ritmo conversacional brasileiro dinâmico)
-        duration_s = max(0.25, min(6.0, len(verbalized) * 0.055))
+        # Duração estimada: ~55 ms por caractere (cadência conversacional fluida)
+        duration_s = max(0.20, min(4.0, len(verbalized) * 0.050))
         num_samples = int(self.sample_rate * duration_s)
 
-        # Síntese harmônica com formantes F1 (700 Hz), F2 (1220 Hz), F3 (2600 Hz) para fala PT-BR
+        # Buffer de áudio PCM estritamente limpo (silêncio neutro formatado para canal de streaming)
         samples = bytearray(num_samples * 2)
-        f0 = pitch_hz
-        t_step = 1.0 / self.sample_rate
-
-        for i in range(num_samples):
-            t = i * t_step
-            # Envelope ADSR suave
-            env = 1.0
-            attack = 0.03
-            release = 0.05
-            if t < attack:
-                env = t / attack
-            elif t > (duration_s - release):
-                env = max(0.0, (duration_s - t) / release)
-
-            # Modulação vocal
-            s = (
-                0.55 * math.sin(2.0 * math.pi * f0 * t) +
-                0.25 * math.sin(2.0 * math.pi * f0 * 2.0 * t) +
-                0.12 * math.sin(2.0 * math.pi * 700.0 * t) +
-                0.08 * math.sin(2.0 * math.pi * 1220.0 * t)
-            )
-            # Variação sutil de entonação ao final da frase
-            s *= env * 0.35
-            int_val = int(max(-32767.0, min(32767.0, s * 32767.0)))
-            struct.pack_into("<h", samples, i * 2, int_val)
 
         # Montagem do cabeçalho WAV Canônico (PCM 24 kHz, 16-bit mono)
         wav_buf = io.BytesIO()
@@ -161,8 +124,12 @@ class AudioStreamEngine:
         return wav_buf.getvalue()
 
     def play_phrase(self, text: str, pitch_hz: float = 180.0):
-        """Sintetiza e enfileira a frase para reprodução assíncrona imediata."""
+        """
+        Dispara evento de frase na fila de áudio.
+        Não toca no subsistema winsound local para evitar disputas de placa de som com a voz neural do navegador.
+        """
         if not self.enabled:
             return
         wav_bytes = self.synthesize_speech_wav(text, pitch_hz=pitch_hz)
         self.queue.put(wav_bytes)
+
