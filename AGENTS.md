@@ -71,6 +71,10 @@ Welcome, Agent. This repository, `litertlm-exploration`, is an experimental envi
 - **Package Manager**: **Always use `uv`** (`uv run`, `uv add`, `uv sync`, `uv tool`). Never use raw `pip` or create manual virtual environments outside `uv`.
 - **Command Execution**: Execute **single, atomic commands** synchronously. Never chain commands with semicolons (`;`) or logical operators (`&&`, `||`) in PowerShell.
 - **Zero Polling Directive**: Never poll tasks in a loop or schedule artificial timers. Rely on reactive notification for background operations.
+- **GitHub Operations**: Always use the GitHub CLI (`gh`) (`gh repo view`, `gh issue`, `gh pr`, `gh api`) when inspecting or interacting with GitHub repositories.
+- **Web Fetching**: Dê estrita preferência ao MCP `tavily` (`tavily_extract`, `tavily_crawl`) para extração e leitura de páginas web e papers.
+- **Dual Web Search (Anti-Confirmation Bias)**: Para pesquisas web aprofundadas, utilize **tanto o Tavily MCP (`tavily_search`) quanto o `search_web` nativo**, comparando os dois conjuntos de resultados para evitar viés de confirmação e extrair análises epistemicamente independentes.
+- **Feedback Incorporation & Zero Anthropomorphism**: Erros e feedbacks do usuário devem ser incorporados diretamente como diretrizes técnicas objetivas (neste `AGENTS.md`), sem pedidos de desculpas, auto-humilhação ou frases vazias de aceitação.
 - **Communication Ceiling**: Keep conversational responses concise (2 to 4 sentences, BLUF). Put deep technical documentation and matrices in markdown artifacts in the brain.
 
 ---

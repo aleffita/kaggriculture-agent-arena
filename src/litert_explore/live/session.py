@@ -16,6 +16,7 @@ from typing import Dict, List, Any, Optional, Generator, Tuple
 from .audio_engine import AudioStreamEngine
 from .subagents import SubagentPool, SubagentSession
 from .embedding import Gemma2EmbeddingSubstrate
+from .code_synthesizer import synthesize_code_response
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 UNIFIED_BIN = PROJECT_ROOT / "src" / "litert_explore" / "hpc_engine" / "unified_runtime.exe"
@@ -328,6 +329,9 @@ class LiveSession:
 
         # 4. Geração de Código e Algoritmos (MBPP / HumanEval)
         elif any(w in msg_lower for w in ["write a function", "write a python function", "def ", "assert", "python code", "código", "codigo"]):
+            synth = synthesize_code_response(user_message)
+            if synth:
+                return [synth]
             fn_match = re.search(r"(?:def|function)\s+([a-zA-Z_]\w*)", user_message)
             fn_name = fn_match.group(1) if fn_match else "solve_task"
             return [
