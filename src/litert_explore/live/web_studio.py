@@ -1,8 +1,6 @@
 """
-Unified CED Live Conversational Studio with Three.js Audio Wave Orb & Subagents.
-Servidor Web Flask de alta performance com Three.js WebGL (60 FPS),
-analisador de áudio WebAudio API reativo a voz KittenTTS-2 PT-BR,
-visualização de pensamentos internos e governança de subagentes concorrentes em NVMe.
+Unified CED Live Conversational Studio with Three.js Audio Wave Orb,
+Microphone Capture (VAD), Intelligent Interruption (Barge-In) and Gemma 2 Embedding.
 """
 from __future__ import annotations
 
@@ -24,22 +22,22 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unified CED - Omnimodal Live Studio</title>
+    <title>Unified CED - Omnimodal Live Studio (Voice & Vision)</title>
     <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
-            --bg-deep: #0D0D0D;
-            --bg-panel: #161616;
-            --bg-card: #1E1E1E;
-            --border: #2D2D2D;
-            --border-glow: #00E676;
-            --text-main: #ECECEC;
-            --text-dim: #8E8E8E;
+            --bg-deep: #0B0B0C;
+            --bg-panel: #141416;
+            --bg-card: #1C1C1F;
+            --border: #2A2A2E;
             --accent-green: #00E676;
             --accent-cyan: #00E5FF;
             --accent-purple: #D500F9;
             --accent-thought: #448AFF;
+            --accent-amber: #FFD600;
+            --text-main: #EDEDED;
+            --text-dim: #8E8E93;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -55,7 +53,7 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         header {
             height: 56px;
             padding: 0 24px;
-            background: rgba(22, 22, 22, 0.85);
+            background: rgba(20, 20, 22, 0.9);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
             display: flex;
@@ -83,10 +81,17 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         .header-meta {
             display: flex;
             align-items: center;
-            gap: 20px;
-            font-size: 0.82rem;
+            gap: 16px;
+            font-size: 0.8rem;
             color: var(--text-dim);
             font-family: monospace;
+        }
+        .badge-emb {
+            background: #182230;
+            color: #64B5F6;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #1E3A5F;
         }
         .status-dot {
             width: 8px;
@@ -101,23 +106,23 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         #workspace {
             flex: 1;
             display: grid;
-            grid-template-columns: 340px 1fr 420px;
+            grid-template-columns: 320px 1fr 440px;
             height: calc(100vh - 56px);
             position: relative;
         }
 
         /* Left Column: Subagents & NVMe Sessions */
         #subagents-panel {
-            background: rgba(22, 22, 22, 0.9);
+            background: rgba(20, 20, 22, 0.95);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            padding: 18px;
+            padding: 16px;
             overflow-y: auto;
             z-index: 10;
         }
         .panel-heading {
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 0.06em;
             color: var(--text-dim);
@@ -127,12 +132,12 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             align-items: center;
         }
         .btn-spawn {
-            font-size: 0.75rem;
+            font-size: 0.74rem;
             padding: 4px 10px;
             border-radius: 4px;
-            background: #252525;
+            background: #252528;
             color: var(--accent-cyan);
-            border: 1px solid #3d3d3d;
+            border: 1px solid #3A3A40;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -143,18 +148,16 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             border-radius: 6px;
             padding: 12px;
             margin-bottom: 10px;
-            transition: border-color 0.2s;
         }
-        .subagent-card:hover { border-color: #444; }
         .subagent-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
-        .subagent-role { font-weight: 600; font-size: 0.88rem; }
+        .subagent-role { font-weight: 600; font-size: 0.86rem; }
         .subagent-status {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             padding: 2px 6px;
             border-radius: 3px;
             font-family: monospace;
@@ -162,10 +165,10 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         }
         .subagent-status.idle { color: var(--accent-green); }
         .subagent-status.thinking { color: var(--accent-purple); }
-        .subagent-goal { font-size: 0.78rem; color: var(--text-dim); line-height: 1.35; }
+        .subagent-goal { font-size: 0.76rem; color: var(--text-dim); line-height: 1.35; }
         .subagent-metrics {
-            margin-top: 8px;
-            font-size: 0.72rem;
+            margin-top: 6px;
+            font-size: 0.7rem;
             color: #666;
             font-family: monospace;
         }
@@ -190,15 +193,15 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             pointer-events: none;
         }
         .orb-state-badge {
             font-family: monospace;
-            font-size: 0.8rem;
-            padding: 6px 14px;
+            font-size: 0.82rem;
+            padding: 6px 16px;
             border-radius: 20px;
-            background: rgba(20, 20, 20, 0.75);
+            background: rgba(18, 18, 20, 0.85);
             border: 1px solid rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(8px);
             text-transform: uppercase;
@@ -208,7 +211,7 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
 
         /* Right Column: Conversational Stream */
         #chat-panel {
-            background: rgba(22, 22, 22, 0.92);
+            background: rgba(20, 20, 22, 0.95);
             border-left: 1px solid var(--border);
             display: flex;
             flex-direction: column;
@@ -224,7 +227,7 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             gap: 16px;
         }
         .bubble {
-            max-width: 90%;
+            max-width: 92%;
             padding: 12px 16px;
             border-radius: 8px;
             font-size: 0.92rem;
@@ -232,8 +235,8 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         }
         .bubble.user {
             align-self: flex-end;
-            background: #1F2A30;
-            border: 1px solid #2B3D47;
+            background: #1B2832;
+            border: 1px solid #283F4F;
         }
         .bubble.assistant {
             align-self: flex-start;
@@ -241,23 +244,23 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             border: 1px solid var(--border);
         }
         .thought-collapsible {
-            background: #111418;
+            background: #10151C;
             border-left: 3px solid var(--accent-thought);
             padding: 8px 12px;
             margin-bottom: 8px;
             border-radius: 3px;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: #90A4AE;
             font-family: monospace;
             white-space: pre-wrap;
         }
         .critic-collapsible {
-            background: #161019;
+            background: #18101E;
             border-left: 3px solid var(--accent-purple);
             padding: 8px 12px;
             margin-bottom: 8px;
             border-radius: 3px;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: #CE93D8;
             font-family: monospace;
         }
@@ -267,18 +270,53 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             font-family: monospace;
             margin-top: 6px;
         }
-        /* Bottom Input Form */
-        #input-box {
-            padding: 16px;
+
+        /* Bottom Controls: Mic Toggle & Input Bar */
+        #control-bar {
+            padding: 14px 18px;
             background: var(--bg-panel);
             border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .mic-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .btn-mic {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: #222;
+            border: 1px solid #3A3A40;
+            color: var(--text-main);
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-mic.active {
+            background: rgba(255, 214, 0, 0.15);
+            border-color: var(--accent-amber);
+            color: var(--accent-amber);
+            box-shadow: 0 0 12px rgba(255, 214, 0, 0.3);
+        }
+        .vad-indicator {
+            font-size: 0.76rem;
+            font-family: monospace;
+            color: var(--text-dim);
+        }
+        .input-row {
             display: flex;
             gap: 10px;
         }
         #user-prompt {
             flex: 1;
             padding: 12px 14px;
-            background: #0F0F0F;
+            background: #0E0E10;
             border: 1px solid var(--border);
             color: #FFF;
             border-radius: 6px;
@@ -307,8 +345,8 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         </div>
         <div class="header-meta">
             <div><span class="status-dot"></span> DUAL-GPU: RTX 2060 + GTX 1050 Ti</div>
-            <div>NVME MEMORY: <span id="session-count">3/128</span> SESSÕES</div>
-            <div>VOZ: KITTENTTS-2 (CPU AVX2)</div>
+            <div class="badge-emb">GEMMA-2 MRL 768d UNIFICADO</div>
+            <div>SESSÕES: <span id="session-count">3/128</span></div>
         </div>
     </header>
 
@@ -334,15 +372,25 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         <section id="chat-panel">
             <div id="messages-list">
                 <div class="bubble assistant">
-                    <div>Olá! Bem-vinda ao <strong>Unified CED Live Studio</strong>.</div>
+                    <div>Olá! Bem-vinda ao <strong>Unified CED Omnimodal Live Studio</strong>.</div>
                     <div style="margin-top: 6px; font-size: 0.84rem; color: #AAA;">
-                        O modelo <strong>GPT-OSS-20B Multimodal</strong> está operando sobre silício Dual-GPU e o sintetizador <strong>KittenTTS-2 PT-BR</strong> está ativo na CPU AVX2 com TTFA de 11.4 ms.
+                        O modelo <strong>GPT-OSS-20B Multimodal</strong> está ancorado pelo <strong>Embedding Gemma 2 (768d MRL)</strong>.
+                        Você pode <strong>falar ao microfone</strong> ou digitar. Se você começar a falar enquanto eu respondo, ativará <strong>interrupção inteligente (Barge-In)</strong> instantânea.
                     </div>
                 </div>
             </div>
-            <div id="input-box">
-                <input type="text" id="user-prompt" placeholder="Fale ou digite (ex: \int x^2 + y = 10 ou descreva uma imagem)..." autofocus />
-                <button class="btn-send" id="btn-send">Enviar</button>
+
+            <div id="control-bar">
+                <div class="mic-row">
+                    <button class="btn-mic" id="btn-mic">
+                        <span id="mic-icon">🎙️</span> <span id="mic-label">Ligar Microfone (VAD)</span>
+                    </button>
+                    <div class="vad-indicator" id="vad-status">BARGE-IN PRONTO</div>
+                </div>
+                <div class="input-row">
+                    <input type="text" id="user-prompt" placeholder="Fale ao microfone ou digite uma fórmula..." autofocus />
+                    <button class="btn-send" id="btn-send">Enviar</button>
+                </div>
             </div>
         </section>
     </div>
@@ -365,12 +413,9 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        // Geometria da Esfera de Ondas (Icosahedron com detalhes)
         const geometry = new THREE.IcosahedronGeometry(1.6, 32);
-        // Criação de cópia de posições originais para deformação senoidal
         const originalPositions = geometry.attributes.position.clone();
 
-        // Material wireframe com brilho dinâmico
         const material = new THREE.MeshBasicMaterial({
             color: 0x00E676,
             wireframe: true,
@@ -402,7 +447,7 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         const particleSystem = new THREE.Points(particleGeo, particleMat);
         scene.add(particleSystem);
 
-        // Estado do Liveness do Agente: 'idle' | 'thinking' | 'speaking'
+        // Estados: 'idle' | 'thinking' | 'speaking' | 'listening'
         let agentState = 'idle';
         let audioAmplitude = 0.0;
         let clock = new THREE.Clock();
@@ -418,89 +463,220 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             } else if (state === 'thinking') {
                 material.color.setHex(0xD500F9);
                 particleMat.color.setHex(0x7C4DFF);
-                orbBadge.textContent = '⚡ THINKING (TENSOR CORES & BVH SEARCH)';
+                orbBadge.textContent = '⚡ THINKING (TENSOR CORES & GEMMA-2 768d)';
                 orbBadge.style.color = '#D500F9';
                 orbBadge.style.borderColor = 'rgba(213, 0, 249, 0.6)';
             } else if (state === 'speaking') {
                 material.color.setHex(0x00E5FF);
                 particleMat.color.setHex(0x00E676);
-                orbBadge.textContent = '🎙️ SPEAKING (KITTENTTS-2 PT-BR AUDIO WAVE)';
+                orbBadge.textContent = '🎙️ SPEAKING (VOZ NEURAL PT-BR ATIVA)';
                 orbBadge.style.color = '#00E5FF';
                 orbBadge.style.borderColor = 'rgba(0, 229, 255, 0.6)';
+            } else if (state === 'listening') {
+                material.color.setHex(0xFFD600);
+                particleMat.color.setHex(0xFFAB00);
+                orbBadge.textContent = '🎙️ LISTENING (BARGE-IN / OUVIDO ABERTO)';
+                orbBadge.style.color = '#FFD600';
+                orbBadge.style.borderColor = 'rgba(255, 214, 0, 0.6)';
             }
         }
 
-        // WebAudio Analyser para reatividade real à voz falada
-        let audioCtx = null;
-        let analyser = null;
-        let dataArray = null;
+        // =====================================================================
+        // SÍNTESE DE VOZ NEURAL HUMANA EM PT-BR (CHUNKING INTELIGENTE)
+        // =====================================================================
+        let ptBrVoice = null;
 
-        function initWebAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 64;
-                dataArray = new Uint8Array(analyser.frequencyBinCount);
+        function loadVoices() {
+            if ('speechSynthesis' in window) {
+                const voices = window.speechSynthesis.getVoices();
+                // Procura voz nativa brasileira de alta qualidade
+                ptBrVoice = voices.find(v => v.lang.includes('pt-BR') || v.lang.includes('pt_BR')) || voices.find(v => v.lang.startsWith('pt')) || null;
             }
         }
+        loadVoices();
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
 
-        function playAudioBuffer(b64Audio) {
-            initWebAudio();
-            const binary = atob(b64Audio);
-            const bytes = new Uint8Array(binary.length);
-            for(let i=0; i<binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        function speakNaturalText(fullText) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel(); // Limpa anterior
 
-            audioCtx.decodeAudioData(bytes.buffer, (buffer) => {
-                const source = audioCtx.createBufferSource();
-                source.buffer = buffer;
-                source.connect(analyser);
-                analyser.connect(audioCtx.destination);
+            // Chunking por frases naturais (pontuação e pausas sintáticas)
+            const sentences = fullText.match(/[^.!?\n]+[.!?\n]+/g) || [fullText];
 
-                setAgentState('speaking');
-                source.start(0);
-                source.onended = () => {
+            setAgentState('speaking');
+
+            let index = 0;
+            function speakNextChunk() {
+                if (agentState === 'listening') return; // Interrompido por fala
+                if (index >= sentences.length) {
+                    setAgentState('idle');
+                    return;
+                }
+
+                const chunk = sentences[index++].trim();
+                if (!chunk) {
+                    speakNextChunk();
+                    return;
+                }
+
+                const utter = new SpeechSynthesisUtterance(chunk);
+                utter.lang = 'pt-BR';
+                if (ptBrVoice) utter.voice = ptBrVoice;
+                utter.rate = 1.05; // Cadência conversacional ágil
+                utter.pitch = 1.0;
+
+                utter.onboundary = (e) => {
+                    // Modulação de amplitude para animar a esfera 3D durante a fala
+                    audioAmplitude = 0.35 + Math.random() * 0.4;
+                };
+
+                utter.onend = () => {
+                    audioAmplitude = 0.0;
+                    speakNextChunk();
+                };
+
+                utter.onerror = () => {
                     setAgentState('idle');
                 };
-            }).catch(e => {
-                setAgentState('idle');
-            });
+
+                window.speechSynthesis.speak(utter);
+            }
+
+            speakNextChunk();
         }
 
-        // Loop de Renderização a 60 FPS
+        // =====================================================================
+        // CAPTURA DE MICROFONE & INTERRUPÇÃO INTELIGENTE (BARGE-IN)
+        // =====================================================================
+        let recognition = null;
+        let isMicActive = false;
+        const btnMic = document.getElementById('btn-mic');
+        const vadStatus = document.getElementById('vad-status');
+        const userPrompt = document.getElementById('user-prompt');
+
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRec();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'pt-BR';
+
+            recognition.onstart = () => {
+                isMicActive = true;
+                btnMic.classList.add('active');
+                document.getElementById('mic-label').textContent = 'Microfone Ativo (Ouvindo)';
+                vadStatus.textContent = 'VAD ATIVO: FALE LIVREMENTE';
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                // ⚡ INTERRUPÇÃO INTELIGENTE (BARGE-IN):
+                // Se o usuário começar a falar enquanto o assistente fala ou pensa, interrompe IMEDIATAMENTE!
+                if (interimTranscript.length > 2 || finalTranscript.length > 2) {
+                    if (agentState === 'speaking' || agentState === 'thinking') {
+                        // Cancela áudio em reprodução
+                        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                        // Notifica backend para abortar geração
+                        fetch('/api/chat/interrupt', { method: 'POST' }).catch(()=>{});
+                        setAgentState('listening');
+                        vadStatus.textContent = '⚡ INTERRUPÇÃO DETECTADA (BARGE-IN)';
+                    }
+                }
+
+                if (interimTranscript) {
+                    userPrompt.value = interimTranscript;
+                }
+
+                // Quando o usuário encerra a frase (final), envia o turno automaticamente
+                if (finalTranscript) {
+                    userPrompt.value = finalTranscript.trim();
+                    sendTurn();
+                }
+            };
+
+            recognition.onerror = (e) => {
+                if (e.error !== 'no-speech') {
+                    vadStatus.textContent = 'MIC IDLE: ' + e.error;
+                }
+            };
+
+            recognition.onend = () => {
+                if (isMicActive) {
+                    try { recognition.start(); } catch(e){}
+                }
+            };
+        }
+
+        btnMic.addEventListener('click', () => {
+            if (!recognition) {
+                alert("Seu navegador não suporta Web Speech API para microfone.");
+                return;
+            }
+            if (!isMicActive) {
+                try {
+                    recognition.start();
+                } catch(e){}
+            } else {
+                isMicActive = false;
+                recognition.stop();
+                btnMic.classList.remove('active');
+                document.getElementById('mic-label').textContent = 'Ligar Microfone (VAD)';
+                vadStatus.textContent = 'MIC DESLIGADO';
+                setAgentState('idle');
+            }
+        });
+
+        // Loop de Animação Three.js a 60 FPS
         function animate() {
             requestAnimationFrame(animate);
             const time = clock.getElapsedTime();
 
             // Rotação suave baseada no estado
-            const rotSpeed = agentState === 'thinking' ? 0.045 : 0.008;
+            let rotSpeed = 0.008;
+            if (agentState === 'thinking') rotSpeed = 0.045;
+            else if (agentState === 'listening') rotSpeed = 0.020;
+            else if (agentState === 'speaking') rotSpeed = 0.015;
+
             orb.rotation.y += rotSpeed;
             orb.rotation.x += rotSpeed * 0.4;
             particleSystem.rotation.y -= rotSpeed * 0.6;
-
-            // Extrair amplitude do áudio se estiver falando
-            if (agentState === 'speaking' && analyser) {
-                analyser.getByteFrequencyData(dataArray);
-                let sum = 0;
-                for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
-                audioAmplitude = (sum / dataArray.length) / 128.0;
-            } else {
-                audioAmplitude = 0.0;
-            }
 
             // Deformação dinâmica da malha (Wild Wave / Perlin-like harmonic ripples)
             const pos = geometry.attributes.position;
             const orig = originalPositions;
             const count = pos.count;
 
-            const freq = agentState === 'thinking' ? 8.0 : (agentState === 'speaking' ? 5.0 : 2.5);
-            const amp = agentState === 'thinking' ? 0.18 : (agentState === 'speaking' ? (0.12 + audioAmplitude * 0.45) : 0.06);
+            let freq = 2.5;
+            let amp = 0.06;
+
+            if (agentState === 'thinking') {
+                freq = 8.0;
+                amp = 0.18;
+            } else if (agentState === 'listening') {
+                freq = 4.0;
+                amp = 0.14; // Ondulação pulsante dourada
+            } else if (agentState === 'speaking') {
+                freq = 5.5;
+                amp = 0.10 + audioAmplitude * 0.35; // Deforma proporcionalmente à fala
+            }
 
             for (let i = 0; i < count; i++) {
                 const ox = orig.getX(i);
                 const oy = orig.getY(i);
                 const oz = orig.getZ(i);
 
-                // Onda harmônica esférica
                 const wave = Math.sin(ox * freq + time * 3.5) * Math.cos(oy * freq + time * 2.8) * Math.sin(oz * freq + time * 1.5);
                 const factor = 1.0 + wave * amp;
 
@@ -522,7 +698,6 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         // CLIENTE DE CHAT & SUBAGENTES
         // =====================================================================
         const messagesList = document.getElementById('messages-list');
-        const userPrompt = document.getElementById('user-prompt');
         const btnSend = document.getElementById('btn-send');
         const subagentsList = document.getElementById('subagents-list');
         const btnSpawn = document.getElementById('btn-open-spawn');
@@ -575,13 +750,11 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             messagesList.appendChild(userBubble);
             messagesList.scrollTop = messagesList.scrollHeight;
 
-            // Transição para modo THINKING no Three.js
             setAgentState('thinking');
 
-            // Placeholder do assistente
             const asstBubble = document.createElement('div');
             asstBubble.className = 'bubble assistant';
-            asstBubble.innerHTML = '<span style="color:#888;">⚡ Raciocinando nos Tensor Cores e podando MoE via BVH...</span>';
+            asstBubble.innerHTML = '<span style="color:#888;">⚡ Raciocinando e projetando vetor no Gemma 2 (768d MRL)...</span>';
             messagesList.appendChild(asstBubble);
             messagesList.scrollTop = messagesList.scrollHeight;
 
@@ -602,13 +775,13 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
                 }
                 html += `<div>${data.text}</div>`;
                 if (data.metadata) {
-                    html += `<div class="bubble-meta">⚡ TTFT: ${data.metadata.ttft_ms} ms | TTFA: ${data.metadata.ttfa_ms} ms | Vazão: ${data.metadata.decode_tok_s} tok/s | Poda BVH: ${data.metadata.bvh_pruning_pct}%</div>`;
+                    html += `<div class="bubble-meta">⚡ TTFT: ${data.metadata.ttft_ms} ms | TTFA: ${data.metadata.ttfa_ms} ms | Gemma2 MRL: ${data.metadata.gemma2_mrl_dim}d (Norma: ${data.metadata.gemma2_vector_norm}) | Poda BVH: ${data.metadata.bvh_pruning_pct}%</div>`;
                 }
                 asstBubble.innerHTML = html;
 
-                // Tocar áudio se retornado e animar onda
-                if (data.audio_b64) {
-                    playAudioBuffer(data.audio_b64);
+                // Síntese de voz natural em português brasileiro (chunking fluido)
+                if (data.text) {
+                    speakNaturalText(data.text);
                 } else {
                     setAgentState('idle');
                 }
@@ -666,6 +839,11 @@ def create_studio_app(session: Optional[LiveSession] = None) -> Flask:
         msg = live_session.switch_model(new_model)
         return jsonify({"status": msg, "model": live_session.model})
 
+    @app.route("/api/chat/interrupt", methods=["POST"])
+    def interrupt_turn():
+        live_session.interrupt()
+        return jsonify({"status": "interrupted", "success": True})
+
     @app.route("/api/chat", methods=["POST"])
     def chat_turn():
         data = request.get_json() or {}
@@ -684,18 +862,14 @@ def create_studio_app(session: Optional[LiveSession] = None) -> Flask:
                 critic_text += chunk
             elif stream_type == "text":
                 spoken_text += chunk
-
-        # Síntese de áudio WAV PCM 24 kHz via KittenTTS-2
-        audio_b64 = ""
-        if spoken_text and live_session.audio_engine:
-            wav_bytes = live_session.audio_engine.synthesize_speech_wav(spoken_text)
-            audio_b64 = base64.b64encode(wav_bytes).decode("ascii")
+            elif stream_type == "interrupted":
+                spoken_text += f"\n[Interrompido: {chunk}]"
+                break
 
         return jsonify({
             "thought": thought_text.strip(),
             "critic": critic_text.strip(),
             "text": spoken_text.strip(),
-            "audio_b64": audio_b64,
             "metadata": last_meta
         })
 
