@@ -999,7 +999,7 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
 </html>
 """
 
-def create_studio_app(session: Optional[LiveSession] = None) -> Flask:
+def create_studio_app(session: Optional[LiveSession] = None, headless: bool = False) -> Flask:
     """Cria e configura a aplicação Flask para o Live Studio e API OpenAI."""
     app = Flask(__name__)
     live_session = session or LiveSession(model="gpt-oss", dual_session=False)
@@ -1009,6 +1009,20 @@ def create_studio_app(session: Optional[LiveSession] = None) -> Flask:
 
     @app.route("/")
     def index():
+        if headless:
+            return jsonify({
+                "status": "online",
+                "mode": "headless_api",
+                "runtime": "Unified Heterogeneous CED Engine",
+                "drafter": "auto (eagle3/mtp/dspark)",
+                "endpoints": {
+                    "models": "/v1/models",
+                    "chat_completions": "/v1/chat/completions",
+                    "audio_transcriptions": "/v1/audio/transcriptions",
+                    "audio_speech": "/v1/audio/speech",
+                    "runtime_reset": "/v1/runtime/reset"
+                }
+            })
         return render_template_string(HTML_STUDIO_TEMPLATE)
 
     @app.route("/api/subagents", methods=["GET"])
@@ -1106,27 +1120,37 @@ def main():
     import argparse
     import socket
 
+    import sys
+    if sys.platform == "win32":
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+            sys.stderr.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+
     parser = argparse.ArgumentParser(description="Unified CED Omnimodal Three.js Live Studio")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Endereço de rede para escuta (padrão: 127.0.0.1, use 0.0.0.0 para expor na LAN)")
     parser.add_argument("--port", type=int, default=8765, help="Porta do servidor Web (padrão: 8765)")
     parser.add_argument("--model", type=str, default="gpt-oss", help="Modelo inicial (padrão: gpt-oss)")
+    parser.add_argument("--headless", action="store_true", default=False, help="Executa em modo API headless puro sem interface Web Three.js")
     args = parser.parse_args()
 
     session = LiveSession(model=args.model, dual_session=False)
-    app = create_studio_app(session)
+    app = create_studio_app(session, headless=args.headless)
 
-    print(f"\n⚡ [Unified CED Live Studio Iniciado]:")
-    print(f"   • Local: http://127.0.0.1:{args.port}")
+    mode_label = "Headless API (OpenAI Wire Protocol)" if args.headless else "Live Studio (Three.js Web UI)"
+    print(f"\n[+] [Unified CED Server Iniciado - {mode_label}]:")
+    print(f"   * Local: http://127.0.0.1:{args.port}")
     if args.host == "0.0.0.0":
         try:
             hostname = socket.gethostname()
             lan_ips = [ip for ip in socket.gethostbyname_ex(hostname)[2] if not ip.startswith("127.")]
             for ip in lan_ips:
-                print(f"   • LAN:   http://{ip}:{args.port}")
+                print(f"   * LAN:   http://{ip}:{args.port}")
         except Exception:
-            print(f"   • LAN:   http://0.0.0.0:{args.port}")
+            print(f"   * LAN:   http://0.0.0.0:{args.port}")
     elif args.host != "127.0.0.1":
-        print(f"   • Host:  http://{args.host}:{args.port}")
+        print(f"   * Host:  http://{args.host}:{args.port}")
     print()
 
     app.run(host=args.host, port=args.port, debug=False)

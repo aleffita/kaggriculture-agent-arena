@@ -238,19 +238,30 @@ def create_openai_blueprint(live_session: LiveSession) -> Blueprint:
         })
 
     # =========================================================================
-    # CHAT COMPLETIONS (STREAMING SSE + NON-STREAMING)
+    # CHAT & TEXT COMPLETIONS (STREAMING SSE + NON-STREAMING)
     # =========================================================================
+    @bp.route("/v1", methods=["POST"])
+    @bp.route("/completions", methods=["POST"])
+    @bp.route("/v1/completions", methods=["POST"])
     @bp.route("/chat/completions", methods=["POST"])
     @bp.route("/v1/chat/completions", methods=["POST"])
     def chat_completions():
         """
-        Endpoint oficial de Chat Completions da OpenAI.
+        Endpoint oficial de Chat e Text Completions da OpenAI.
         Suporta streaming SSE, non-streaming, reasoning_effort 8k-64k, e tool calling
         (padrão OpenAI, runtime local in-place, e Wire RPC expandido).
         """
         data = request.get_json(force=True, silent=True) or {}
         model_name = data.get("model", live_session.model or "gpt-oss-20b")
         messages = data.get("messages", [])
+        prompt_param = data.get("prompt")
+        if not messages and prompt_param:
+            if isinstance(prompt_param, list):
+                prompt_text = " ".join(str(p) for p in prompt_param)
+            else:
+                prompt_text = str(prompt_param)
+            messages = [{"role": "user", "content": prompt_text}]
+
         stream = bool(data.get("stream", False))
         tools = data.get("tools", [])
         tool_choice = data.get("tool_choice", "auto")

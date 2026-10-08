@@ -145,11 +145,12 @@ class LiveSession:
         decode_tokens: int = 40,
         virtual_experts: bool = True,
         clean_cache: bool = False,
-        thinking_effort: str = "high"
+        thinking_effort: str = "high",
+        drafter: str = "auto"
     ) -> Dict[str, Any]:
         """Executa um ciclo físico no unified_runtime.exe com telemetria JSON."""
         model_flag = "moe" if "gpt-oss" in self.model else ("gemma12b" if "gemma12b" in self.model else "moe")
-        drafter_flag = "eagle3" if "gpt-oss" in self.model else "none"
+        drafter_flag = drafter or "auto"
         ve_flag = "--virtual-experts" if virtual_experts else "--no-virtual-experts"
 
         cmd = [
