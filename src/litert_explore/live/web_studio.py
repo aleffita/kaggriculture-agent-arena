@@ -40,6 +40,11 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             --text-dim: #8E8E93;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.32); }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: var(--bg-deep);
@@ -53,24 +58,25 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         header {
             height: 56px;
             padding: 0 24px;
-            background: rgba(20, 20, 22, 0.9);
+            background: rgba(18, 18, 20, 0.95);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
             z-index: 100;
+            flex-shrink: 0;
         }
         .brand {
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 1.05rem;
+            font-size: 1.02rem;
             font-weight: 700;
             letter-spacing: -0.02em;
         }
         .brand-pill {
-            font-size: 0.72rem;
+            font-size: 0.70rem;
             padding: 3px 8px;
             border-radius: 4px;
             background: rgba(0, 230, 118, 0.12);
@@ -102,27 +108,35 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             box-shadow: 0 0 10px var(--accent-green);
         }
 
-        /* Main Workspace Split */
+        /* Main Workspace Split - Fixed Bounds & Independent Scrolling */
         #workspace {
             flex: 1;
             display: grid;
-            grid-template-columns: 320px 1fr 440px;
+            grid-template-columns: 280px 1fr 420px;
             height: calc(100vh - 56px);
+            max-height: calc(100vh - 56px);
+            min-height: 0;
             position: relative;
+            overflow: hidden;
         }
 
         /* Left Column: Subagents & NVMe Sessions */
         #subagents-panel {
-            background: rgba(20, 20, 22, 0.95);
+            background: rgba(18, 18, 20, 0.98);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             padding: 16px;
+            height: 100%;
+            max-height: 100%;
+            min-height: 0;
+            min-width: 0;
             overflow-y: auto;
+            overflow-x: hidden;
             z-index: 10;
         }
         .panel-heading {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             text-transform: uppercase;
             letter-spacing: 0.06em;
             color: var(--text-dim);
@@ -130,9 +144,10 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
         .btn-spawn {
-            font-size: 0.74rem;
+            font-size: 0.72rem;
             padding: 4px 10px;
             border-radius: 4px;
             background: #252528;
@@ -142,12 +157,30 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             transition: all 0.2s;
         }
         .btn-spawn:hover { background: #333; border-color: var(--accent-cyan); }
+        #subagents-list {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .subagents-empty {
+            text-align: center;
+            color: #666;
+            font-size: 0.76rem;
+            padding: 32px 12px;
+            line-height: 1.5;
+            background: rgba(25, 25, 28, 0.4);
+            border: 1px dashed #2A2A2E;
+            border-radius: 6px;
+        }
         .subagent-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 6px;
             padding: 12px;
-            margin-bottom: 10px;
         }
         .subagent-header {
             display: flex;
@@ -155,9 +188,9 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             align-items: center;
             margin-bottom: 4px;
         }
-        .subagent-role { font-weight: 600; font-size: 0.86rem; }
+        .subagent-role { font-weight: 600; font-size: 0.84rem; }
         .subagent-status {
-            font-size: 0.68rem;
+            font-size: 0.66rem;
             padding: 2px 6px;
             border-radius: 3px;
             font-family: monospace;
@@ -165,10 +198,10 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         }
         .subagent-status.idle { color: var(--accent-green); }
         .subagent-status.thinking { color: var(--accent-purple); }
-        .subagent-goal { font-size: 0.76rem; color: var(--text-dim); line-height: 1.35; }
+        .subagent-goal { font-size: 0.74rem; color: var(--text-dim); line-height: 1.35; }
         .subagent-metrics {
             margin-top: 6px;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             color: #666;
             font-family: monospace;
         }
@@ -176,11 +209,14 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         /* Center Column: 3D Three.js Audio Wave Orb */
         #visualizer-container {
             position: relative;
-            background: #000;
+            background: radial-gradient(circle at center, #0B101D 0%, #06070A 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            height: 100%;
+            min-height: 0;
+            min-width: 0;
         }
         #three-canvas {
             width: 100% !important;
@@ -198,12 +234,12 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         }
         .orb-state-badge {
             font-family: monospace;
-            font-size: 0.82rem;
+            font-size: 0.80rem;
             padding: 6px 16px;
             border-radius: 20px;
-            background: rgba(18, 18, 20, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(8px);
+            background: rgba(14, 16, 22, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(10px);
             text-transform: uppercase;
             letter-spacing: 0.08em;
             transition: all 0.3s;
@@ -211,17 +247,23 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
 
         /* Right Column: Conversational Stream */
         #chat-panel {
-            background: rgba(20, 20, 22, 0.95);
+            background: rgba(18, 18, 20, 0.98);
             border-left: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             height: 100%;
+            max-height: 100%;
+            min-height: 0;
+            min-width: 0;
+            overflow: hidden;
             z-index: 10;
         }
         #messages-list {
             flex: 1;
+            min-height: 0;
             padding: 20px;
             overflow-y: auto;
+            overflow-x: hidden;
             display: flex;
             flex-direction: column;
             gap: 16px;
@@ -230,7 +272,7 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             max-width: 92%;
             padding: 12px 16px;
             border-radius: 8px;
-            font-size: 0.92rem;
+            font-size: 0.90rem;
             line-height: 1.5;
         }
         .bubble.user {
@@ -244,28 +286,32 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             border: 1px solid var(--border);
         }
         .thought-collapsible {
-            background: #10151C;
+            background: #0E141D;
+            border: 1px solid #1E2D40;
             border-left: 3px solid var(--accent-thought);
-            padding: 8px 12px;
+            padding: 6px 10px;
             margin-bottom: 8px;
-            border-radius: 3px;
-            font-size: 0.78rem;
+            border-radius: 4px;
+            font-size: 0.76rem;
             color: #90A4AE;
             font-family: monospace;
-            white-space: pre-wrap;
         }
-        .critic-collapsible {
-            background: #18101E;
-            border-left: 3px solid var(--accent-purple);
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            border-radius: 3px;
-            font-size: 0.78rem;
-            color: #CE93D8;
-            font-family: monospace;
+        .thought-collapsible summary {
+            cursor: pointer;
+            color: #64B5F6;
+            font-weight: 600;
+            user-select: none;
+            outline: none;
+            font-size: 0.74rem;
+            letter-spacing: 0.02em;
+        }
+        .thought-body {
+            margin-top: 6px;
+            white-space: pre-wrap;
+            line-height: 1.45;
         }
         .bubble-meta {
-            font-size: 0.72rem;
+            font-size: 0.70rem;
             color: #666;
             font-family: monospace;
             margin-top: 6px;
@@ -346,7 +392,7 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         <div class="header-meta">
             <div><span class="status-dot"></span> DUAL-GPU: RTX 2060 + GTX 1050 Ti</div>
             <div class="badge-emb">GEMMA-2 MRL 768d UNIFICADO</div>
-            <div>SESSÕES: <span id="session-count">3/128</span></div>
+            <div>SESSÕES: <span id="session-count">0/128</span></div>
         </div>
     </header>
 
@@ -397,42 +443,68 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
 
     <script>
         // =====================================================================
-        // THREE.JS OMNIMODAL AUDIO ORB & WAVE SHADER VISUALIZER
+        // THREE.JS OMNIMODAL LUMINOUS AURORA NEBULA ORB (WEBGL 60 FPS)
         // =====================================================================
         const container = document.getElementById('visualizer-container');
         const canvas = document.getElementById('three-canvas');
         const orbBadge = document.getElementById('orb-state');
 
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x000000, 0.08);
+        scene.fog = new THREE.FogExp2(0x06070A, 0.04);
 
         const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
-        camera.position.z = 5.2;
+        camera.position.z = 4.8;
 
         const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        const geometry = new THREE.IcosahedronGeometry(1.6, 32);
-        const originalPositions = geometry.attributes.position.clone();
+        // Luzes Físicas Dinâmicas
+        const ambientLight = new THREE.AmbientLight(0x223344, 1.2);
+        scene.add(ambientLight);
 
-        const material = new THREE.MeshBasicMaterial({
-            color: 0x00E676,
-            wireframe: true,
+        const pointLight1 = new THREE.PointLight(0x00E5FF, 2.8, 40);
+        pointLight1.position.set(3, 2, 4);
+        scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0x00E676, 2.5, 40);
+        pointLight2.position.set(-3, -2, 3);
+        scene.add(pointLight2);
+
+        // 1. Núcleo Luminous Aurora Orb (Esfera Suave MeshStandardMaterial)
+        const coreGeo = new THREE.SphereGeometry(1.35, 64, 64);
+        const coreMat = new THREE.MeshStandardMaterial({
+            color: 0x0A192F,
+            emissive: 0x00E676,
+            emissiveIntensity: 0.35,
+            roughness: 0.25,
+            metalness: 0.70,
             transparent: true,
-            opacity: 0.85
+            opacity: 0.95
         });
-        const orb = new THREE.Mesh(geometry, material);
-        scene.add(orb);
+        const coreOrb = new THREE.Mesh(coreGeo, coreMat);
+        scene.add(coreOrb);
 
-        // Halo de partículas orbitais externas
-        const particleCount = 200;
+        // 2. Casca Externa Aurora Glow
+        const glowGeo = new THREE.SphereGeometry(1.46, 48, 48);
+        const glowMat = new THREE.MeshBasicMaterial({
+            color: 0x00E5FF,
+            transparent: true,
+            opacity: 0.16,
+            wireframe: true,
+            blending: THREE.AdditiveBlending
+        });
+        const glowShell = new THREE.Mesh(glowGeo, glowMat);
+        scene.add(glowShell);
+
+        // 3. Constelação de Partículas Estelares
+        const particleCount = 280;
         const particleGeo = new THREE.BufferGeometry();
         const particlePos = new Float32Array(particleCount * 3);
         for(let i=0; i<particleCount*3; i+=3) {
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(Math.random() * 2 - 1);
-            const r = 2.2 + Math.random() * 0.8;
+            const r = 1.9 + Math.random() * 1.0;
             particlePos[i] = r * Math.sin(phi) * Math.cos(theta);
             particlePos[i+1] = r * Math.sin(phi) * Math.sin(theta);
             particlePos[i+2] = r * Math.cos(phi);
@@ -442,7 +514,8 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             color: 0x00E5FF,
             size: 0.035,
             transparent: true,
-            opacity: 0.6
+            opacity: 0.65,
+            blending: THREE.AdditiveBlending
         });
         const particleSystem = new THREE.Points(particleGeo, particleMat);
         scene.add(particleSystem);
@@ -455,26 +528,46 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         function setAgentState(state) {
             agentState = state;
             if (state === 'idle') {
-                material.color.setHex(0x00E676);
+                coreMat.emissive.setHex(0x00E676);
+                coreMat.emissiveIntensity = 0.35;
+                glowMat.color.setHex(0x00E5FF);
+                glowMat.opacity = 0.16;
                 particleMat.color.setHex(0x00E5FF);
+                pointLight1.color.setHex(0x00E5FF);
+                pointLight2.color.setHex(0x00E676);
                 orbBadge.textContent = '● IDLE (HARMONIC BREATHING)';
                 orbBadge.style.color = '#00E676';
                 orbBadge.style.borderColor = 'rgba(0, 230, 118, 0.4)';
             } else if (state === 'thinking') {
-                material.color.setHex(0xD500F9);
-                particleMat.color.setHex(0x7C4DFF);
+                coreMat.emissive.setHex(0xD500F9);
+                coreMat.emissiveIntensity = 0.80;
+                glowMat.color.setHex(0x7C4DFF);
+                glowMat.opacity = 0.35;
+                particleMat.color.setHex(0xD500F9);
+                pointLight1.color.setHex(0xD500F9);
+                pointLight2.color.setHex(0x7C4DFF);
                 orbBadge.textContent = '⚡ THINKING (TENSOR CORES & GEMMA-2 768d)';
                 orbBadge.style.color = '#D500F9';
                 orbBadge.style.borderColor = 'rgba(213, 0, 249, 0.6)';
             } else if (state === 'speaking') {
-                material.color.setHex(0x00E5FF);
+                coreMat.emissive.setHex(0x00E5FF);
+                coreMat.emissiveIntensity = 0.70;
+                glowMat.color.setHex(0x00E5FF);
+                glowMat.opacity = 0.30;
                 particleMat.color.setHex(0x00E676);
-                orbBadge.textContent = '🎙️ SPEAKING (VOZ NEURAL PT-BR ATIVA)';
+                pointLight1.color.setHex(0x00E5FF);
+                pointLight2.color.setHex(0x00E676);
+                orbBadge.textContent = '🎙️ SPEAKING (MIMI GPU CODEC & PT-BR)';
                 orbBadge.style.color = '#00E5FF';
                 orbBadge.style.borderColor = 'rgba(0, 229, 255, 0.6)';
             } else if (state === 'listening') {
-                material.color.setHex(0xFFD600);
-                particleMat.color.setHex(0xFFAB00);
+                coreMat.emissive.setHex(0xFFD600);
+                coreMat.emissiveIntensity = 0.65;
+                glowMat.color.setHex(0xFFAB00);
+                glowMat.opacity = 0.30;
+                particleMat.color.setHex(0xFFD600);
+                pointLight1.color.setHex(0xFFD600);
+                pointLight2.color.setHex(0xFF6D00);
                 orbBadge.textContent = '🎙️ LISTENING (BARGE-IN / OUVIDO ABERTO)';
                 orbBadge.style.color = '#FFD600';
                 orbBadge.style.borderColor = 'rgba(255, 214, 0, 0.6)';
@@ -656,51 +749,44 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             }
         });
 
-        // Loop de Animação Three.js a 60 FPS
+        // Loop de Animação Three.js a 60 FPS (Luminous Aurora Nebula)
         function animate() {
             requestAnimationFrame(animate);
             const time = clock.getElapsedTime();
 
-            // Rotação suave baseada no estado
-            let rotSpeed = 0.008;
-            if (agentState === 'thinking') rotSpeed = 0.045;
-            else if (agentState === 'listening') rotSpeed = 0.020;
-            else if (agentState === 'speaking') rotSpeed = 0.015;
+            // Rotação suave adaptativa ao estado
+            let rotSpeed = 0.005;
+            if (agentState === 'thinking') rotSpeed = 0.024;
+            else if (agentState === 'listening') rotSpeed = 0.010;
+            else if (agentState === 'speaking') rotSpeed = 0.012;
 
-            orb.rotation.y += rotSpeed;
-            orb.rotation.x += rotSpeed * 0.4;
-            particleSystem.rotation.y -= rotSpeed * 0.6;
+            coreOrb.rotation.y += rotSpeed;
+            coreOrb.rotation.x += rotSpeed * 0.35;
+            glowShell.rotation.y -= rotSpeed * 0.65;
+            glowShell.rotation.z += rotSpeed * 0.20;
+            particleSystem.rotation.y -= rotSpeed * 0.40;
 
-            // Deformação dinâmica da malha (Wild Wave / Perlin-like harmonic ripples)
-            const pos = geometry.attributes.position;
-            const orig = originalPositions;
-            const count = pos.count;
-
-            let freq = 2.5;
-            let amp = 0.06;
-
-            if (agentState === 'thinking') {
-                freq = 8.0;
-                amp = 0.18;
+            // Harmonic Breathing & Respiração Orgânica
+            let scale = 1.0;
+            if (agentState === 'idle') {
+                scale = 1.0 + Math.sin(time * 1.4) * 0.035;
+            } else if (agentState === 'thinking') {
+                scale = 1.0 + Math.sin(time * 4.8) * 0.065;
             } else if (agentState === 'listening') {
-                freq = 4.0;
-                amp = 0.14; // Ondulação pulsante dourada
+                scale = 1.0 + Math.sin(time * 2.2) * 0.045;
             } else if (agentState === 'speaking') {
-                freq = 5.5;
-                amp = 0.10 + audioAmplitude * 0.35; // Deforma proporcionalmente à fala
+                scale = 1.0 + audioAmplitude * 0.20 + Math.sin(time * 6.5) * 0.03;
             }
 
-            for (let i = 0; i < count; i++) {
-                const ox = orig.getX(i);
-                const oy = orig.getY(i);
-                const oz = orig.getZ(i);
+            coreOrb.scale.set(scale, scale, scale);
+            const glowScale = scale * 1.08;
+            glowShell.scale.set(glowScale, glowScale, glowScale);
 
-                const wave = Math.sin(ox * freq + time * 3.5) * Math.cos(oy * freq + time * 2.8) * Math.sin(oz * freq + time * 1.5);
-                const factor = 1.0 + wave * amp;
-
-                pos.setXYZ(i, ox * factor, oy * factor, oz * factor);
-            }
-            pos.needsUpdate = true;
+            // Órbita suave das fontes pontuais de luz
+            pointLight1.position.x = Math.sin(time * 0.55) * 4.0;
+            pointLight1.position.z = Math.cos(time * 0.55) * 4.0;
+            pointLight2.position.x = Math.cos(time * 0.45) * -4.0;
+            pointLight2.position.z = Math.sin(time * 0.45) * 4.0;
 
             renderer.render(scene, camera);
         }
@@ -713,7 +799,7 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
         });
 
         // =====================================================================
-        // CLIENTE DE CHAT & SUBAGENTES
+        // CLIENTE DE CHAT & SUBAGENTES DINÂMICOS
         // =====================================================================
         const messagesList = document.getElementById('messages-list');
         const btnSend = document.getElementById('btn-send');
@@ -726,6 +812,17 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
                 const data = await res.json();
                 document.getElementById('session-count').textContent = `${data.length}/128`;
                 subagentsList.innerHTML = '';
+                if (!data || data.length === 0) {
+                    subagentsList.innerHTML = `
+                        <div class="subagents-empty">
+                            <div>Nenhum subagente ativo no momento.</div>
+                            <div style="margin-top:6px; font-size:0.72rem; color:#666;">
+                                Os subagentes operam sob demanda pelo agente principal ou criação explícita (+ Spawn).
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
                 data.forEach(sub => {
                     const card = document.createElement('div');
                     card.className = 'subagent-card';
@@ -776,14 +873,18 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             const asstBubble = document.createElement('div');
             asstBubble.className = 'bubble assistant';
             
-            // Sub-containers dedicados para streaming contínuo sem re-render ou flicker
-            const thoughtContainer = document.createElement('div');
-            thoughtContainer.className = 'thought-collapsible';
-            thoughtContainer.style.display = 'none';
+            // Sub-container de Pensamento Colapsável com tag <details>
+            const thoughtDetails = document.createElement('details');
+            thoughtDetails.className = 'thought-collapsible';
+            thoughtDetails.style.display = 'none';
 
-            const criticContainer = document.createElement('div');
-            criticContainer.className = 'critic-collapsible';
-            criticContainer.style.display = 'none';
+            const thoughtSummary = document.createElement('summary');
+            thoughtSummary.textContent = '💭 Raciocínio Interno (GPU Unified CED)';
+            const thoughtBody = document.createElement('div');
+            thoughtBody.className = 'thought-body';
+
+            thoughtDetails.appendChild(thoughtSummary);
+            thoughtDetails.appendChild(thoughtBody);
 
             const textContainer = document.createElement('div');
             textContainer.className = 'text-stream';
@@ -793,8 +894,7 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
             metaContainer.className = 'bubble-meta';
             metaContainer.style.display = 'none';
 
-            asstBubble.appendChild(thoughtContainer);
-            asstBubble.appendChild(criticContainer);
+            asstBubble.appendChild(thoughtDetails);
             asstBubble.appendChild(textContainer);
             asstBubble.appendChild(metaContainer);
             messagesList.appendChild(asstBubble);
@@ -832,21 +932,20 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
                             const packet = JSON.parse(jsonStr);
 
                             if (packet.type === 'vision') {
-                                // Deforma a esfera Three.js com os dados do embedding
+                                // Modula amplitude Three.js com dados do embedding
                                 try {
                                     const visData = JSON.parse(packet.chunk);
                                     if (visData.norm) {
-                                        audioAmplitude = Math.min(1.0, visData.norm * 0.4);
+                                        audioAmplitude = Math.min(1.0, visData.norm * 0.35);
                                     }
                                 } catch(e){}
                             } else if (packet.type === 'thought') {
-                                thoughtContainer.style.display = 'block';
-                                thoughtContainer.textContent += packet.chunk;
+                                thoughtDetails.style.display = 'block';
+                                const cleanChunk = packet.chunk.replace(/<\/?thought>/gi, '');
+                                thoughtBody.textContent += cleanChunk;
                                 messagesList.scrollTop = messagesList.scrollHeight;
                             } else if (packet.type === 'critic') {
-                                criticContainer.style.display = 'block';
-                                criticContainer.textContent += packet.chunk;
-                                messagesList.scrollTop = messagesList.scrollHeight;
+                                // O crítico é desativado no Live Studio (exclusivo para benchmarks)
                             } else if (packet.type === 'audio_chunk') {
                                 // Enfileira frase para vocalização neural simultânea imediata (TTFA < 15 ms)
                                 enqueueSpeechPhrase(packet.chunk);
@@ -855,7 +954,8 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
                                     textContainer.innerHTML = '';
                                     firstTextReceived = true;
                                 }
-                                textContainer.textContent += packet.chunk;
+                                const cleanText = packet.chunk.replace(/<\/?thought>/gi, '');
+                                textContainer.textContent += cleanText;
                                 messagesList.scrollTop = messagesList.scrollHeight;
                             } else if (packet.type === 'telemetry') {
                                 try {
@@ -901,7 +1001,7 @@ HTML_STUDIO_TEMPLATE = r"""<!DOCTYPE html>
 def create_studio_app(session: Optional[LiveSession] = None) -> Flask:
     """Cria e configura a aplicação Flask para o Live Studio."""
     app = Flask(__name__)
-    live_session = session or LiveSession(model="gpt-oss", dual_session=True)
+    live_session = session or LiveSession(model="gpt-oss", dual_session=False)
 
     @app.route("/")
     def index():
@@ -1005,7 +1105,7 @@ def main():
     parser.add_argument("--model", type=str, default="gpt-oss", help="Modelo inicial (padrão: gpt-oss)")
     args = parser.parse_args()
 
-    session = LiveSession(model=args.model, dual_session=True)
+    session = LiveSession(model=args.model, dual_session=False)
     app = create_studio_app(session)
     print(f"\n⚡ [Unified CED Live Studio Iniciado]: http://127.0.0.1:{args.port}\n")
     app.run(host="127.0.0.1", port=args.port, debug=False)
