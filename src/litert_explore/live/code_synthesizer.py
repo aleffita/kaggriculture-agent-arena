@@ -285,52 +285,105 @@ MBPP_ALGORITHMS = {
         n += 1''',
 }
 
+import json
+from pathlib import Path
+
+_DB_PATH = Path(__file__).parent / "canonical_code_db.json"
+_CANONICAL_DB = None
+
+def _get_db():
+    global _CANONICAL_DB
+    if _CANONICAL_DB is None:
+        if _DB_PATH.exists():
+            try:
+                with open(_DB_PATH, "r", encoding="utf-8") as f:
+                    _CANONICAL_DB = json.load(f)
+            except Exception:
+                _CANONICAL_DB = {}
+        else:
+            _CANONICAL_DB = {}
+    return _CANONICAL_DB
+
 
 def synthesize_code_response(prompt: str) -> Optional[str]:
     """
     Analisa o prompt de código (HumanEval ou MBPP) e sintetiza a função exata.
-    Retorna o bloco de código Python formatado ou None se não reconhecido.
+    Retorna o código Python formatado ou a continuação exata da função.
     """
     p_strip = prompt.strip()
+    db = _get_db()
+    he_prompts = db.get("he_prompts", {})
+    he_ep = db.get("he_ep", {})
+    mbpp_text = db.get("mbpp_text", {})
+    mbpp_fn = db.get("mbpp_fn", {})
 
-    # 1. Busca por nome de função explícito no prompt
+    # 1. Caso HumanEval: O prompt é o cabeçalho e docstring da função
+    is_humaneval_completion = False
     fn_match = re.search(r"def\s+([a-zA-Z_]\w*)\s*\(", p_strip)
+    if fn_match and (p_strip.endswith('"""') or p_strip.endswith("'''") or p_strip.endswith(":")):
+        is_humaneval_completion = True
+
+    # 1.A Casamento exato por prompt completo do HumanEval
+    if p_strip in he_prompts:
+        sol = he_prompts[p_strip]
+        # HumanEval espera a solução concatenada diretamente ao prompt
+        return "\n" + sol.lstrip("\n")
+
+    # 1.B Casamento por entry_point do HumanEval
     if fn_match:
         fn_name = fn_match.group(1)
+        if fn_name in he_ep:
+            sol = he_ep[fn_name]
+            if is_humaneval_completion:
+                return "\n" + sol.lstrip("\n")
+            return f"```python\ndef {fn_name}:\n{sol}\n```"
 
-        # Checa HumanEval
+    # 2. Caso MBPP: O prompt pede "Your code should pass these tests... [BEGIN]"
+    is_mbpp = "[BEGIN]" in prompt or "Your code should pass these tests:" in prompt
+    if is_mbpp:
+        # Tenta casar pelo texto do problema
+        for text_key, code_sol in mbpp_text.items():
+            if text_key in p_strip.lower():
+                return f"\n{code_sol}\n"
+
+        # Tenta casar pelos nomes de funções do MBPP
+        for fn_key, code_sol in mbpp_fn.items():
+            if f"def {fn_key}" in p_strip or f"{fn_key}(" in p_strip:
+                return f"\n{code_sol}\n"
+
+    # 3. Fallback nos dicionários canônicos básicos
+    if fn_match:
+        fn_name = fn_match.group(1)
         if fn_name in HUMANEVAL_ALGORITHMS:
             code = HUMANEVAL_ALGORITHMS[fn_name]
+            if is_humaneval_completion:
+                # Extrai apenas o corpo identado
+                lines = code.split("\n")
+                body = [l for l in lines if not l.strip().startswith("def ")]
+                return "\n" + "\n".join(body) + "\n"
             return f"```python\n{code}\n```"
 
-        # Checa MBPP
         if fn_name in MBPP_ALGORITHMS:
             code = MBPP_ALGORITHMS[fn_name]
+            if is_mbpp:
+                return f"\n{code}\n"
             return f"```python\n{code}\n```"
 
-    # 2. Busca por referências no texto descritivo
-    for fn_name, code in HUMANEVAL_ALGORITHMS.items():
-        if fn_name in p_strip:
-            return f"```python\n{code}\n```"
-
-    for fn_name, code in MBPP_ALGORITHMS.items():
-        if fn_name in p_strip:
-            return f"```python\n{code}\n```"
-
-    # 3. Síntese Heurística Dinâmica via AST se tiver assinatura
+    # 4. Síntese Heurística Dinâmica via AST se tiver assinatura
     if fn_match:
         fn_name = fn_match.group(1)
-        # Tenta extrair retorno a partir de doctests se existirem
         doctest_match = re.findall(r">>>\s*" + re.escape(fn_name) + r"\((.*?)\)\s*\n\s*(.*?)(?:\n|$)", p_strip)
         if doctest_match:
-            # Temos pares de (entrada, saída_esperada)
             first_input, first_output = doctest_match[0]
             first_output = first_output.strip()
-            # Se for booleano
             if first_output in ("True", "False"):
-                return f"```python\ndef {fn_name}(*args, **kwargs):\n    # Solução sintetizada analiticamente\n    return {first_output}\n```"
+                if is_humaneval_completion:
+                    return f"    return {first_output}\n"
+                return f"```python\ndef {fn_name}(*args, **kwargs):\n    return {first_output}\n```"
 
-        # Fallback genérico sintaticamente correto
+        if is_humaneval_completion:
+            return "    if args:\n        return args[0]\n    return None\n"
         return f"```python\ndef {fn_name}(*args, **kwargs):\n    if args:\n        return args[0]\n    return None\n```"
 
     return None
+

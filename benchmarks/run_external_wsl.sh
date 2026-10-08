@@ -31,6 +31,10 @@ uv run --python 3.12 \
        --with "pillow" \
        --with "evaluate" \
        --with "rich" \
+       --with "/mnt/z/repos/context-language-models" \
+       --with "tiktoken" \
+       --with "pyyaml" \
        python /mnt/d/workdir/litertlm-exploration/benchmarks/run_external.py \
        --base-url "$BASE_URL" \
        "${ARGS[@]}"
+
