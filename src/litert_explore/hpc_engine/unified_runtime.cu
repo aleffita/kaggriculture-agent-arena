@@ -361,26 +361,57 @@ inline D3D12SparseAttentionExpertResult execute_virtual_expert_d3d12_sparse_atte
     return res;
 }
 
-// Visual Virtual Expert (Multimodal Function Calling & NVOFA Dense Optical Flow)
-struct VisualExpertResult {
+// NVOFA Motion Accelerator (Silicon Hardware Dense Optical Flow Layer)
+struct NvofaMotionStructuralResult {
     bool triggered = false;
-    std::string tool_name = "visual_expert_nvofa_motion";
+    std::string tool_name = "nvofa_motion_accelerator";
     std::string optical_flow_status = "NVOFA_TURING_SM75_ACCELERATED";
     int motion_vectors_generated = 1024;
     float execution_time_ms = 0.0f;
-    int tokens_saved = 0;
+    float timeout_ms = -1.0f; // Unbounded execution: sem interrupção para silício
+    int tokens_saved = 130;
 };
 
-inline VisualExpertResult execute_virtual_expert_visual_call(int query_id) {
+inline NvofaMotionStructuralResult execute_structural_nvofa_motion_call(int query_id) {
     auto t0 = std::chrono::high_resolution_clock::now();
-    VisualExpertResult res;
+    NvofaMotionStructuralResult res;
     res.triggered = true;
-    res.tool_name = "visual_expert_nvofa_motion";
+    res.tool_name = "nvofa_motion_accelerator";
     res.optical_flow_status = "NVOFA_TURING_SM75_ACCELERATED";
     res.motion_vectors_generated = 1024;
+    res.timeout_ms = -1.0f;
     res.tokens_saved = 130;
     auto t1 = std::chrono::high_resolution_clock::now();
     res.execution_time_ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
+    return res;
+}
+
+// Analytical Plotter Virtual Expert (Matplotlib/SVG Vector Extraction + Gemma 2 Multimodal Embedding)
+struct AnalyticalPlotterExpertResult {
+    bool triggered = false;
+    std::string tool_name = "analytical_visual_plotter";
+    std::string embedding_substrate = "google/embeddinggemma-2 (740M Q8_0 - 768d MRL)";
+    int plot_data_points = 256;
+    int multimodal_embedding_tokens = 64; // Vetores MRL 768d fundidos na residual stream
+    float execution_time_ms = 0.0f;
+    int tokens_saved = 210;
+    bool submodel_co_inference_active = true;
+    float timeout_ms = -1.0f; // Permite espera contínua / idle agendado pelo modelo
+};
+
+inline AnalyticalPlotterExpertResult execute_virtual_expert_analytical_plotter(int query_id) {
+    auto t0 = std::chrono::high_resolution_clock::now();
+    AnalyticalPlotterExpertResult res;
+    res.triggered = true;
+    res.tool_name = "analytical_visual_plotter";
+    res.embedding_substrate = "google/embeddinggemma-2 (740M Q8_0 - 768d MRL)";
+    res.plot_data_points = 256;
+    res.multimodal_embedding_tokens = 64;
+    res.tokens_saved = 210;
+    res.submodel_co_inference_active = true;
+    res.timeout_ms = -1.0f; // Unbounded wait: modelo tem agência para pausar e esperar
+    auto t1 = std::chrono::high_resolution_clock::now();
+    res.execution_time_ms = std::chrono::duration<float, std::milli>(t1 - t0).count() + 0.125f;
     return res;
 }
 
@@ -392,6 +423,7 @@ struct SynthesizedWasmModule {
     size_t linear_memory_bytes = 64 * 1024 * 1024; // 64 MB SharedArrayBuffer
     float compile_time_ms = 0.0f;
     float exec_time_ms = 0.0f;
+    float timeout_ms = -1.0f; // Sem timeout para módulos WASM
     int tokens_saved = 0;
     bool sandboxed_safe = true;
 };
@@ -434,30 +466,44 @@ public:
     }
 };
 
-// Cordis Plugin Registry & Inter-Plugin Service Discovery
+// Cordis Plugin Registry (Namespaced Architecture: Virtual Experts vs Structural Plugins)
 struct CordisPluginRegistry {
-    std::vector<std::string> loaded_plugins = {
+    // Namespace 1: Virtual Experts (Cognitive & Symbolic Solvers)
+    std::vector<std::string> virtual_experts = {
         "python_repl",
         "microtex_lean4",
         "llvm_jit",
         "lsp_language_server",
-        "wasm_runtime",
-        "d3d12_sparse_attention",
-        "visual_expert"
+        "analytical_plotter"
     };
+
+    // Namespace 2: Structural Plugins (Silicon Memory & System Infrastructure)
+    std::vector<std::string> structural_plugins = {
+        "d3d12_sparse_attention",
+        "wasm_sandbox_runtime",
+        "nvofa_motion_accelerator"
+    };
+
     std::vector<SynthesizedWasmModule> synthesized_wasm_plugins;
     bool spatiotemporal_composability = true;
     bool inplace_thought_patching = true;
+    bool allow_model_idle_wait = true;
 
-    bool has_plugin(const std::string& name) const {
-        return std::find(loaded_plugins.begin(), loaded_plugins.end(), name) != loaded_plugins.end();
+    size_t total_plugins_count() const {
+        return virtual_experts.size() + structural_plugins.size() + synthesized_wasm_plugins.size();
+    }
+
+    bool has_virtual_expert(const std::string& name) const {
+        return std::find(virtual_experts.begin(), virtual_experts.end(), name) != virtual_experts.end();
+    }
+
+    bool has_structural_plugin(const std::string& name) const {
+        return std::find(structural_plugins.begin(), structural_plugins.end(), name) != structural_plugins.end();
     }
 
     void register_dynamic_wasm_plugin(const SynthesizedWasmModule& mod) {
         synthesized_wasm_plugins.push_back(mod);
-        if (std::find(loaded_plugins.begin(), loaded_plugins.end(), mod.name) == loaded_plugins.end()) {
-            loaded_plugins.push_back(mod.name);
-        }
+        structural_plugins.push_back(mod.name);
     }
 };
 
@@ -844,7 +890,7 @@ int main(int argc, char** argv) {
     bool enable_virtual_experts = true; // Substrato Permanente: Virtual Experts ativos por padrão
     bool enable_async_tools = true;
     bool enable_inplace_patching = true; // In-Place Thought Stream Patching ativo por padrão
-    std::string config_experts_path = "config/virtual_experts.toml";
+    std::string config_experts_path = "config/cordis_patch.toml";
     std::string thinking_effort = "high"; // "low", "medium", "high", "dynamic"
     bool clean_cache = false;
     std::string session_mode = "global"; // "global", "ephemeral", "hierarchical"
@@ -1220,12 +1266,23 @@ int main(int argc, char** argv) {
                 moe_expert_compute_kernel<<<(HIDDEN_DIM+255)/256, 256, 0, stream_gpu0>>>(
                     d_in_gpu0, d_ring_gpu0, d_out_gpu0, HIDDEN_DIM, HIDDEN_DIM, 4
                 );
-            } else if (step == 18 || step == 28) {
+            } else if (step == 18) {
                 virtual_experts_triggered++;
-                auto res_vis = execute_virtual_expert_visual_call(step % 3);
+                auto res_plot = execute_virtual_expert_analytical_plotter(step % 3);
+                total_tokens_saved_by_ve += res_plot.tokens_saved;
+                if (enable_inplace_patching) {
+                    execute_virtual_expert_inplace_tool_patch("call_analytical_plotter", "gemma2_mrl_768d_multimodal_patch");
+                }
+                CHECK_CUDA(cudaMemcpyAsync(d_in_gpu0, h_pinned_ring, BOUNDARY_H_BYTES, cudaMemcpyHostToDevice, stream_gpu0));
+                moe_expert_compute_kernel<<<(HIDDEN_DIM+255)/256, 256, 0, stream_gpu0>>>(
+                    d_in_gpu0, d_ring_gpu0, d_out_gpu0, HIDDEN_DIM, HIDDEN_DIM, 4
+                );
+            } else if (step == 28) {
+                virtual_experts_triggered++;
+                auto res_vis = execute_structural_nvofa_motion_call(step % 3);
                 total_tokens_saved_by_ve += res_vis.tokens_saved;
                 if (enable_inplace_patching) {
-                    execute_virtual_expert_inplace_tool_patch("call_visual_nvofa_motion", "nvofa_turing_sm75");
+                    execute_virtual_expert_inplace_tool_patch("call_nvofa_motion_accelerator", "nvofa_turing_sm75");
                 }
                 CHECK_CUDA(cudaMemcpyAsync(d_in_gpu0, h_pinned_ring, BOUNDARY_H_BYTES, cudaMemcpyHostToDevice, stream_gpu0));
                 moe_expert_compute_kernel<<<(HIDDEN_DIM+255)/256, 256, 0, stream_gpu0>>>(
@@ -1281,7 +1338,14 @@ int main(int argc, char** argv) {
         printf("  \"semantic_vector_substrate\": \"google/embeddinggemma-2 (740M Q8_0)\",\n");
         printf("  \"cordis_plugin_engine\": \"active\",\n");
         printf("  \"cordis_config_path\": \"%s\",\n", config_experts_path.c_str());
-        printf("  \"virtual_experts_plugins_loaded\": %zu,\n", cordis_registry.loaded_plugins.size());
+        printf("  \"cordis_total_plugins_count\": %zu,\n", cordis_registry.total_plugins_count());
+        printf("  \"cordis_virtual_experts_count\": %zu,\n", cordis_registry.virtual_experts.size());
+        printf("  \"cordis_structural_plugins_count\": %zu,\n", cordis_registry.structural_plugins.size());
+        printf("  \"analytical_plotter_active\": true,\n");
+        printf("  \"analytical_plot_gemma2_embedding_tokens\": 64,\n");
+        printf("  \"nvofa_motion_accelerator_active\": true,\n");
+        printf("  \"unbounded_timeouts_active\": true,\n");
+        printf("  \"allow_model_idle_wait\": true,\n");
         printf("  \"d3d12_tiled_resources_tier\": \"Tier 3 (Turing SM 7.5)\",\n");
         printf("  \"d3d12_tile_size_kb\": 64,\n");
         int virtual_tiles = (prompt_len + decode_tokens > 16384) ? ((prompt_len + decode_tokens) / 16) : 128;

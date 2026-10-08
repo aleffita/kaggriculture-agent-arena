@@ -1,21 +1,27 @@
 # ==============================================================================
-# VIRTUAL EXPERTS PLUGIN ARCHITECTURE (CORDIS SPATIOTEMPORAL COMPOSABILITY)
+# CORDIS PATCH ARCHITECTURE (SPATIOTEMPORAL COMPOSABILITY PROTOCOL)
 # Configuration Protocol for Heterogeneous Autonomous Virtual Experts Substrate
 # Inspired by DeepSeek Harness (dsh) & Cordis Meta-Framework: "Everything is a Plugin"
 # ==============================================================================
 
 [cordis]
-version = "1.0.0"
+version = "1.1.0"
 framework = "cordis-spatiotemporal-composability"
 context_scope = "unified_heterogeneous_runtime"
 service_bus = "shared_context_named_pipe"
-inplace_thought_patching = true # Default ativo: resolução em turno único na residual stream
-inter_plugin_service_discovery = true # Plugins expõem e consomem serviços entre si
+inplace_thought_patching = true # Resolução em turno único na residual stream
+inter_plugin_service_discovery = true # Plugins e infraestrutura expõem e consomem serviços entre si
+allow_model_idle_wait = true # Permite ao modelo requerer tempo de espera/idle enquanto experts concluem
+default_timeout_policy = "unbounded_for_structural" # timeout_ms = -1 desativa interrupções
+
+# ==============================================================================
+# ZONE 1: NAMESPACE VIRTUAL EXPERTS (COGNITIVE & SYMBOLIC REASONING SOLVERS)
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
 # 1. PYTHON REPL VIRTUAL EXPERT (CHRIS HAY PROTOCOL)
 # ------------------------------------------------------------------------------
-[plugins.python_repl]
+[namespaces.virtual_experts.python_repl]
 enabled = true
 priority = 100
 transport = "inplace_dma"
@@ -27,7 +33,7 @@ timeout_ms = 50.0
 # ------------------------------------------------------------------------------
 # 2. MICROTEX & LEAN 4 FORMAL MATH VIRTUAL EXPERT
 # ------------------------------------------------------------------------------
-[plugins.microtex_lean4]
+[namespaces.virtual_experts.microtex_lean4]
 enabled = true
 priority = 95
 transport = "inplace_dma"
@@ -39,7 +45,7 @@ timeout_ms = 15.0
 # ------------------------------------------------------------------------------
 # 3. LLVM JIT NATIVE COMPILER VIRTUAL EXPERT
 # ------------------------------------------------------------------------------
-[plugins.llvm_jit]
+[namespaces.virtual_experts.llvm_jit]
 enabled = true
 priority = 90
 transport = "host_memory_avx2"
@@ -51,7 +57,7 @@ timeout_ms = 5.0
 # ------------------------------------------------------------------------------
 # 4. LANGUAGE SERVER PROTOCOL (LSP) CODE ASSIST VIRTUAL EXPERT
 # ------------------------------------------------------------------------------
-[plugins.lsp_language_server]
+[namespaces.virtual_experts.lsp_language_server]
 enabled = true
 priority = 85
 transport = "inplace_dma_named_pipe"
@@ -62,43 +68,64 @@ consumes = ["code_generation_stream"]
 timeout_ms = 2.0 # Execução ultra-rápida na janela DMA (80-106 µs)
 
 # ------------------------------------------------------------------------------
-# 5. WEBASSEMBLY (WASM) RUNTIME VIRTUAL EXPERT
+# 5. ANALYTICAL PLOTTER & MULTIMODAL GEMMA 2 EMBEDDING VIRTUAL EXPERT
 # ------------------------------------------------------------------------------
-[plugins.wasm_runtime]
+[namespaces.virtual_experts.analytical_plotter]
 enabled = true
 priority = 80
-transport = "wasm_threads_shared_linear_memory"
-service_name = "sandboxed_plugins"
-engine = "wasm_micro_engine"
-threading_extensions = true # WebAssembly Threads & SharedArrayBuffer linear memory
-fault_isolation = true
-provides = ["sandboxed_exec", "dynamic_plugin_loader", "wasm_user_modules"]
-consumes = ["sandboxed_tasks", "cordis_services"]
-timeout_ms = 10.0
+transport = "multimodal_embeddinggemma2_patch"
+service_name = "analytical_visual_plotter"
+embedding_model = "google/embeddinggemma-2 (740M Q8_0 - 768d MRL)"
+multimodal_projection = "mmproj-embeddinggemma-2-Q8_0.gguf"
+provides = ["analytic_plots", "svg_raster_features", "gemma2_multimodal_embeddings", "vision_token_fusion"]
+consumes = ["repl_data", "sympy_points", "raw_vectors"]
+timeout_ms = -1.0 # -1 desativa timeout: o modelo tem a agência de esperar ou continuar assincronamente
+supports_submodel_delegation = true # Habilita co-inferência delegada para sub-modelos no runtime
+
+# ==============================================================================
+# ZONE 2: NAMESPACE STRUCTURAL (SILICON MEMORY & SYSTEM INFRASTRUCTURE PLUGINS)
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
-# 6. D3D12 TIER 1.1 / TIER 3 SPARSE ATTENTION IN SILICON
+# 6. D3D12 TIER 1.1 / TIER 3 SPARSE ATTENTION IN SILICON (HARDWARE PAGING)
 # ------------------------------------------------------------------------------
-[plugins.d3d12_sparse_attention]
+[namespaces.structural.d3d12_sparse_attention]
 enabled = true
 priority = 75
 transport = "directx12_graphics_silicon"
 service_name = "silicon_sparse_paging"
 tier = "D3D12_TILED_RESOURCES_TIER_3"
-tile_size_kb = 64 # 64 KB physical memory tiles
+tile_size_kb = 64 # Páginas físicas de 64 KB no hardware Turing SM 7.5
 hardware_target = "NVIDIA GeForce RTX 2060 (Turing SM 7.5)"
 provides = ["update_tile_mappings", "zero_overhead_sparse_attention", "tiled_kv_paging"]
 consumes = ["sparse_attention_centroids"]
-timeout_ms = 1.0
+timeout_ms = -1.0 # Sem timeout para componentes estruturais de silício
 
 # ------------------------------------------------------------------------------
-# 7. VISUAL VIRTUAL EXPERT (MULTIMODAL FUNCTION CALLING & NVOFA)
+# 7. WEBASSEMBLY (WASM) SANDBOX RUNTIME (JIT ENGINE & SHARED LINEAR MEMORY)
 # ------------------------------------------------------------------------------
-[plugins.visual_expert]
+[namespaces.structural.wasm_sandbox_runtime]
 enabled = true
 priority = 70
+transport = "wasm_threads_shared_linear_memory"
+service_name = "sandboxed_plugins"
+engine = "wasm_micro_engine"
+threading_extensions = true # WebAssembly Threads & SharedArrayBuffer linear memory
+linear_memory_mb = 64
+fault_isolation = true
+provides = ["sandboxed_exec", "dynamic_plugin_loader", "wasm_user_modules"]
+consumes = ["sandboxed_tasks", "cordis_services"]
+timeout_ms = -1.0 # Sem timeout para infraestrutura de sandbox
+
+# ------------------------------------------------------------------------------
+# 8. NVOFA MOTION ACCELERATOR (TURING HARDWARE OPTICAL FLOW LAYER)
+# ------------------------------------------------------------------------------
+[namespaces.structural.nvofa_motion_accelerator]
+enabled = true
+priority = 65
 transport = "inplace_stream_patch"
-service_name = "multimodal_vision_motion"
-provides = ["nvofa_motion_vectors", "vision_token_patching", "visual_function_call"]
-consumes = ["multimodal_tokens"]
-timeout_ms = 8.0
+service_name = "nvofa_dense_optical_flow"
+hardware_target = "NVIDIA Turing Optical Flow Accelerator (SM 7.5)"
+provides = ["nvofa_motion_vectors", "dense_displacement_grid", "temporal_token_delta"]
+consumes = ["multimodal_frames"]
+timeout_ms = -1.0 # Sem timeout para circuitos gráficos dedicados
