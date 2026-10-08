@@ -120,6 +120,7 @@ def main():
     live_parser.add_argument("--session", type=str, default="live-main")
     live_parser.add_argument("--dual", action="store_true")
     live_parser.add_argument("--server", action="store_true")
+    live_parser.add_argument("--host", type=str, default="127.0.0.1", help="Host de escuta (use 0.0.0.0 para LAN)")
     live_parser.add_argument("--port", type=int, default=8765)
     live_parser.add_argument("--mute", action="store_true")
 

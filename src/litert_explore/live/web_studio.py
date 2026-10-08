@@ -1100,15 +1100,32 @@ def create_studio_app(session: Optional[LiveSession] = None) -> Flask:
 
 def main():
     import argparse
+    import socket
+
     parser = argparse.ArgumentParser(description="Unified CED Omnimodal Three.js Live Studio")
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="Endereço de rede para escuta (padrão: 127.0.0.1, use 0.0.0.0 para expor na LAN)")
     parser.add_argument("--port", type=int, default=8765, help="Porta do servidor Web (padrão: 8765)")
     parser.add_argument("--model", type=str, default="gpt-oss", help="Modelo inicial (padrão: gpt-oss)")
     args = parser.parse_args()
 
     session = LiveSession(model=args.model, dual_session=False)
     app = create_studio_app(session)
-    print(f"\n⚡ [Unified CED Live Studio Iniciado]: http://127.0.0.1:{args.port}\n")
-    app.run(host="127.0.0.1", port=args.port, debug=False)
+
+    print(f"\n⚡ [Unified CED Live Studio Iniciado]:")
+    print(f"   • Local: http://127.0.0.1:{args.port}")
+    if args.host == "0.0.0.0":
+        try:
+            hostname = socket.gethostname()
+            lan_ips = [ip for ip in socket.gethostbyname_ex(hostname)[2] if not ip.startswith("127.")]
+            for ip in lan_ips:
+                print(f"   • LAN:   http://{ip}:{args.port}")
+        except Exception:
+            print(f"   • LAN:   http://0.0.0.0:{args.port}")
+    elif args.host != "127.0.0.1":
+        print(f"   • Host:  http://{args.host}:{args.port}")
+    print()
+
+    app.run(host=args.host, port=args.port, debug=False)
 
 if __name__ == "__main__":
     main()

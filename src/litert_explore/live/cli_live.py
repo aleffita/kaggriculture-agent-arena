@@ -19,18 +19,21 @@ from .realtime_server import RealtimeBridgeServer
 
 console = Console()
 
-def render_banner(session: LiveSession, server_port: int | None = None, dual: bool = False):
+def render_banner(session: LiveSession, server_host: str = "127.0.0.1", server_port: int | None = None, dual: bool = False):
     title = "[bold green]⚡ UNIFIED CED RUNTIME - LIVE CONVERSATIONAL STUDIO[/bold green]"
     sub = (
         f"[cyan]Modelo Padrão:[/cyan] [bold white]{session.model}[/bold white] (Multimodal MRL 768d + BVH MoE Tier 1.1)\n"
         f"[cyan]Substrato Físico:[/cyan] GPU 0 (RTX 2060 6GB) + GPU 1 (GTX 1050 Ti 4GB) + Direct NVMe (Z:\\models)\n"
-        f"[cyan]Síntese de Voz:[/cyan] [bold yellow]KittenTTS-2 PT-BR[/bold yellow] (Host CPU AVX2, RTF 0.082, 0 MB VRAM GPU)\n"
+        f"[cyan]Síntese de Voz:[/cyan] [bold yellow]Mimi Neural Codec PT-BR[/bold yellow] (GPU 0 RTX 2060, RTF 0.0048, 14 MB VRAM)\n"
         f"[cyan]Sessão Ativa:[/cyan] [bold magenta]{session.active_session_id}[/bold magenta] (Concorrência até 128 sessões em disco)\n"
         f"[cyan]Co-Sessão Paralela:[/cyan] [{'green' if dual else 'dim'}]"
         f"{'ATIVA (Sessão Crítica em Background)' if dual else 'DESABILITADA (Use /dual para ativar)'}[/]"
     )
     if server_port:
-        sub += f"\n[cyan]Web Studio Studio:[/cyan] [link=http://127.0.0.1:{server_port}]http://127.0.0.1:{server_port}[/link]"
+        display_host = "127.0.0.1" if server_host == "0.0.0.0" else server_host
+        sub += f"\n[cyan]Web Studio:[/cyan] [link=http://{display_host}:{server_port}]http://{display_host}:{server_port}[/link]"
+        if server_host == "0.0.0.0":
+            sub += f" [dim](Aberto para LAN na porta {server_port})[/dim]"
 
     console.print(Panel(sub, title=title, border_style="green"))
     console.print("[dim]Comandos: /switch <modelo> | /session <new|fork|list> | /dual | /mute | /status | /help | /exit[/dim]\n")
@@ -128,6 +131,7 @@ def main():
     parser.add_argument("--session", type=str, default="live-main", help="ID da sessão inicial")
     parser.add_argument("--dual", action="store_true", help="Ativar co-sessão reflexiva paralela do mesmo modelo")
     parser.add_argument("--server", action="store_true", help="Iniciar também o Realtime Bridge Server local")
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="Endereço de rede para escuta (padrão: 127.0.0.1, use 0.0.0.0 para LAN)")
     parser.add_argument("--port", type=int, default=8765, help="Porta do servidor Realtime Bridge (padrão: 8765)")
     parser.add_argument("--mute", action="store_true", help="Desativar reprodução de áudio")
 
@@ -143,10 +147,10 @@ def main():
 
     server = None
     if args.server:
-        server = RealtimeBridgeServer(session=session, port=args.port)
+        server = RealtimeBridgeServer(session=session, host=args.host, port=args.port)
         server.start()
 
-    render_banner(session, server_port=args.port if args.server else None, dual=args.dual)
+    render_banner(session, server_host=args.host, server_port=args.port if args.server else None, dual=args.dual)
     try:
         run_live_loop(session, dual=args.dual)
     finally:

@@ -276,15 +276,16 @@ class LiveRequestHandler(BaseHTTPRequestHandler):
 class RealtimeBridgeServer:
     """Servidor HTTP e Realtime Bridge local."""
 
-    def __init__(self, session: LiveSession, port: int = 8765):
+    def __init__(self, session: LiveSession, host: str = "127.0.0.1", port: int = 8765):
         self.session = session
+        self.host = host
         self.port = port
         self.server: Optional[HTTPServer] = None
         self._thread: Optional[threading.Thread] = None
 
     def start(self):
         handler_cls = type("LiveHandlerWithSession", (LiveRequestHandler,), {"session": self.session})
-        self.server = HTTPServer(("127.0.0.1", self.port), handler_cls)
+        self.server = HTTPServer((self.host, self.port), handler_cls)
         self._thread = threading.Thread(target=self.server.serve_forever, daemon=True, name="LiveServerThread")
         self._thread.start()
 
