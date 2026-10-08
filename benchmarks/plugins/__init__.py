@@ -11,6 +11,8 @@ from .session_concurrency_bench import SessionConcurrencyBenchmarkPlugin
 from .niah_bench import NeedleInAHaystackBenchmarkPlugin
 from .tiled_context_bench import D3D12TiledContextBenchmarkPlugin
 from .analytical_plotter_bench import AnalyticalPlotterBenchmarkPlugin
+from .multimodal_judge_bench import MultimodalJudgeBenchmarkPlugin
+from .moshi_audio_stream_bench import MoshiAudioStreamBenchmarkPlugin
 
 __all__ = [
     "BaseBenchmarkPlugin",
@@ -25,4 +27,6 @@ __all__ = [
     "NeedleInAHaystackBenchmarkPlugin",
     "D3D12TiledContextBenchmarkPlugin",
     "AnalyticalPlotterBenchmarkPlugin",
+    "MultimodalJudgeBenchmarkPlugin",
+    "MoshiAudioStreamBenchmarkPlugin",
 ]

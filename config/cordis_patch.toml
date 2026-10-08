@@ -82,16 +82,49 @@ consumes = ["repl_data", "sympy_points", "raw_vectors"]
 timeout_ms = -1.0 # -1 desativa timeout: o modelo tem a agência de esperar ou continuar assincronamente
 supports_submodel_delegation = true # Habilita co-inferência delegada para sub-modelos no runtime
 
+# ------------------------------------------------------------------------------
+# 6. MULTIMODAL AUTO-JUDGE & CONTINUOUS PEER REVIEW (GEMMA 4 E2B CO-INFERENCE)
+# ------------------------------------------------------------------------------
+[namespaces.virtual_experts.multimodal_auto_judge]
+enabled = true
+priority = 75
+transport = "parallel_coinference_channel"
+service_name = "multimodal_peer_review_judge"
+submodel = "gemma-4-E2B-it (2.3B LiteRT FlatBuffer)"
+role = "continuous_peer_review_judge"
+co_inference = "parallel_async_stream" # Co-inferência paralela não-bloqueante
+provides = ["visual_description_verification", "cot_step_critique", "auto_judge_consensus"]
+consumes = ["multimodal_tokens", "model_generated_thought"]
+timeout_ms = -1.0 # Permite ao modelo aguardar deliberação ou prosseguir concorrentemente
+
+# ------------------------------------------------------------------------------
+# 7. KITTEN-TTS 2 BRAZILIAN PORTUGUESE SPEECH SYNTHESIS VIRTUAL EXPERT
+# ------------------------------------------------------------------------------
+[namespaces.virtual_experts.kitten_tts_speech]
+enabled = true
+priority = 70
+transport = "host_audio_stream_avx2"
+service_name = "text_to_speech_pt_br"
+model = "KittenML/kitten-tts-2 (CPU-optimized AVX2)"
+language = "pt-br"
+math_formula_verbalizer = true # Verbalização fonética precisa de fórmulas em português brasileiro
+read_aloud_stream = true # Síntese sob demanda ou em paralelo ao raciocínio
+channels = 1
+sample_rate_hz = 24000
+provides = ["pt_br_waveform", "math_phonetic_speech", "read_aloud_audio_tokens"]
+consumes = ["text_stream", "math_latex_tokens"]
+timeout_ms = -1.0 # Modelo escolhe quando verbalizar sem cancelamento por timeout
+
 # ==============================================================================
 # ZONE 2: NAMESPACE STRUCTURAL (SILICON MEMORY & SYSTEM INFRASTRUCTURE PLUGINS)
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# 6. D3D12 TIER 1.1 / TIER 3 SPARSE ATTENTION IN SILICON (HARDWARE PAGING)
+# 8. D3D12 TIER 1.1 / TIER 3 SPARSE ATTENTION IN SILICON (HARDWARE PAGING)
 # ------------------------------------------------------------------------------
 [namespaces.structural.d3d12_sparse_attention]
 enabled = true
-priority = 75
+priority = 65
 transport = "directx12_graphics_silicon"
 service_name = "silicon_sparse_paging"
 tier = "D3D12_TILED_RESOURCES_TIER_3"
@@ -102,11 +135,11 @@ consumes = ["sparse_attention_centroids"]
 timeout_ms = -1.0 # Sem timeout para componentes estruturais de silício
 
 # ------------------------------------------------------------------------------
-# 7. WEBASSEMBLY (WASM) SANDBOX RUNTIME (JIT ENGINE & SHARED LINEAR MEMORY)
+# 9. WEBASSEMBLY (WASM) SANDBOX RUNTIME (JIT ENGINE & SHARED LINEAR MEMORY)
 # ------------------------------------------------------------------------------
 [namespaces.structural.wasm_sandbox_runtime]
 enabled = true
-priority = 70
+priority = 60
 transport = "wasm_threads_shared_linear_memory"
 service_name = "sandboxed_plugins"
 engine = "wasm_micro_engine"
@@ -118,14 +151,28 @@ consumes = ["sandboxed_tasks", "cordis_services"]
 timeout_ms = -1.0 # Sem timeout para infraestrutura de sandbox
 
 # ------------------------------------------------------------------------------
-# 8. NVOFA MOTION ACCELERATOR (TURING HARDWARE OPTICAL FLOW LAYER)
+# 10. NVOFA MOTION ACCELERATOR (TURING HARDWARE OPTICAL FLOW LAYER)
 # ------------------------------------------------------------------------------
 [namespaces.structural.nvofa_motion_accelerator]
 enabled = true
-priority = 65
+priority = 55
 transport = "inplace_stream_patch"
 service_name = "nvofa_dense_optical_flow"
 hardware_target = "NVIDIA Turing Optical Flow Accelerator (SM 7.5)"
 provides = ["nvofa_motion_vectors", "dense_displacement_grid", "temporal_token_delta"]
 consumes = ["multimodal_frames"]
 timeout_ms = -1.0 # Sem timeout para circuitos gráficos dedicados
+
+# ------------------------------------------------------------------------------
+# 11. MOSHI RAG DUAL-STREAM RECURRENCE CONTROLLER (FULL-DUPLEX CONTINUOUS STREAM)
+# ------------------------------------------------------------------------------
+[namespaces.structural.moshi_dual_stream_recurrence]
+enabled = true
+priority = 50
+transport = "pinned_host_dma_ring"
+framework = "kyutai-labs/moshi-rag"
+channels = ["inner_thought_stream", "speech_acoustic_stream"]
+mode = "full_duplex_non_blocking"
+provides = ["dual_channel_recurrence", "asynchronous_rag_injection", "non_blocking_speech_overlap"]
+consumes = ["residual_stream", "audio_codec_tokens"]
+timeout_ms = -1.0 # Streaming contínuo infinito sem interrupções
