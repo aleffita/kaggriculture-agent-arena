@@ -114,6 +114,15 @@ def main():
     hpc_parser.add_argument("--tokens", type=int, default=50, help="Number of tokens to generate in pipeline benchmark")
     hpc_parser.add_argument("--model", type=str, default=None, help="Path to .litertlm model file")
 
+    # live
+    live_parser = subparsers.add_parser("live", help="Start full-duplex live conversational studio with speech and multi-session")
+    live_parser.add_argument("--model", type=str, default="gpt-oss")
+    live_parser.add_argument("--session", type=str, default="live-main")
+    live_parser.add_argument("--dual", action="store_true")
+    live_parser.add_argument("--server", action="store_true")
+    live_parser.add_argument("--port", type=int, default=8765)
+    live_parser.add_argument("--mute", action="store_true")
+
     args = parser.parse_args()
 
     if args.command == "bench":
@@ -129,6 +138,9 @@ def main():
         chat_cli(args.target, args.model)
     elif args.command == "hpc-pipeline":
         hpc_cli(mode=args.mode, tokens=args.tokens, model=args.model)
+    elif args.command == "live":
+        from .live.cli_live import main as live_main
+        live_main()
     else:
         parser.print_help()
 

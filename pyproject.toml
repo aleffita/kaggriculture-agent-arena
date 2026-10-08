@@ -29,6 +29,7 @@ litert-bench = "litert_explore.cli:bench_cli"
 litert-gpu = "litert_explore.cli:gpu_cli"
 litert-hpc = "litert_explore.cli:hpc_cli"
 litert-autoresearch = "benchmarks.runner:main"
+litert-live = "litert_explore.live.cli_live:main"
 kaggriculture-dashboard = "kaggriculture.dashboard.app:main"
 
 
