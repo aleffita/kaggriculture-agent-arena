@@ -43,6 +43,7 @@ from benchmarks.plugins.analytical_plotter_bench import AnalyticalPlotterBenchma
 from benchmarks.plugins.multimodal_judge_bench import MultimodalJudgeBenchmarkPlugin
 from benchmarks.plugins.moshi_audio_stream_bench import MoshiAudioStreamBenchmarkPlugin
 from benchmarks.plugins.openai_wire_eval import OpenAIWireEvalBenchmarkPlugin
+from benchmarks.plugins.contextbench_eval import ContextBenchBenchmarkPlugin
 from benchmarks.plots import generate_all_plots
 
 REGISTERED_BENCHMARKS: Dict[str, Type[BaseBenchmarkPlugin]] = {
@@ -58,6 +59,8 @@ REGISTERED_BENCHMARKS: Dict[str, Type[BaseBenchmarkPlugin]] = {
     "multimodal_judge": MultimodalJudgeBenchmarkPlugin,
     "moshi_audio_stream": MoshiAudioStreamBenchmarkPlugin,
     "openai_wire_eval": OpenAIWireEvalBenchmarkPlugin,
+    "contextbench_eval": ContextBenchBenchmarkPlugin,
+    "contextbench": ContextBenchBenchmarkPlugin,
 }
 
 REPORTS_DIR = BENCHMARKS_DIR / "reports"

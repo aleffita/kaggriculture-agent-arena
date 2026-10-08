@@ -201,6 +201,11 @@
       "enabled": true,
       "corpus": "WikiText-2 / C4 Canonical Passage",
       "loss_function": "cross_entropy"
+    },
+    "contextbench_eval": {
+      "enabled": true,
+      "tasks": ["needle_retention", "sudoku_sketchpad", "kv_store", "log_triage"],
+      "specification": "Meta CLM (arXiv:2609.37725v1)"
     }
   },
   "session_management": {

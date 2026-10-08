@@ -14,6 +14,7 @@ from .analytical_plotter_bench import AnalyticalPlotterBenchmarkPlugin
 from .multimodal_judge_bench import MultimodalJudgeBenchmarkPlugin
 from .moshi_audio_stream_bench import MoshiAudioStreamBenchmarkPlugin
 from .openai_wire_eval import OpenAIWireEvalBenchmarkPlugin
+from .contextbench_eval import ContextBenchBenchmarkPlugin
 
 __all__ = [
     "BaseBenchmarkPlugin",
@@ -31,4 +32,5 @@ __all__ = [
     "MultimodalJudgeBenchmarkPlugin",
     "MoshiAudioStreamBenchmarkPlugin",
     "OpenAIWireEvalBenchmarkPlugin",
+    "ContextBenchBenchmarkPlugin",
 ]
